@@ -5,12 +5,14 @@ use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{Span, SpanId, TraceId, Tracer};
 use opentelemetry::{Key, KeyValue, global};
+use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{
-    Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
-    WithHttpConfig,
+    Compression, ExporterBuildError, LogExporter, MetricExporter, Protocol, SpanExporter,
+    WithExportConfig, WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::error::OTelSdkResult;
+use opentelemetry_sdk::logs::SdkLoggerProvider;
 use opentelemetry_sdk::metrics::{Aggregation, Instrument, SdkMeterProvider, Stream};
 use opentelemetry_sdk::resource::EnvResourceDetector;
 use opentelemetry_sdk::trace::SdkTracerProvider;
@@ -22,6 +24,8 @@ use std::time::Duration;
 use strum::IntoStaticStr;
 use tracing::{info, warn};
 use uuid::Uuid;
+
+use hook0_sentry_integration::BoxedLayer;
 
 use crate::work::{Response, ResponseError};
 use crate::{Config, RequestAttempt};
@@ -57,7 +61,12 @@ enum TracesExporter {
 
 const SERVICE_INSTANCE_ID: &str = "service.instance.id";
 
-fn service_instance_id() -> String {
+// Resolved once per process: metrics, traces and logs are built from separate
+// calls (logs before the Sentry subscriber, metrics/traces after), and they must
+// all carry the *same* `service.instance.id`. Without caching, the random fallback
+// below would hand each signal a different id whenever the env detector finds none,
+// splitting a single worker into three "instances" in Grafana.
+static PROCESS_INSTANCE_ID: LazyLock<String> = LazyLock::new(|| {
     let detected = Resource::builder_empty()
         .with_detector(Box::new(EnvResourceDetector::new()))
         .build()
@@ -65,6 +74,10 @@ fn service_instance_id() -> String {
         .map(|value| value.as_str().into_owned());
 
     pick_service_instance_id(detected.as_deref())
+});
+
+fn service_instance_id() -> String {
+    PROCESS_INSTANCE_ID.clone()
 }
 
 fn pick_service_instance_id(detected: Option<&str>) -> String {
@@ -74,21 +87,38 @@ fn pick_service_instance_id(detected: Option<&str>) -> String {
     }
 }
 
-pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBuildError> {
-    let service_instance_id = service_instance_id();
-    let resource = Resource::builder()
+/// The OpenTelemetry `Resource` describing this worker process. Shared verbatim by
+/// the metrics, traces and logs pipelines so the three signals correlate on
+/// identical `service.*`/`worker.name` attributes (including a stable
+/// `service.instance.id`).
+fn resource(config: &Config, version: &str) -> Resource {
+    Resource::builder()
         .with_attributes([
             KeyValue::new("service.namespace", "hook0"),
             KeyValue::new("service.name", "output-worker"),
             KeyValue::new("service.version", version.to_owned()),
             KeyValue::new("worker.name", config.worker_name.clone()),
-            KeyValue::new(SERVICE_INSTANCE_ID, service_instance_id.clone()),
+            KeyValue::new(SERVICE_INSTANCE_ID, service_instance_id()),
         ])
-        .build();
+        .build()
+}
+
+pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBuildError> {
+    let service_instance_id = service_instance_id();
+    let resource = resource(config, version);
     let auth_header = config
         .otlp_authorization
         .as_ref()
         .map(|auth| HashMap::from_iter([("Authorization".to_owned(), auth.to_owned())]));
+
+    // The logs pipeline is actually built first, in `init_logs`, before any subscriber
+    // exists to receive this line. It is reported here so all three signals announce
+    // themselves the same way.
+    if let Some(logs_endpoint) = &config.otlp_logs_endpoint {
+        info!(
+            "OpenTelemetry logs will be exported to {logs_endpoint} (service.instance.id={service_instance_id})"
+        );
+    };
 
     let metrics_exporter = if let Some(metrics_endpoint) = &config.otlp_metrics_endpoint {
         let mut builder = MetricExporter::builder()
@@ -147,6 +177,76 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
         metrics: metrics_exporter,
         traces: traces_exporter,
     })
+}
+
+/// Build the OTLP log pipeline and the `tracing` layer that feeds it — or `None`
+/// when no logs endpoint is configured.
+///
+/// Unlike metrics and traces (which publish through global providers and are set up
+/// in [`init`]), the logs bridge is a `tracing` layer: it can only be installed
+/// while the subscriber is being built, and the subscriber is built — once — in
+/// `hook0_sentry_integration::init`. So this runs *before* that call, returns the
+/// layer for the caller to hand to it, and returns an [`OtlpLogsGuard`] the caller must
+/// keep: that guard is what flushes the pipeline when the process exits.
+///
+/// No subscriber exists yet while this runs, so the startup line confirming where logs
+/// are being shipped is emitted later, by [`init`].
+///
+/// The exporter mirrors the metrics/traces ones (HTTP binary, zstd, shared
+/// `Resource` and `Authorization` header) so all three signals land in the configured
+/// OTLP backend with the same correlation attributes — including the `trace_id`/`span_id`
+/// already stamped on the delivery log lines.
+pub fn init_logs(
+    config: &Config,
+    version: &str,
+) -> Result<Option<(OtlpLogsGuard, BoxedLayer)>, ExporterBuildError> {
+    let Some(logs_endpoint) = &config.otlp_logs_endpoint else {
+        return Ok(None);
+    };
+
+    let mut builder = LogExporter::builder()
+        .with_http()
+        .with_protocol(Protocol::HttpBinary)
+        .with_compression(Compression::Zstd)
+        .with_endpoint(logs_endpoint.as_str())
+        .with_timeout(Duration::from_secs(10));
+    if let Some(auth) = &config.otlp_authorization {
+        builder = builder.with_headers(HashMap::from_iter([(
+            "Authorization".to_owned(),
+            auth.to_owned(),
+        )]));
+    }
+    let otlp_exporter = builder.build()?;
+
+    let logger_provider = SdkLoggerProvider::builder()
+        .with_batch_exporter(otlp_exporter)
+        .with_resource(resource(config, version))
+        .build();
+
+    // Bridges every `tracing` event into the OTLP log pipeline, carrying the active
+    // span context so each Loki line can be joined back to its Tempo trace.
+    let layer: BoxedLayer = Box::new(OpenTelemetryTracingBridge::new(&logger_provider));
+
+    Ok(Some((OtlpLogsGuard(logger_provider), layer)))
+}
+
+/// Flushes the OTLP log pipeline when the process exits.
+///
+/// [`SdkLoggerProvider`] is a refcounted handle, and the `tracing` bridge installed on the
+/// process-wide subscriber holds a clone of it. That subscriber is never dropped, so the
+/// refcount never falls to zero and the provider's own `Drop` never runs: letting our
+/// handle go out of scope would flush nothing, and the shutdown has to be explicit.
+///
+/// `main` holds this guard, so the flush happens at the very end of the process — after
+/// the last log line, and on the panic-unwind path too.
+pub struct OtlpLogsGuard(SdkLoggerProvider);
+
+impl Drop for OtlpLogsGuard {
+    fn drop(&mut self) {
+        if let Err(e) = self.0.shutdown() {
+            warn!("Could not flush OTLP logs before exit: {e}");
+        }
+    }
 }
 
 // These instruments are built once on first use and stay bound to the global
@@ -728,6 +828,14 @@ mod tests {
 
         assert!(Uuid::parse_str(&first).is_ok());
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn all_three_signals_share_one_service_instance_id() {
+        // Logs are initialized in a separate call from metrics and traces. Without the
+        // `PROCESS_INSTANCE_ID` cache, the random fallback above would hand each signal a
+        // different id, splitting one worker into three instances in Grafana.
+        assert_eq!(service_instance_id(), service_instance_id());
     }
 }
 

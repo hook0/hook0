@@ -178,6 +178,7 @@ own build.
 | `HEALTH_CHECK_KEY` 🔒 | Key for the health check endpoint; if not specified, endpoint is disabled; if empty, endpoint is public | - |  |
 | `HEALTH_CHECK_TIMEOUT` | Max timeout duration for health check: if subsystems take longer to respond they will be considered unhealthy | `5s` |  |
 | `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
+| `OTLP_LOGS_ENDPOINT` | Optional OTLP endpoint that will receive logs | - |  |
 | `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
 | `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
 | `SENTRY_DEBUG` | Enable Sentry SDK debug mode | `false` |  |
@@ -266,6 +267,7 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `SENTRY_SEND_DEFAULT_PII` | Send default PII (IP addresses, cookies, etc.) to Sentry | `false` |  |
 | `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
 | `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
+| `OTLP_LOGS_ENDPOINT` | Optional OTLP endpoint that will receive logs | - |  |
 | `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
 | `DATABASE_URL` 🔒 | Database URL (with credentials) | - | ✓ |
 | `MAX_DB_CONNECTIONS` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT) | `5` |  |
