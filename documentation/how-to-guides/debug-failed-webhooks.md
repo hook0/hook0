@@ -1,3 +1,10 @@
+---
+title: "Debug Failed Webhooks: Trace the Delivery That Never Arrived"
+sidebar_label: "Debug failed webhooks"
+description: "Diagnose webhook delivery failures in Hook0. Read request attempts, tell a 4xx that won't retry from a 5xx that will, and find the endpoint that fails without ever returning an error."
+keywords: [debug webhooks, failed webhook delivery, webhook not received, webhook delivery failure, request attempts, webhook troubleshooting]
+---
+
 # Debugging failed webhook deliveries
 
 This guide walks through identifying, diagnosing, and fixing webhook delivery failures in Hook0. Each failed delivery is tracked as a [request attempt](/concepts/request-attempts).

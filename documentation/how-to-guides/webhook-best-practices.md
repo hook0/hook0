@@ -1,6 +1,7 @@
 ---
-title: "Webhook best practices for producers and consumers"
-description: "Production patterns for sending and receiving webhooks: signature verification, exponential backoff, circuit breakers, payload design, and versioning."
+title: "Webhook Best Practices That Actually Prevent Outages"
+sidebar_label: "Webhook best practices"
+description: "Production patterns for both sides of a webhook: HMAC signatures, idempotency keys, exponential backoff, circuit breakers, and payload versioning that survives change."
 keywords: [webhook best practices, webhook security, webhook retry, webhook design, webhook versioning]
 ---
 

@@ -1,3 +1,10 @@
+---
+title: "Multi-Tenant Webhooks: One Hook0 Setup, Millions of Isolated Tenants"
+sidebar_label: "Multi-tenant architecture"
+description: "Build multi-tenant webhook delivery on Hook0 with label-based routing. Per-tenant isolation, delivery logs, and a design that scales to billions of events, the pattern GitLab.com uses."
+keywords: [multi-tenant webhooks, webhook per tenant, tenant isolation, label routing, SaaS webhooks, scalable webhook architecture]
+---
+
 # Multi-tenant webhook architecture
 
 This guide shows how to implement a multi-tenant webhook system using Hook0's [label](/concepts/labels)-based routing. It works for platforms with millions of users and projects, with full isolation and delivery visibility.

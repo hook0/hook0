@@ -1,5 +1,6 @@
 ---
-title: "Webhook HMAC Verification — The Step Most Skip"
+title: "Webhook HMAC Verification: the Step Most Integrations Skip"
+sidebar_label: "Webhook authentication"
 description: "Working code for Python, Node.js & Rust. Covers HMAC-SHA256 signatures, timestamp validation to block replay attacks, and the IP allowlisting gotcha that breaks production."
 keywords: [webhook authentication, HMAC signature verification, webhook security, secure webhooks, replay attack prevention, webhook signature Python, webhook signature Node.js]
 faqItems:
