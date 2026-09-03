@@ -71,6 +71,7 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 **Developers**
 - [API Reference](/api) - REST API documentation
 - [SDKs](reference/sdk/index.md) - Eleven clients, one page each, all held to the same contract
+- [CLI](reference/cli.mdx) - Send events and receive webhooks on localhost from your terminal
 - [JavaScript SDK](reference/sdk/javascript.md) - TypeScript/JS client
 - [Rust SDK](reference/sdk/rust.md) - Rust client library
 - [MCP Server](reference/mcp.md) - AI assistant integration
