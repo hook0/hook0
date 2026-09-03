@@ -1,6 +1,7 @@
 ---
-title: "Webhook retry logic: how Hook0 retries failed deliveries"
-description: "How Hook0 retries failed webhook deliveries on a fixed escalating schedule, bounded by MAX_RETRIES and a retry window, with replay for exhausted attempts."
+title: "Webhook Retry Logic: the Exact Schedule Hook0 Retries On (3s to 10h)"
+sidebar_label: "Retry logic"
+description: "The exact retry schedule Hook0 uses, from a 3-second first retry to 10-hour intervals, bounded by MAX_RETRIES, with replay for exhausted deliveries."
 keywords: [webhook retry, retry schedule, webhook delivery, retry attempts, replay events, retry backoff]
 ---
 

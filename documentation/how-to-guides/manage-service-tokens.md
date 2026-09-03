@@ -1,3 +1,10 @@
+---
+title: "Service Tokens: How to Scope Hook0 API Access Down with Attenuation"
+sidebar_label: "Manage service tokens"
+description: "Create Hook0 service tokens for CI/CD, scripts, and AI assistants, then attenuate them to least-privilege scope so a leaked token can't touch your whole organization."
+keywords: [Hook0 service token, API token, token attenuation, least privilege API access, service account, CI/CD webhook token]
+---
+
 # Managing service tokens
 
 This guide covers creating and managing Hook0 service tokens for API access, including token attenuation for least-privilege access.
