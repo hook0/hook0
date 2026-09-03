@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT COUNT(organization__id) AS \"val!\"\n                FROM iam.organization\n                WHERE created_by = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "72e4812d9b3a7ce5b06c793fc4a0f90baf57e85f0f3b2e45e9b79e2acde16515"
+}

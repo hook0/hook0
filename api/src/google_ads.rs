@@ -1190,6 +1190,7 @@ pub(crate) mod test_support {
         .expect("build test mailer");
 
         let quota_limits = crate::quotas::QuotaLimits {
+            global_organizations_per_user_limit: i32::MAX,
             global_members_per_organization_limit: i32::MAX,
             global_applications_per_organization_limit: i32::MAX,
             global_events_per_day_limit: i32::MAX,

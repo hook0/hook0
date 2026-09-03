@@ -1201,6 +1201,7 @@ mod quota_race_tests {
         state.quotas = Quotas::new(
             true,
             QuotaLimits {
+                global_organizations_per_user_limit: QuotaValue::MAX,
                 global_subscriptions_per_application_limit: SUBSCRIPTIONS_ALLOWED,
                 global_applications_per_organization_limit: QuotaValue::MAX,
                 global_members_per_organization_limit: QuotaValue::MAX,

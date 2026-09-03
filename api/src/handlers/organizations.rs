@@ -189,6 +189,14 @@ pub async fn create(
 
     let mut tx = state.db.begin().await?;
 
+    // Must be the first statement of this transaction: it locks the user row and counts
+    // the organizations they created under that lock, so the insert below has to run in
+    // the same transaction for the count to stay true. See `Quotas::enforce_*`.
+    state
+        .quotas
+        .enforce_organizations_per_user(&mut tx, &token.user_id)
+        .await?;
+
     let organization_id = Uuid::new_v4();
     query!(
         "
@@ -872,6 +880,7 @@ mod quota_race_tests {
         state.quotas = Quotas::new(
             true,
             QuotaLimits {
+                global_organizations_per_user_limit: QuotaValue::MAX,
                 global_members_per_organization_limit: MEMBERS_ALLOWED,
                 global_applications_per_organization_limit: QuotaValue::MAX,
                 global_events_per_day_limit: QuotaValue::MAX,
@@ -932,6 +941,98 @@ mod quota_race_tests {
             accepted,
             MEMBERS_ALLOWED as usize - 1,
             "more callers were told their invitation went through than the plan allows"
+        );
+    }
+
+    /// The organizations-per-user limit already spends one slot on an organization the
+    /// user created earlier, so this leaves room for exactly one of the concurrent
+    /// creations below.
+    const ORGS_ALLOWED: QuotaValue = 2;
+
+    /// The organizations-per-user limit, held against creations arriving together.
+    #[sqlx::test]
+    async fn concurrent_creations_cannot_take_a_user_past_their_organization_limit(pool: PgPool) {
+        let options = (*pool.connect_options()).clone();
+        let pool = PgPoolOptions::new()
+            .max_connections(CONCURRENT_CALLERS as u32 + 2)
+            .connect_with(options)
+            .await
+            .expect("open a wider pool on the test database");
+
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        // One organization already exists to the user's name, so a single further
+        // creation is all the limit still permits.
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let mut state = test_state(pool.clone(), private_key.clone(), None).await;
+        state.quotas = Quotas::new(
+            true,
+            QuotaLimits {
+                global_organizations_per_user_limit: ORGS_ALLOWED,
+                global_members_per_organization_limit: QuotaValue::MAX,
+                global_applications_per_organization_limit: QuotaValue::MAX,
+                global_events_per_day_limit: QuotaValue::MAX,
+                global_days_of_events_retention_limit: QuotaValue::MAX,
+                global_subscriptions_per_application_limit: QuotaValue::MAX,
+                global_event_types_per_application_limit: QuotaValue::MAX,
+            },
+        );
+
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/organizations")
+                        .wrap(biscuit_auth)
+                        .route("", web::post().to(super::create)),
+                ),
+            ),
+        )
+        .await;
+
+        let app_ref = &app;
+        let calls = (0..CONCURRENT_CALLERS).map(|i| {
+            let request = test::TestRequest::post()
+                .uri("/api/v1/organizations")
+                .insert_header(("Authorization", format!("Bearer {user_token}")))
+                .set_json(serde_json::json!({"name": format!("race-{i}")}))
+                .to_request();
+            test::call_service(app_ref, request)
+        });
+
+        let accepted = join_all(calls)
+            .await
+            .iter()
+            .filter(|response| response.status().is_success())
+            .count();
+
+        let stored: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM iam.organization WHERE created_by = $1")
+                .bind(user)
+                .fetch_one(&pool)
+                .await
+                .expect("count the organizations the user ended up creating");
+
+        assert_eq!(
+            stored,
+            i64::from(ORGS_ALLOWED),
+            "the user is left having created more organizations than their plan allows"
+        );
+        assert_eq!(
+            accepted,
+            ORGS_ALLOWED as usize - 1,
+            "more callers were told their organization was created than the plan allows"
         );
     }
 }
