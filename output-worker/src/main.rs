@@ -3,6 +3,7 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+mod standard_webhooks;
 mod throughput_log;
 mod work;
 
@@ -268,6 +269,12 @@ struct Config {
     /// A comma-separated list of enabled signature versions
     #[clap(long, env, default_value = "v1", value_delimiter = ',')]
     enabled_signature_versions: Vec<SignatureVersion>,
+
+    /// Also emit Standard Webhooks (https://www.standardwebhooks.com/) signature headers
+    /// (`webhook-id`, `webhook-timestamp`, `webhook-signature`) alongside Hook0's native
+    /// signature. Opt-in; disabled by default.
+    #[clap(long, env, default_value_t = false)]
+    standard_webhooks_signature_enabled: bool,
 
     /// Loads request attempts that haven't been delivered yet from the DB into Pulsar before starting work; `all` loads everything; `due-now` skips request attempts scheduled more than ~10 s in the future; this is useful when migrating to a Pulsar worker (only for Pulsar workers)
     #[clap(long, env, default_value = "off")]

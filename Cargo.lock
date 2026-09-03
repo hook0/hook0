@@ -3098,6 +3098,7 @@ version = "1.0.7"
 dependencies = [
  "anyhow",
  "aws-sdk-s3",
+ "base64 0.23.1",
  "chrono",
  "clap",
  "futures",
