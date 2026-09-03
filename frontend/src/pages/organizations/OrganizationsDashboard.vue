@@ -221,7 +221,12 @@ const showProTeaser = computed(
 );
 
 function trackProTeaser() {
+  // The teaser is the co-located upgrade path at the friction point (a quota in
+  // warning/danger colour). Count its click as upgrade intention with
+  // placement="quota-warning" so it feeds the awareness->intention metric,
+  // while keeping the "pro-teaser" signal for touchpoint continuity.
   trackEvent(MONETIZATION_CATEGORY, 'pro-teaser', proTeaserQuota.value);
+  trackUpgradeCta('quota-warning');
 }
 
 function dismissProTeaser() {

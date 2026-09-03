@@ -721,7 +721,7 @@
     "plan": "Plan",
     "planDeveloper": "Developer",
     "proTeaserBody": "The free Developer plan caps {quota}. A paid plan raises the cap.",
-    "proTeaserCta": "See paid plans",
+    "proTeaserCta": "Upgrade to lift this limit",
     "proTeaserDismiss": "Dismiss",
     "proTeaserTitle": "You've nearly hit your {quota} limit",
     "retentionDayCount": "{count} day of event retention | {count} days of event retention",
