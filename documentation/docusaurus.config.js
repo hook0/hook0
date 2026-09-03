@@ -244,6 +244,10 @@ const config = {
   // Client modules for Matomo advanced tracking
   clientModules: [
     require.resolve("./src/mermaid/theme-switcher.js"),
+    // Re-navigates the Scalar API reference to a hash permalink on hard load, so
+    // /api#tag/.../GET/... deep links open the endpoint instead of the overview
+    // after a refresh or when opened in a new tab (HOO-123).
+    require.resolve("./src/scalar/deep-link-restore.js"),
     ...(process.env.DOCUMENTATION_MATOMO_URL
       ? [require.resolve("./src/matomo/tracking.js")]
       : []),
