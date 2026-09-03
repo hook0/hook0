@@ -49,7 +49,7 @@ toml = "1.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2.5"
-uuid = { version = "1.25", features = ["v4", "serde"] }
+uuid = { version = "1.26", features = ["v4", "serde"] }
 
 [features]
 default = ["tui"]

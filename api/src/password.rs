@@ -14,8 +14,6 @@
 //! [SecLists](https://github.com/danielmiessler/SecLists) (MIT licensed).
 
 use actix_web::rt::task::spawn_blocking;
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::{PasswordHashString, SaltString};
 use argon2::{Argon2, PasswordHasher};
 use std::collections::HashSet;
 use std::sync::LazyLock;
@@ -140,19 +138,20 @@ impl<'a> Checked<'a> {
 }
 
 /// Hash a password with Argon2, off the async runtime — hashing is deliberately
-/// slow and would otherwise block the whole worker thread.
-pub async fn hash(password: Checked<'_>) -> Result<PasswordHashString, Hook0Problem> {
+/// slow and would otherwise block the whole worker thread. The per-password salt
+/// is the one Argon2 generates itself, and the result is the serialized PHC
+/// string that goes in the database.
+pub async fn hash(password: Checked<'_>) -> Result<String, Hook0Problem> {
     let password = password.0.to_owned();
 
     spawn_blocking(move || {
-        let salt = SaltString::generate(&mut OsRng);
         Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
+            .hash_password(password.as_bytes())
             .map_err(|e| {
                 error!("Error trying to hash user password: {e}");
                 Hook0Problem::InternalServerError
             })
-            .map(|h| h.serialize())
+            .map(|h| h.to_string())
     })
     .await
     .map_err(|e| {
@@ -918,7 +917,7 @@ mod tests {
         let stored = hash(Checked::already_established(weak))
             .await
             .expect("an established credential is hashable");
-        assert!(stored.as_str().starts_with("$argon2"));
+        assert!(stored.starts_with("$argon2"));
     }
 
     /// The shared contract with the frontend. Pinning the *fold* was not enough:

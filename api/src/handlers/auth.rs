@@ -1,6 +1,5 @@
 use actix_web::rt::task::spawn_blocking;
 use actix_web::web::ReqData;
-use argon2::password_hash::PasswordHashString;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
@@ -266,7 +265,7 @@ async fn import_user_from_keycloak(
             ",
             &kc_user.id,
             &kc_user.email,
-            password_hash.as_str(),
+            &password_hash,
             &kc_user.first_name,
             &kc_user.last_name,
         )
@@ -297,7 +296,7 @@ async fn import_user_from_keycloak(
 
         Ok(UserLookup {
             user_id: kc_user.id,
-            password_hash: password_hash.to_string(),
+            password_hash,
             email: kc_user.email,
             first_name: kc_user.first_name,
             last_name: kc_user.last_name,
@@ -1233,7 +1232,7 @@ pub async fn reset_password(
             .await?;
             store_new_password(
                 &mut *tx,
-                password_hash.as_str(),
+                &password_hash,
                 user_id,
                 PasswordWrite::Reset {
                     presented_nonce: token.nonce,
@@ -1356,7 +1355,7 @@ async fn check_and_hash_new_password<'a, A: Acquire<'a, Database = Postgres>>(
     password_minimum_length: u8,
     new_password: &str,
     user_id: Uuid,
-) -> Result<PasswordHashString, Hook0Problem> {
+) -> Result<String, Hook0Problem> {
     let mut db = db.acquire().await?;
 
     // Only the database knows who this account belongs to: neither the reset

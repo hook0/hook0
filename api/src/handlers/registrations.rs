@@ -118,7 +118,7 @@ pub async fn register(
             ",
         &user_id,
         &body.email,
-        password_hash.as_str(),
+        &password_hash,
         &body.first_name,
         &body.last_name,
         crate::signup_channel::normalize(body.signup_channel.as_deref()),

@@ -21,7 +21,7 @@ chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.6", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.34"
 hex = "0.4.3"
-hickory-resolver = "0.26.1"
+hickory-resolver = "0.26.2"
 hmac = "0.13.0"
 hook0-protobuf = { path = "../protobuf", version = "0.1.0" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
@@ -46,7 +46,7 @@ thiserror = "2.0.20"
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.19", features = ["rt"] }
 url = "2.5.8"
-uuid = { version = "1.25.0", features = ["v4", "v7"] }
+uuid = { version = "1.26.0", features = ["v4", "v7"] }
 
 [dev-dependencies]
 proptest = "1"
