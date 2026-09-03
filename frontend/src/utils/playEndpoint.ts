@@ -50,3 +50,17 @@ export function buildPlayViewUrl(base: string, token: string): string {
 export function buildPlayInspectUrl(base: string, token: string): string {
   return `${normalizePlayBaseUrl(base)}/api/tokens/${token}/webhooks`;
 }
+
+// Recover the token from a receive URL previously built by buildPlayReceiveUrl.
+// Returns null for anything that is not exactly `{base}/in/{token}/` with a
+// server-valid token, so a user's own endpoint (or a hand-edited URL) is never
+// mistaken for a Play inbox we could inspect.
+export function extractPlayToken(base: string, url: string): string | null {
+  const prefix = `${normalizePlayBaseUrl(base)}/in/`;
+  if (!url.startsWith(prefix)) {
+    return null;
+  }
+  const rest = url.slice(prefix.length);
+  const token = rest.endsWith('/') ? rest.slice(0, -1) : rest;
+  return isValidPlayToken(token) ? token : null;
+}

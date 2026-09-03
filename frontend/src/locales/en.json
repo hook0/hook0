@@ -969,7 +969,8 @@
       "feedback": "To share your feedback or suggestions, visit our {discussions}. Stay updated through our {changelog} and take the best out of Hook0 by learning more at our {documentation}.",
       "goToDashboard": "Go to your application dashboard",
       "subtitle": "Your webhook pipeline is live. Events will now be delivered to your endpoint.",
-      "title": "Congratulations on your first steps with Hook0"
+      "title": "Congratulations on your first steps with Hook0",
+      "webhookDelivered": "Here's the webhook you just delivered:"
     },
     "continue": "Continue",
     "continueStep2": "Continue to application",
