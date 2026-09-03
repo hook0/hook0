@@ -306,8 +306,24 @@ static AUTHORIZER_DURATION: LazyLock<Histogram<f64>> = LazyLock::new(|| {
         .build()
 });
 
+static AUTHORIZER_FAILURES: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("biscuit_authorizer.failures")
+        .with_description(
+            "Count of failed Biscuit authorizations, labelled by outcome (denied/timeout/error)",
+        )
+        .build()
+});
+
 pub fn report_authorizer_duration(outcome: &'static str, duration: Duration) {
     AUTHORIZER_DURATION.record(duration.as_secs_f64(), &[KeyValue::new("outcome", outcome)]);
+    // The duration histogram alone only exposes *how long* an authorization took;
+    // its per-outcome count is a side effect of bucketing and easy to miss. A
+    // dedicated counter gives a first-class volume-of-failures signal so a spike
+    // of denied/timeout/error outcomes (e.g. API-key brute force) is alertable.
+    if outcome != "ok" {
+        AUTHORIZER_FAILURES.add(1, &[KeyValue::new("outcome", outcome)]);
+    }
 }
 
 fn authorizer_duration_view(instrument: &Instrument) -> Option<Stream> {
