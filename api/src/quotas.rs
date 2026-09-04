@@ -22,7 +22,6 @@ pub const LOCK_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quota {
-    OrganizationsPerUser,
     MembersPerOrganization,
     ApplicationsPerOrganization,
     EventsPerDay,
@@ -34,7 +33,6 @@ pub enum Quota {
 impl Quota {
     fn get_name(&self) -> String {
         match self {
-            Quota::OrganizationsPerUser => "organizations_per_user".to_string(),
             Quota::MembersPerOrganization => "members_per_organization".to_string(),
             Quota::ApplicationsPerOrganization => "applications_per_organization".to_string(),
             Quota::EventsPerDay => "events_per_day".to_string(),
@@ -156,13 +154,11 @@ impl Quotas {
                     .fetch_optional(&mut *db)
                     .await
                 }
-                Quota::OrganizationsPerUser => Ok(None),
                 Quota::SubscriptionsPerApplication => Ok(None),
                 Quota::EventTypesPerApplication => Ok(None),
             }?
             .and_then(|r| r.val);
             Ok(plan_value.unwrap_or(match quota {
-                Quota::OrganizationsPerUser => self.limits.global_organizations_per_user_limit,
                 Quota::MembersPerOrganization => self.limits.global_members_per_organization_limit,
                 Quota::ApplicationsPerOrganization => {
                     self.limits.global_applications_per_organization_limit
@@ -191,7 +187,6 @@ impl Quotas {
             let mut db = db.acquire().await?;
 
             let app_value = match quota {
-                Quota::OrganizationsPerUser => None,
                 Quota::MembersPerOrganization => None,
                 Quota::ApplicationsPerOrganization => None,
                 Quota::EventsPerDay => {
@@ -232,7 +227,6 @@ impl Quotas {
             let plan_value = match app_value {
                 Some(QueryResult { val: Some(val) }) => Some(val),
                 _ => match quota {
-                    Quota::OrganizationsPerUser => Ok(None),
                     Quota::MembersPerOrganization => {
                         query_as!(
                             QueryResult,
@@ -333,64 +327,6 @@ impl Quotas {
                 .and_then(|r| r.val),
             };
             Ok(plan_value.unwrap_or(match quota {
-                Quota::OrganizationsPerUser => self.limits.global_organizations_per_user_limit,
-                Quota::MembersPerOrganization => self.limits.global_members_per_organization_limit,
-                Quota::ApplicationsPerOrganization => {
-                    self.limits.global_applications_per_organization_limit
-                }
-                Quota::EventsPerDay => self.limits.global_events_per_day_limit,
-                Quota::DaysOfEventsRetention => self.limits.global_days_of_events_retention_limit,
-                Quota::SubscriptionsPerApplication => {
-                    self.limits.global_subscriptions_per_application_limit
-                }
-                Quota::EventTypesPerApplication => {
-                    self.limits.global_event_types_per_application_limit
-                }
-            }))
-        } else {
-            Ok(QuotaValue::MAX)
-        }
-    }
-
-    /// Resolves the organizations-per-user limit that applies to `user_id`.
-    ///
-    /// The org-creation quota is billed at the account level, but plans live on the
-    /// organizations a user already owns. We take the most generous limit granted by
-    /// any plan attached to an organization this user created (`MAX` skips the `NULL`
-    /// rows of free/planless organizations), and fall back to the global default when
-    /// none of the user's organizations carry a plan that sets the limit. This makes
-    /// the self-serve path coherent: upgrading one organization to a higher plan lifts
-    /// the account's ceiling and unlocks the next organization.
-    pub async fn get_limit_for_user<'a, A: Acquire<'a, Database = Postgres>>(
-        &self,
-        db: A,
-        quota: Quota,
-        user_id: &Uuid,
-    ) -> Result<QuotaValue, sqlx::Error> {
-        if self.enabled {
-            let mut db = db.acquire().await?;
-
-            let plan_value = match quota {
-                Quota::OrganizationsPerUser => {
-                    query_as!(
-                        QueryResult,
-                        "
-                            SELECT MAX(p.organizations_per_user_limit) AS val
-                            FROM iam.organization AS o
-                            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
-                            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
-                            WHERE o.created_by = $1
-                        ",
-                        user_id,
-                    )
-                    .fetch_optional(&mut *db)
-                    .await
-                }
-                _ => Ok(None),
-            }?
-            .and_then(|r| r.val);
-            Ok(plan_value.unwrap_or(match quota {
-                Quota::OrganizationsPerUser => self.limits.global_organizations_per_user_limit,
                 Quota::MembersPerOrganization => self.limits.global_members_per_organization_limit,
                 Quota::ApplicationsPerOrganization => {
                     self.limits.global_applications_per_organization_limit
@@ -531,9 +467,11 @@ impl Quotas {
 
         Self::lock_user(&mut *tx, user_id).await?;
 
-        let limit = self
-            .get_limit_for_user(&mut **tx, Quota::OrganizationsPerUser, user_id)
-            .await?;
+        // Flat account-level cap: unlike the per-organization quotas, this one is not
+        // resolved against a plan. A user reaching it is expected to ask support to lift
+        // it (see `Hook0Problem::TooManyOrganizationsPerUser`), which keeps the rule and
+        // the existing pricing schema untouched.
+        let limit = self.limits.global_organizations_per_user_limit;
 
         let current = query_scalar!(
             r#"

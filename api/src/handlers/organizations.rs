@@ -1027,12 +1027,12 @@ mod quota_race_tests {
         assert_eq!(
             stored,
             i64::from(ORGS_ALLOWED),
-            "the user is left having created more organizations than their plan allows"
+            "the user is left having created more organizations than the limit allows"
         );
         assert_eq!(
             accepted,
             ORGS_ALLOWED as usize - 1,
-            "more callers were told their organization was created than the plan allows"
+            "more callers were told their organization was created than the limit allows"
         );
     }
 }
