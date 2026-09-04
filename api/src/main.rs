@@ -1310,8 +1310,7 @@ async fn main() -> anyhow::Result<()> {
 
         // Create an instance of QuotaLimits
         let quota_limits = quotas::QuotaLimits {
-            global_organizations_per_user_limit: config
-                .quota_global_organizations_per_user_limit,
+            global_organizations_per_user_limit: config.quota_global_organizations_per_user_limit,
             global_members_per_organization_limit: config
                 .quota_global_members_per_organization_limit,
             global_applications_per_organization_limit: config
