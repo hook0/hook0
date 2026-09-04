@@ -51,7 +51,7 @@ module.exports = {
     "h2": "Ein Aufruf der Webhook API, um ein Event zuzustellen",
     "code": "// Löse ein Event aus, von überall in deinem Backend.\nawait hook0.message.create(\"&lt;application_id&gt;\", {\n  event_type: \"invoice.paid\",\n  event_id:   \"evt_Wqb1k73rXprtTm7Qdlr38G\",\n  payload: {\n    invoice_id: \"in_8X9aBcDeFgHiJk\",\n    status:     \"paid\",\n    amount_eur: 4990\n  }\n});\n\n// Was Hook0 nach diesem Aufruf tut:\n// signiert den Payload per HMAC, verteilt an jeden passenden\n// Subscriber, wiederholt fehlgeschlagene Zustellungen nach einem\n// Zwei-Phasen-Plan und speichert Anfrage und Antwort für den erneuten Versand.\n",
     "docsLabel": "Zum Schnellstart-Guide (auf Englisch) →",
-    "docsHref": "https://documentation.hook0.com/docs/getting-started",
+    "docsHref": "https://documentation.hook0.com/tutorials/getting-started",
     "docsTrack": "de-webhook-plattform-docs"
   },
   "dataResidency": {
@@ -186,7 +186,7 @@ module.exports = {
     "subtitle": "Hör auf, Webhook-Infrastruktur zu bauen. Liefere Features. In wenigen Minuten bist du startklar, und du kannst jederzeit zum Self-Hosting migrieren.",
     "ctaPrimary": "Kostenlos starten",
     "ctaSecondary": "Schnellstart-Guide",
-    "ctaSecondaryHref": "https://documentation.hook0.com/docs/getting-started",
+    "ctaSecondaryHref": "https://documentation.hook0.com/tutorials/getting-started",
     "track": "de-webhook-plattform-cta-register",
     "badges": [
       "Keine Kreditkarte nötig",

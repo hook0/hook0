@@ -50,7 +50,7 @@ module.exports = {
     "h2": "One webhook API call to deliver an event",
     "code": "// Trigger an event from anywhere in your backend.\nawait hook0.message.create(\"&lt;application_id&gt;\", {\n  event_type: \"invoice.paid\",\n  event_id:   \"evt_Wqb1k73rXprtTm7Qdlr38G\",\n  payload: {\n    invoice_id: \"in_8X9aBcDeFgHiJk\",\n    status:     \"paid\",\n    amount_eur: 4990\n  }\n});\n\n// What Hook0 does after this call:\n// signs the payload with HMAC, fans out to every matching\n// subscriber, retries failed deliveries on a two-phase schedule,\n// and stores the request/response for replay.\n",
     "docsLabel": "Read the getting-started guide →",
-    "docsHref": "https://documentation.hook0.com/docs/getting-started",
+    "docsHref": "https://documentation.hook0.com/tutorials/getting-started",
     "docsTrack": "webhook-platform-docs"
   },
   "buildVsBuy": {

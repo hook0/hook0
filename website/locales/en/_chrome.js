@@ -460,7 +460,7 @@ module.exports = {
       items: [
         { label: 'Contact', href: 'mailto:support@hook0.com' },
         { label: 'Pricing', href: './pricing' },
-        { label: 'Resources', href: 'https://documentation.hook0.com/docs' },
+        { label: 'Resources', href: 'https://documentation.hook0.com/' },
         { label: 'Security & Compliance', href: './security' },
         { label: 'Built to Last', href: './built-to-last' },
         { label: 'Media Kit', href: './mediakit/' },
@@ -499,8 +499,8 @@ module.exports = {
     developers: {
       title: 'Developers',
       items: [
-        { label: 'Quick Start', href: 'https://documentation.hook0.com/docs/getting-started', docPath: '/tutorials/getting-started', icon: 'bolt' },
-        { label: 'Documentation', href: 'https://documentation.hook0.com/docs', docPath: '/', icon: 'book' },
+        { label: 'Quick Start', href: 'https://documentation.hook0.com/tutorials/getting-started', docPath: '/tutorials/getting-started', icon: 'bolt' },
+        { label: 'Documentation', href: 'https://documentation.hook0.com/', docPath: '/', icon: 'book' },
         { label: 'API Reference', href: 'https://documentation.hook0.com/reference/', docPath: '/api', icon: 'api' },
         { label: 'MCP Server', href: 'https://documentation.hook0.com/reference/mcp', docPath: '/reference/mcp', icon: 'code' },
         { label: 'SDK & Libraries', href: 'https://github.com/hook0', icon: 'code' },
