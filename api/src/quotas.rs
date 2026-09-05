@@ -451,8 +451,14 @@ impl Quotas {
         Ok(())
     }
 
-    /// Rejects the call if the user already reached the number of organizations they
-    /// are allowed to create.
+    /// Rejects the call if the user already reached the number of *free* organizations
+    /// they are allowed to belong to.
+    ///
+    /// Only free organizations count against the cap: an organization that carries a
+    /// plan (`iam.organization.price__id IS NOT NULL`) is excluded, so applying a paid
+    /// plan never eats into the limit. Membership is read from `iam.user__organization`
+    /// rather than `iam.organization.created_by`, so the cap follows the organizations
+    /// a user actually has access to, not just the ones they happened to create.
     ///
     /// Same transactional contract as [`Quotas::enforce_applications_per_organization`]:
     /// must be the first statement of the transaction that inserts the organization.
@@ -467,17 +473,21 @@ impl Quotas {
 
         Self::lock_user(&mut *tx, user_id).await?;
 
-        // Flat account-level cap: unlike the per-organization quotas, this one is not
-        // resolved against a plan. A user reaching it is expected to ask support to lift
-        // it (see `Hook0Problem::TooManyOrganizationsPerUser`), which keeps the rule and
-        // the existing pricing schema untouched.
+        // Flat account-level cap on free organizations only: unlike the per-organization
+        // quotas it is not resolved against a plan, and a user reaching it is expected to
+        // ask support to lift it (see `Hook0Problem::TooManyOrganizationsPerUser`), which
+        // keeps the rule and the existing pricing schema untouched.
         let limit = self.limits.global_organizations_per_user_limit;
 
+        // Count the free organizations the user belongs to: join membership to the
+        // organization and drop any that carry a plan (`price__id IS NOT NULL`).
         let current = query_scalar!(
             r#"
-                SELECT COUNT(organization__id) AS "val!"
-                FROM iam.organization
-                WHERE created_by = $1
+                SELECT COUNT(uo.organization__id) AS "val!"
+                FROM iam.user__organization AS uo
+                INNER JOIN iam.organization AS o ON o.organization__id = uo.organization__id
+                WHERE uo.user__id = $1
+                AND o.price__id IS NULL
             "#,
             user_id,
         )

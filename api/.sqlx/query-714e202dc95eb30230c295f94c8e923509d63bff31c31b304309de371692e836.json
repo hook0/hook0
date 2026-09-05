@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT COUNT(uo.organization__id) AS \"val!\"\n                FROM iam.user__organization AS uo\n                INNER JOIN iam.organization AS o ON o.organization__id = uo.organization__id\n                WHERE uo.user__id = $1\n                AND o.price__id IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "val!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "714e202dc95eb30230c295f94c8e923509d63bff31c31b304309de371692e836"
+}

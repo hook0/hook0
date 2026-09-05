@@ -391,7 +391,7 @@ struct Config {
     #[clap(long, env)]
     enable_quota_enforcement: bool,
 
-    /// [Quotas] Limit of organizations a single user can create (support lifts it on request, not a plan)
+    /// [Quotas] Limit of organizations a single user can create
     #[clap(long, env, default_value = "2")]
     quota_global_organizations_per_user_limit: quotas::QuotaValue,
 
