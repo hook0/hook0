@@ -67,6 +67,7 @@ class ProblemError extends \RuntimeException
         ProblemId::TooManyEventTypesPerApplication->value => TooManyEventTypesPerApplicationError::class,
         ProblemId::TooManyEventsToday->value => TooManyEventsTodayError::class,
         ProblemId::TooManyMembersPerOrganization->value => TooManyMembersPerOrganizationError::class,
+        ProblemId::TooManyOrganizationsPerUser->value => TooManyOrganizationsPerUserError::class,
         ProblemId::TooManySubscriptionsPerApplication->value => TooManySubscriptionsPerApplicationError::class,
         ProblemId::UnauthorizedWorkers->value => UnauthorizedWorkersError::class,
         ProblemId::UserAlreadyExist->value => UserAlreadyExistError::class,

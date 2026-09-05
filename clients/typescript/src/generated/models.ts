@@ -109,6 +109,7 @@ export const ProblemId = {
   AuthEmailAlreadyVerified: 'AuthEmailAlreadyVerified',
   AuthFailedRefresh: 'AuthFailedRefresh',
   AuthEmailExpired: 'AuthEmailExpired',
+  TooManyOrganizationsPerUser: 'TooManyOrganizationsPerUser',
   TooManyMembersPerOrganization: 'TooManyMembersPerOrganization',
   TooManyApplicationsPerOrganization: 'TooManyApplicationsPerOrganization',
   TooManyEventsToday: 'TooManyEventsToday',
@@ -497,6 +498,8 @@ export interface QuotasResponseLimits {
   readonly global_events_per_day_limit: number;
   /** `global_members_per_organization_limit`. */
   readonly global_members_per_organization_limit: number;
+  /** `global_organizations_per_user_limit`. */
+  readonly global_organizations_per_user_limit: number;
   /** `global_subscriptions_per_application_limit`. */
   readonly global_subscriptions_per_application_limit: number;
 }

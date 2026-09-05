@@ -15,6 +15,7 @@ import java.util.Map;
  * @param globalEventTypesPerApplicationLimit carries `global_event_types_per_application_limit`.
  * @param globalEventsPerDayLimit carries `global_events_per_day_limit`.
  * @param globalMembersPerOrganizationLimit carries `global_members_per_organization_limit`.
+ * @param globalOrganizationsPerUserLimit carries `global_organizations_per_user_limit`.
  * @param globalSubscriptionsPerApplicationLimit carries `global_subscriptions_per_application_limit`.
  */
 public record QuotasResponseLimits(
@@ -23,6 +24,7 @@ public record QuotasResponseLimits(
     Integer globalEventTypesPerApplicationLimit,
     Integer globalEventsPerDayLimit,
     Integer globalMembersPerOrganizationLimit,
+    Integer globalOrganizationsPerUserLimit,
     Integer globalSubscriptionsPerApplicationLimit) {
 
   /**
@@ -39,6 +41,7 @@ public record QuotasResponseLimits(
         Wire.read(fields, "global_event_types_per_application_limit", Wire::asInteger),
         Wire.read(fields, "global_events_per_day_limit", Wire::asInteger),
         Wire.read(fields, "global_members_per_organization_limit", Wire::asInteger),
+        Wire.read(fields, "global_organizations_per_user_limit", Wire::asInteger),
         Wire.read(fields, "global_subscriptions_per_application_limit", Wire::asInteger));
   }
 
@@ -54,6 +57,7 @@ public record QuotasResponseLimits(
     out.put("global_event_types_per_application_limit", globalEventTypesPerApplicationLimit);
     out.put("global_events_per_day_limit", globalEventsPerDayLimit);
     out.put("global_members_per_organization_limit", globalMembersPerOrganizationLimit);
+    out.put("global_organizations_per_user_limit", globalOrganizationsPerUserLimit);
     out.put("global_subscriptions_per_application_limit", globalSubscriptionsPerApplicationLimit);
     return out;
   }

@@ -253,6 +253,9 @@ public static class ProblemId
     /// <summary>The API answers <c>AuthEmailExpired</c>.</summary>
     public const string AuthEmailExpired = "AuthEmailExpired";
 
+    /// <summary>The API answers <c>TooManyOrganizationsPerUser</c>.</summary>
+    public const string TooManyOrganizationsPerUser = "TooManyOrganizationsPerUser";
+
     /// <summary>The API answers <c>TooManyMembersPerOrganization</c>.</summary>
     public const string TooManyMembersPerOrganization = "TooManyMembersPerOrganization";
 
@@ -324,6 +327,7 @@ public static class ProblemId
         "AuthEmailAlreadyVerified",
         "AuthFailedRefresh",
         "AuthEmailExpired",
+        "TooManyOrganizationsPerUser",
         "TooManyMembersPerOrganization",
         "TooManyApplicationsPerOrganization",
         "TooManyEventsToday",
@@ -1014,6 +1018,10 @@ public sealed record QuotasResponseLimits
     /// <summary>Carries <c>global_members_per_organization_limit</c>.</summary>
     [JsonPropertyName("global_members_per_organization_limit")]
     public required int GlobalMembersPerOrganizationLimit { get; init; }
+
+    /// <summary>Carries <c>global_organizations_per_user_limit</c>.</summary>
+    [JsonPropertyName("global_organizations_per_user_limit")]
+    public required int GlobalOrganizationsPerUserLimit { get; init; }
 
     /// <summary>Carries <c>global_subscriptions_per_application_limit</c>.</summary>
     [JsonPropertyName("global_subscriptions_per_application_limit")]

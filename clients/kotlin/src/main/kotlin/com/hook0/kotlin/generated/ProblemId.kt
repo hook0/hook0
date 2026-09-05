@@ -112,6 +112,9 @@ enum class ProblemId(val wireValue: String) {
   /** The API spells this one `AuthEmailExpired`. */
   AUTH_EMAIL_EXPIRED("AuthEmailExpired"),
 
+  /** The API spells this one `TooManyOrganizationsPerUser`. */
+  TOO_MANY_ORGANIZATIONS_PER_USER("TooManyOrganizationsPerUser"),
+
   /** The API spells this one `TooManyMembersPerOrganization`. */
   TOO_MANY_MEMBERS_PER_ORGANIZATION("TooManyMembersPerOrganization"),
 

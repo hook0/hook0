@@ -20,6 +20,7 @@ final class QuotasResponseLimits
      * @param int $globalEventTypesPerApplicationLimit carries `global_event_types_per_application_limit`.
      * @param int $globalEventsPerDayLimit carries `global_events_per_day_limit`.
      * @param int $globalMembersPerOrganizationLimit carries `global_members_per_organization_limit`.
+     * @param int $globalOrganizationsPerUserLimit carries `global_organizations_per_user_limit`.
      * @param int $globalSubscriptionsPerApplicationLimit carries `global_subscriptions_per_application_limit`.
      */
     public function __construct(
@@ -28,6 +29,7 @@ final class QuotasResponseLimits
         public readonly int $globalEventTypesPerApplicationLimit,
         public readonly int $globalEventsPerDayLimit,
         public readonly int $globalMembersPerOrganizationLimit,
+        public readonly int $globalOrganizationsPerUserLimit,
         public readonly int $globalSubscriptionsPerApplicationLimit,
     ) {
     }
@@ -67,6 +69,11 @@ final class QuotasResponseLimits
                 'global_members_per_organization_limit',
                 Runtime::integer(...),
             ),
+            'globalOrganizationsPerUserLimit' => Runtime::read(
+                $fields,
+                'global_organizations_per_user_limit',
+                Runtime::integer(...),
+            ),
             'globalSubscriptionsPerApplicationLimit' => Runtime::read(
                 $fields,
                 'global_subscriptions_per_application_limit',
@@ -90,6 +97,7 @@ final class QuotasResponseLimits
         $out['global_event_types_per_application_limit'] = $this->globalEventTypesPerApplicationLimit;
         $out['global_events_per_day_limit'] = $this->globalEventsPerDayLimit;
         $out['global_members_per_organization_limit'] = $this->globalMembersPerOrganizationLimit;
+        $out['global_organizations_per_user_limit'] = $this->globalOrganizationsPerUserLimit;
         $out['global_subscriptions_per_application_limit'] = $this->globalSubscriptionsPerApplicationLimit;
 
         return $out;
