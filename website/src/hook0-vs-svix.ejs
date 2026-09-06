@@ -8,10 +8,6 @@ if (t.faq && t.faq.items && t.faq.items.length) {
   locals.pageFAQSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    // inLanguage must match the rendered locale: the i18n-gate asserts the
-    // FAQPage block carries "inLanguage":"<lang>" per locale (en/de/fr), so
-    // answer engines attribute each translation to the right language.
-    inLanguage: locals.pageLang || 'en',
     mainEntity: t.faq.items.map(function (it) {
       return { '@type': 'Question', name: it.q, acceptedAnswer: { '@type': 'Answer', text: it.a } };
     })
