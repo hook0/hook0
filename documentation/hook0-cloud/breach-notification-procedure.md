@@ -116,7 +116,7 @@ Hook0 provides reasonable assistance to the affected customer on request, includ
 
 ### Sub-processor chain
 
-Where a breach originates at one of Hook0's own sub-processors (see the [GDPR & Subprocessors](/gdpr-subprocessors) page for the current list), the notification chain follows the contractual hierarchy: the sub-processor notifies Hook0 without undue delay under its own data processing agreement with Hook0, and Hook0 then notifies its affected customers as described above. Hook0 does not wait for the sub-processor's full incident report before initiating its own notification; it notifies with the information available and supplements it as the investigation progresses.
+Where a breach originates at one of Hook0's own sub-processors (see the [GDPR & Subprocessors](https://www.hook0.com/gdpr-subprocessors) page for the current list), the notification chain follows the contractual hierarchy: the sub-processor notifies Hook0 without undue delay under its own data processing agreement with Hook0, and Hook0 then notifies its affected customers as described above. Hook0 does not wait for the sub-processor's full incident report before initiating its own notification; it notifies with the information available and supplements it as the investigation progresses.
 
 ## Internal breach register (Article 33(5))
 
