@@ -1,7 +1,7 @@
 //! i18n build orchestrator for the Hook0 marketing site.
 //!
-//! For each locale (locales/index.js → configLines), it regenerates the root
-//! `.ejsrc.js` so parcel-transformer-ejs injects that locale's strings, mirrors
+//! For each locale (locales/index.js → configLines), it exports BUILD_I18N_LANG
+//! so `.ejsrc.js` hands parcel-transformer-ejs that locale's strings, mirrors
 //! the shared `src/` tree into `temp/<lang>/` (flat, so Parcel resolves bundled
 //! assets identically), and runs ONE Parcel build per locale into the right dist
 //! subdirectory (EN → dist root, FR → dist/fr, DE → dist/de). Pages are
@@ -36,7 +36,6 @@ fn run() -> R<()> {
     let src = root.join("src");
     let temp = root.join("temp");
     let dist = root.join("dist");
-    let ejsrc = root.join(".ejsrc.js");
 
     // Locale routing config from locales/index.js: lang \t dir \t publicUrl
     let locales = read_locales(&root)?;
@@ -45,14 +44,10 @@ fn run() -> R<()> {
     // Discover EN templates: src/*.ejs (top-level only; partials live in includes/)
     let templates = discover_templates(&src)?;
 
-    let ejsrc_orig = fs::read_to_string(&ejsrc).map_err(|e| e.to_string())?;
+    let started = std::time::Instant::now();
     let _ = fs::remove_dir_all(&temp);
     let _ = fs::remove_dir_all(&dist);
     fs::create_dir_all(&temp).map_err(|e| e.to_string())?;
-
-    let restore = |_: &str| {
-        let _ = fs::write(&ejsrc, &ejsrc_orig);
-    };
 
     for (lang, dir, public_url) in &locales {
         let pages: Vec<String> = if lang == "en" {
@@ -74,26 +69,10 @@ fn run() -> R<()> {
         }
         eprintln!("build-i18n: locale {lang} ({} pages)", pages.len());
 
-        // Regenerate .ejsrc.js for this locale. Every locale (EN included) gets
-        // `lang` + `i18nHelpers` so a data-driven template can self-inject its
-        // per-page locals (Object.assign(locals, getPageLocals(enSlug, lang))).
-        // Legacy passthrough pages ignore the two extra keys, so their EN output
-        // stays byte-identical; the converted pages read locals.t.* instead.
-        let ejsrc_content = format!(
-            "module.exports = {{ locals: Object.assign({{}}, require('./data'), {{ lang: '{lang}', i18nHelpers: require('./locales') }}) }};\n"
-        );
-        if let Err(e) = fs::write(&ejsrc, &ejsrc_content) {
-            restore(lang);
-            return Err(e.to_string());
-        }
-
         // Mirror shared src/ into temp/<lang>/ (exclude the de/ seed + cruft).
         let tdir = temp.join(lang);
         fs::create_dir_all(&tdir).map_err(|e| e.to_string())?;
-        if let Err(e) = rsync(&src, &tdir) {
-            restore(lang);
-            return Err(e);
-        }
+        rsync(&src, &tdir)?;
 
         // EN keeps every discovered template as a root entry (passthrough).
         // FR/DE: prune temp/<lang>/ down to the localized pages only, each
@@ -126,10 +105,8 @@ fn run() -> R<()> {
                 let _ = fs::remove_file(p);
             }
             for (from, to) in to_rename {
-                if let Err(e) = fs::rename(&from, &to) {
-                    restore(lang);
-                    return Err(format!("rename {} -> {}: {e}", from.display(), to.display()));
-                }
+                fs::rename(&from, &to)
+                    .map_err(|e| format!("rename {} -> {}: {e}", from.display(), to.display()))?;
             }
         }
 
@@ -141,10 +118,7 @@ fn run() -> R<()> {
         fs::create_dir_all(&ddir).map_err(|e| e.to_string())?;
 
         let entries = format!("{}/*.ejs", tdir.display());
-        if let Err(e) = parcel_build(&root, &entries, &ddir, public_url) {
-            restore(lang);
-            return Err(e);
-        }
+        parcel_build(&root, lang, &entries, &ddir, public_url)?;
 
         // parcel-reporter-static-files-copy runs per Parcel invocation, so
         // everything in static/ also lands in dist/<dir>/. Origin-scoped files
@@ -157,8 +131,6 @@ fn run() -> R<()> {
             let _ = dedupe_origin_files(&root.join("static"), &ddir);
         }
     }
-
-    restore("");
 
     // Unified multilingual sitemap at dist/sitemap.xml. Replaces both the
     // (removed) parcel-reporter-sitemap and scripts/fix-sitemap.js.
@@ -178,7 +150,10 @@ fn run() -> R<()> {
     // sanitized version only lives in dist/.
     strip_google_fonts(&dist.join("mediakit").join("qdnld"))?;
 
-    println!("build-i18n: done");
+    println!(
+        "build-i18n: done in {:.1}s",
+        started.elapsed().as_secs_f64()
+    );
     Ok(())
 }
 
@@ -656,30 +631,69 @@ fn rsync(src: &Path, dst: &Path) -> R<()> {
     Ok(())
 }
 
-// Parcel hangs after a successful build (known issue), so wrap in `timeout` and
-// treat a clean exit (0) or SIGKILL-after-done (137) / timeout (124) as success.
-fn parcel_build(root: &Path, entries: &str, dist_dir: &Path, public_url: &str) -> R<()> {
-    let cmd = format!(
-        "timeout --signal=KILL 300 npx parcel build '{}' --dist-dir '{}' --public-url='{}' --no-cache --no-source-maps; \
-         ec=$?; if [ $ec -eq 0 ] || [ $ec -eq 137 ] || [ $ec -eq 124 ]; then exit 0; else exit $ec; fi",
-        entries,
-        dist_dir.display(),
-        public_url
-    );
-    run_shell(root, &cmd)
-}
+// Runaway guard only. Parcel builds this site in ~10s; anything near this means
+// something is genuinely stuck, and a stuck locale must fail loudly rather than
+// ship a half-built dist/ to Netlify as a green build.
+const PARCEL_DEADLINE_SECS: u64 = 900;
 
-fn run_shell(root: &Path, script: &str) -> R<()> {
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(script)
+// Parcel is spawned directly: no `sh -c`, no `npx`, no `timeout(1)`.
+//
+// The old `timeout --signal=KILL 300 npx parcel build …` wrapper WAS the hang it
+// claimed to work around. coreutils `timeout` runs its child in a fresh process
+// group unless given --foreground, so from an interactive terminal the whole
+// npx/parcel subtree became a *background* process group; the first touch of the
+// controlling terminal then raised SIGTTOU, which stops the process. Parcel died
+// before writing a single byte — a silent freeze — and `timeout` sat out its
+// full 300s on a process that would never run again, whose 137 the wrapper then
+// laundered into success. Parcel itself exits cleanly; it never needed a timeout.
+//
+// Spawning parcel as our own child keeps it in this process's group (no SIGTTOU),
+// makes it the direct child we can actually kill, and drops ~2s of npx overhead
+// per locale. The deadline below replaces timeout(1) without the process group.
+fn parcel_build(
+    root: &Path,
+    lang: &str,
+    entries: &str,
+    dist_dir: &Path,
+    public_url: &str,
+) -> R<()> {
+    let started = std::time::Instant::now();
+    let deadline = std::time::Duration::from_secs(PARCEL_DEADLINE_SECS);
+    let mut child = Command::new(root.join("node_modules/.bin/parcel"))
+        .args(["build", entries])
+        .arg("--dist-dir")
+        .arg(dist_dir)
+        .arg(format!("--public-url={public_url}"))
+        .args(["--no-cache", "--no-source-maps"])
+        // The locale the EJS transformer renders with, read by .ejsrc.js.
+        .env("BUILD_I18N_LANG", lang)
         .current_dir(root)
-        .status()
-        .map_err(|e| format!("sh: {e}"))?;
-    if !status.success() {
-        return Err(format!("command failed ({:?}): {script}", status.code()));
+        .spawn()
+        .map_err(|e| format!("parcel ({lang}): {e}"))?;
+
+    let status = loop {
+        match child.try_wait().map_err(|e| format!("parcel ({lang}): {e}"))? {
+            Some(status) => break status,
+            None if started.elapsed() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "parcel ({lang}) still running after {PARCEL_DEADLINE_SECS}s and was killed — dist/ is incomplete"
+                ));
+            }
+            None => std::thread::sleep(std::time::Duration::from_millis(200)),
+        }
+    };
+
+    eprintln!(
+        "build-i18n: parcel {lang} finished in {:.1}s",
+        started.elapsed().as_secs_f64()
+    );
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("parcel ({lang}) exited {:?}", status.code()))
     }
-    Ok(())
 }
 
 #[cfg(test)]
