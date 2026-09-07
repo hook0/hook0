@@ -15,6 +15,11 @@
 //! reciprocal (every member of the localized set is listed) and that the
 //! `<html lang>` attribute on disk matches the URL's locale.
 //!
+//! Also asserts, for every rendered page carrying a FAQPage JSON-LD, that the
+//! schema declares an `inLanguage` matching that page's `<html lang>` — whether
+//! the schema comes from the locales (via `faqToSchema`) or is hardcoded in the
+//! template.
+//!
 //! Must run from `website/`. Exit 0 on PASS, 1 on FAIL.
 
 use std::collections::{HashMap, HashSet};
@@ -116,6 +121,25 @@ fn main() {
                         "R2: {} canonical = {c} (not a real URL — Parcel bundle hash?)",
                         p.display()
                     ));
+                }
+            }
+
+            // R3 (universal): a FAQPage JSON-LD must declare an inLanguage
+            // matching the page's own <html lang>. Deliberately NOT gated on
+            // locales/*.js declaring faq.items — that is what let a page with a
+            // hardcoded schema (no locale entry, so invisible to the FAQ rule
+            // below) ship locale-less structured data.
+            if let Some(block) = extract_faqpage_block(&html) {
+                match extract_html_lang(&html) {
+                    Some(l) if has_in_language(&block, &l) => {}
+                    Some(l) => failures.push(format!(
+                        "FAQLANG: {} FAQPage block missing \"inLanguage\":\"{l}\" (page is <html lang={l}>)",
+                        p.display()
+                    )),
+                    None => failures.push(format!(
+                        "FAQLANG: {} has a FAQPage block but no <html lang>",
+                        p.display()
+                    )),
                 }
             }
 
@@ -235,10 +259,9 @@ fn main() {
                 "FAQ: {where_at} declares faq.items in locales/{lang}.js but rendered HTML has no FAQPage JSON-LD"
             )),
             Some(block) => {
-                let want_lang = format!("\"inLanguage\":\"{lang}\"");
-                if !block.contains(&want_lang) {
+                if !has_in_language(&block, lang) {
                     failures.push(format!(
-                        "FAQ: {where_at} FAQPage block missing {want_lang}"
+                        "FAQ: {where_at} FAQPage block missing \"inLanguage\":\"{lang}\""
                     ));
                 }
                 let got = block.matches("\"@type\":\"Question\"").count();
@@ -390,6 +413,15 @@ fn extract_faqpage_block(html: &str) -> Option<String> {
         cursor = close + "</script>".len();
     }
     None
+}
+
+// A FAQPage block declares this locale. Tolerates both `"inLanguage":"x"` and
+// the pretty-printed `"inLanguage": "x"` — same as extract_faqpage_block does for
+// `@type`. Which one ships depends only on whether Parcel minified the JSON-LD,
+// which is not something an i18n rule should be sensitive to.
+fn has_in_language(block: &str, lang: &str) -> bool {
+    block.contains(&format!("\"inLanguage\":\"{lang}\""))
+        || block.contains(&format!("\"inLanguage\": \"{lang}\""))
 }
 
 // (lang, enSlug) -> faq.items.length for every locale that ships a faq for the

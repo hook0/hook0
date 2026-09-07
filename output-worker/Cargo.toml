@@ -15,7 +15,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.104"
-aws-sdk-s3 = { version = "1.144.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.145.0", features = ["behavior-version-latest"] }
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.6", features = ["derive", "env", "cargo", "wrap_help"] }
@@ -36,7 +36,7 @@ papaya = "0.2.5"
 pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 rand = "0.10"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "json"] }
-rustls = { version = "0.23.43", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
+rustls = { version = "0.23.44", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"

@@ -15,7 +15,7 @@ hook0-client = { path = "../../../clients/rust" }
 chrono = "0.4"
 serde_json = "1.0"
 url = "2.5"
-uuid = { version = "1.24", features = ["v7"] }
+uuid = { version = "1.26", features = ["v7"] }
 
 # The generated half is handed a transport and implements none, which is the client's design: an
 # application brings its own. So this smoke brings the one an application would.
