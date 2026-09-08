@@ -4,11 +4,15 @@
 
 ## Product
 - [Webhook Platform](https://www.hook0.com/webhook-platform): Sign, retry, replay, and monitor webhooks. Two-phase retries, dead letter queue, subscriber portal, drop-in HMAC.
+- [Webhook Service](https://www.hook0.com/webhook-service): Managed delivery with HMAC signing, two-phase retries, and per-attempt logs. EU data plane on every plan. The same SSPL-1.0 code self-hosts when you want to leave.
 - [Pricing](https://www.hook0.com/pricing): Free forever tier, paid tiers unlock higher volume only. No feature gating. Self-hosted free under SSPL-1.0.
+- [Free Webhooks](https://www.hook0.com/webhook-free): Three free paths. Test webhooks in the browser with no account, self-host the SSPL-1.0 server with no Hook0 volume cap, or run the free cloud tier at 100 events/day, no credit card.
 - [Open-Source Webhooks](https://www.hook0.com/open-source-webhooks): SSPL-1.0, no open-core, same code in cloud and self-hosted.
 - [Self-Hosted Webhooks](https://www.hook0.com/self-hosted-webhooks): Docker Compose and Kubernetes manifests, free, same feature set as the cloud.
 - [Webhook API](https://www.hook0.com/webhook-api): One API call sends an event, Hook0 handles signing, fan-out, retries, replay.
+- [Webhook MCP Server](https://www.hook0.com/webhooks-for-ai-agents): MCP server that gives Claude, Cursor, and Windsurf tools to create subscriptions, emit events, and replay failed deliveries on the webhooks you send.
 - [Security & Compliance](https://www.hook0.com/security): EU data residency (France, Clever Cloud), GDPR-aligned process, DPA on request.
+- [EU Webhook Infrastructure](https://www.hook0.com/eu-webhook-infrastructure): Webhook data plane on Clever Cloud in France, from the free tier up. French-law company, public sub-processor list, self-host or on-prem anytime.
 
 ## Proof
 - Production customers include Coinbase, GEODIS, WoodWing, Optery, Eudonet, Alteos, ActiveAnts, and Apizee.
