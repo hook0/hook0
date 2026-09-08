@@ -28,6 +28,10 @@
 - [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck)
 - [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy)
 - [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks)
+- [Hookdeck Alternatives](https://www.hook0.com/hookdeck-alternatives): Hookdeck runs inbound gateway and outbound delivery as two separate products. Weighs Hook0, Svix, and Convoy for sending and monitoring webhooks.
+- [Svix Alternatives](https://www.hook0.com/svix-alternatives): Hook0, Hookdeck, and Convoy measured against Svix on pricing, self-hosting, and source-available licensing.
+- [Webhook.site Alternative](https://www.hook0.com/migrate-from-webhook-site): Move from webhook.site debugging to production delivery. HMAC signatures, configurable retries, delivery logs, and a subscriber portal.
+- [Webhook Cost Comparison](https://www.hook0.com/webhook-cost-comparison): Public prices for Hook0, Svix, Hookdeck Outpost, and Convoy from 100k to 10M events per month, billing models side by side.
 
 ## Learn
 - [How Webhooks Work](https://www.hook0.com/how-webhooks-work): Explains webhooks by rebuilding GitLab's push webhook from scratch. Covers the HTTP POST, the X-Gitlab-Event and X-Gitlab-Token headers, GitLab's shared-token auth versus HMAC-SHA256 signatures, and the six problems (retries with backoff, idempotency, delivery logs) that separate a 40-line prototype from production delivery.
@@ -35,7 +39,7 @@
 ## Docs
 - [Documentation](https://documentation.hook0.com/): Full reference, guides, API, deploy.
 - [Documentation index for assistants](https://documentation.hook0.com/llms.txt): Every published documentation page, with a one-line summary each.
-- [Getting Started](https://documentation.hook0.com/docs/getting-started): 30-minute setup, free tier.
+- [Getting Started](https://documentation.hook0.com/tutorials/getting-started): 30-minute setup, free tier.
 - [CLI](https://documentation.hook0.com/reference/cli): Command-line client. Send and replay events, manage subscriptions and event types, and receive webhooks on localhost through a built-in tunnel, no exposed ports.
 
 ## Optional
