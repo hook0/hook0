@@ -130,7 +130,7 @@ own build.
 | `QUOTA_GLOBAL_EVENT_TYPES_PER_APPLICATION_LIMIT` | Default limit of event types per application (can be overriden by a plan) | `10` |  |
 | `QUOTA_GLOBAL_EVENTS_PER_DAY_LIMIT` | Default limit of events per day (can be overriden by a plan) | `100` |  |
 | `QUOTA_GLOBAL_MEMBERS_PER_ORGANIZATION_LIMIT` | Default limit of members per organization (can be overriden by a plan) | `1` |  |
-| `QUOTA_GLOBAL_ORGANIZATIONS_PER_USER_LIMIT` | Limit of organizations a single user can create | `2` |  |
+| `QUOTA_GLOBAL_FREE_ORGANIZATIONS_PER_USER_LIMIT` | Limit of free organizations a single user can belong to | `2` |  |
 | `QUOTA_GLOBAL_SUBSCRIPTIONS_PER_APPLICATION_LIMIT` | Default limit of subscriptions per application (can be overriden by a plan) | `10` |  |
 | `QUOTA_NOTIFICATION_EVENTS_PER_DAY_THRESHOLD` | Default threshold (in %) of events per day at which to send a warning notification | `80` |  |
 

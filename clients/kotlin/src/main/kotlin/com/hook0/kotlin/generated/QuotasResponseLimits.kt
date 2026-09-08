@@ -12,8 +12,8 @@ import com.hook0.kotlin.Wire
  * @property globalDaysOfEventsRetentionLimit carries `global_days_of_events_retention_limit`.
  * @property globalEventTypesPerApplicationLimit carries `global_event_types_per_application_limit`.
  * @property globalEventsPerDayLimit carries `global_events_per_day_limit`.
+ * @property globalFreeOrganizationsPerUserLimit carries `global_free_organizations_per_user_limit`.
  * @property globalMembersPerOrganizationLimit carries `global_members_per_organization_limit`.
- * @property globalOrganizationsPerUserLimit carries `global_organizations_per_user_limit`.
  * @property globalSubscriptionsPerApplicationLimit carries `global_subscriptions_per_application_limit`.
  */
 data class QuotasResponseLimits(
@@ -21,8 +21,8 @@ data class QuotasResponseLimits(
   val globalDaysOfEventsRetentionLimit: Int,
   val globalEventTypesPerApplicationLimit: Int,
   val globalEventsPerDayLimit: Int,
+  val globalFreeOrganizationsPerUserLimit: Int,
   val globalMembersPerOrganizationLimit: Int,
-  val globalOrganizationsPerUserLimit: Int,
   val globalSubscriptionsPerApplicationLimit: Int
 ) {
 
@@ -37,8 +37,8 @@ data class QuotasResponseLimits(
     out["global_days_of_events_retention_limit"] = globalDaysOfEventsRetentionLimit
     out["global_event_types_per_application_limit"] = globalEventTypesPerApplicationLimit
     out["global_events_per_day_limit"] = globalEventsPerDayLimit
+    out["global_free_organizations_per_user_limit"] = globalFreeOrganizationsPerUserLimit
     out["global_members_per_organization_limit"] = globalMembersPerOrganizationLimit
-    out["global_organizations_per_user_limit"] = globalOrganizationsPerUserLimit
     out["global_subscriptions_per_application_limit"] = globalSubscriptionsPerApplicationLimit
     return out
   }
@@ -57,8 +57,8 @@ data class QuotasResponseLimits(
         Wire.read(fields, "global_days_of_events_retention_limit", Wire::asInteger),
         Wire.read(fields, "global_event_types_per_application_limit", Wire::asInteger),
         Wire.read(fields, "global_events_per_day_limit", Wire::asInteger),
+        Wire.read(fields, "global_free_organizations_per_user_limit", Wire::asInteger),
         Wire.read(fields, "global_members_per_organization_limit", Wire::asInteger),
-        Wire.read(fields, "global_organizations_per_user_limit", Wire::asInteger),
         Wire.read(fields, "global_subscriptions_per_application_limit", Wire::asInteger)
       )
     }

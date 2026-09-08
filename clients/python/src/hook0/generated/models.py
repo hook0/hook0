@@ -1018,8 +1018,8 @@ class QuotasResponseLimits:
     global_days_of_events_retention_limit: int
     global_event_types_per_application_limit: int
     global_events_per_day_limit: int
+    global_free_organizations_per_user_limit: int
     global_members_per_organization_limit: int
-    global_organizations_per_user_limit: int
     global_subscriptions_per_application_limit: int
 
     @classmethod
@@ -1031,8 +1031,8 @@ class QuotasResponseLimits:
             read(fields, "global_days_of_events_retention_limit", as_int),
             read(fields, "global_event_types_per_application_limit", as_int),
             read(fields, "global_events_per_day_limit", as_int),
+            read(fields, "global_free_organizations_per_user_limit", as_int),
             read(fields, "global_members_per_organization_limit", as_int),
-            read(fields, "global_organizations_per_user_limit", as_int),
             read(fields, "global_subscriptions_per_application_limit", as_int),
         )
 
@@ -1043,8 +1043,8 @@ class QuotasResponseLimits:
         out["global_days_of_events_retention_limit"] = self.global_days_of_events_retention_limit
         out["global_event_types_per_application_limit"] = self.global_event_types_per_application_limit
         out["global_events_per_day_limit"] = self.global_events_per_day_limit
+        out["global_free_organizations_per_user_limit"] = self.global_free_organizations_per_user_limit
         out["global_members_per_organization_limit"] = self.global_members_per_organization_limit
-        out["global_organizations_per_user_limit"] = self.global_organizations_per_user_limit
         out["global_subscriptions_per_application_limit"] = self.global_subscriptions_per_application_limit
         return out
 

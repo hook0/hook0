@@ -58,7 +58,7 @@ struct QueryResult {
 
 #[derive(Debug, Clone, Serialize, Apiv2Schema, Copy)]
 pub struct QuotaLimits {
-    pub global_organizations_per_user_limit: QuotaValue,
+    pub global_free_organizations_per_user_limit: QuotaValue,
     pub global_members_per_organization_limit: QuotaValue,
     pub global_applications_per_organization_limit: QuotaValue,
     pub global_events_per_day_limit: QuotaValue,
@@ -428,7 +428,7 @@ impl Quotas {
     /// Serializes concurrent quota checks that target the same user.
     ///
     /// See [`Quotas::lock_organization`] for why `FOR NO KEY UPDATE` is used. This is
-    /// what the organizations-per-user check locks on, because the organization it is
+    /// what the free-organizations-per-user check locks on, because the organization it is
     /// about to create does not exist yet and so cannot be locked itself.
     async fn lock_user(
         tx: &mut Transaction<'_, Postgres>,
@@ -462,7 +462,7 @@ impl Quotas {
     ///
     /// Same transactional contract as [`Quotas::enforce_applications_per_organization`]:
     /// must be the first statement of the transaction that inserts the organization.
-    pub async fn enforce_organizations_per_user(
+    pub async fn enforce_free_organizations_per_user(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         user_id: &Uuid,
@@ -477,7 +477,7 @@ impl Quotas {
         // quotas it is not resolved against a plan, and a user reaching it is expected to
         // ask support to lift it (see `Hook0Problem::TooManyOrganizationsPerUser`), which
         // keeps the rule and the existing pricing schema untouched.
-        let limit = self.limits.global_organizations_per_user_limit;
+        let limit = self.limits.global_free_organizations_per_user_limit;
 
         // Count the free organizations the user belongs to: join membership to the
         // organization and drop any that carry a plan (`price__id IS NOT NULL`).

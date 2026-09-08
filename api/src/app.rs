@@ -496,7 +496,7 @@ pub(crate) mod test_support {
             quotas: quotas::Quotas::new(
                 false,
                 quotas::QuotaLimits {
-                    global_organizations_per_user_limit: 1,
+                    global_free_organizations_per_user_limit: 1,
                     global_members_per_organization_limit: 1,
                     global_applications_per_organization_limit: 1,
                     global_events_per_day_limit: 100,

@@ -549,10 +549,10 @@ type QuotasResponseLimits struct {
 	GlobalEventTypesPerApplicationLimit int32 `json:"global_event_types_per_application_limit"`
 	// GlobalEventsPerDayLimit carries `global_events_per_day_limit`.
 	GlobalEventsPerDayLimit int32 `json:"global_events_per_day_limit"`
+	// GlobalFreeOrganizationsPerUserLimit carries `global_free_organizations_per_user_limit`.
+	GlobalFreeOrganizationsPerUserLimit int32 `json:"global_free_organizations_per_user_limit"`
 	// GlobalMembersPerOrganizationLimit carries `global_members_per_organization_limit`.
 	GlobalMembersPerOrganizationLimit int32 `json:"global_members_per_organization_limit"`
-	// GlobalOrganizationsPerUserLimit carries `global_organizations_per_user_limit`.
-	GlobalOrganizationsPerUserLimit int32 `json:"global_organizations_per_user_limit"`
 	// GlobalSubscriptionsPerApplicationLimit carries `global_subscriptions_per_application_limit`.
 	GlobalSubscriptionsPerApplicationLimit int32 `json:"global_subscriptions_per_application_limit"`
 }

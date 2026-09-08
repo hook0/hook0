@@ -1015,13 +1015,13 @@ public sealed record QuotasResponseLimits
     [JsonPropertyName("global_events_per_day_limit")]
     public required int GlobalEventsPerDayLimit { get; init; }
 
+    /// <summary>Carries <c>global_free_organizations_per_user_limit</c>.</summary>
+    [JsonPropertyName("global_free_organizations_per_user_limit")]
+    public required int GlobalFreeOrganizationsPerUserLimit { get; init; }
+
     /// <summary>Carries <c>global_members_per_organization_limit</c>.</summary>
     [JsonPropertyName("global_members_per_organization_limit")]
     public required int GlobalMembersPerOrganizationLimit { get; init; }
-
-    /// <summary>Carries <c>global_organizations_per_user_limit</c>.</summary>
-    [JsonPropertyName("global_organizations_per_user_limit")]
-    public required int GlobalOrganizationsPerUserLimit { get; init; }
 
     /// <summary>Carries <c>global_subscriptions_per_application_limit</c>.</summary>
     [JsonPropertyName("global_subscriptions_per_application_limit")]

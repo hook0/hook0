@@ -968,12 +968,12 @@ pub struct QuotasResponseLimits {
     /// `global_events_per_day_limit`.
     #[serde(rename = "global_events_per_day_limit")]
     pub global_events_per_day_limit: i32,
+    /// `global_free_organizations_per_user_limit`.
+    #[serde(rename = "global_free_organizations_per_user_limit")]
+    pub global_free_organizations_per_user_limit: i32,
     /// `global_members_per_organization_limit`.
     #[serde(rename = "global_members_per_organization_limit")]
     pub global_members_per_organization_limit: i32,
-    /// `global_organizations_per_user_limit`.
-    #[serde(rename = "global_organizations_per_user_limit")]
-    pub global_organizations_per_user_limit: i32,
     /// `global_subscriptions_per_application_limit`.
     #[serde(rename = "global_subscriptions_per_application_limit")]
     pub global_subscriptions_per_application_limit: i32,

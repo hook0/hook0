@@ -1605,10 +1605,10 @@ pub const QuotasResponseLimits = struct {
     global_event_types_per_application_limit: i32,
     /// carries `global_events_per_day_limit`.
     global_events_per_day_limit: i32,
+    /// carries `global_free_organizations_per_user_limit`.
+    global_free_organizations_per_user_limit: i32,
     /// carries `global_members_per_organization_limit`.
     global_members_per_organization_limit: i32,
-    /// carries `global_organizations_per_user_limit`.
-    global_organizations_per_user_limit: i32,
     /// carries `global_subscriptions_per_application_limit`.
     global_subscriptions_per_application_limit: i32,
 
@@ -1643,16 +1643,16 @@ pub const QuotasResponseLimits = struct {
                 "global_events_per_day_limit",
                 runtime.integer32,
             ),
+            .global_free_organizations_per_user_limit = try runtime.read(
+                allocator,
+                fields,
+                "global_free_organizations_per_user_limit",
+                runtime.integer32,
+            ),
             .global_members_per_organization_limit = try runtime.read(
                 allocator,
                 fields,
                 "global_members_per_organization_limit",
-                runtime.integer32,
-            ),
-            .global_organizations_per_user_limit = try runtime.read(
-                allocator,
-                fields,
-                "global_organizations_per_user_limit",
                 runtime.integer32,
             ),
             .global_subscriptions_per_application_limit = try runtime.read(
@@ -1697,14 +1697,14 @@ pub const QuotasResponseLimits = struct {
         try runtime.put(
             &out,
             allocator,
-            "global_members_per_organization_limit",
-            self.global_members_per_organization_limit,
+            "global_free_organizations_per_user_limit",
+            self.global_free_organizations_per_user_limit,
         );
         try runtime.put(
             &out,
             allocator,
-            "global_organizations_per_user_limit",
-            self.global_organizations_per_user_limit,
+            "global_members_per_organization_limit",
+            self.global_members_per_organization_limit,
         );
         try runtime.put(
             &out,

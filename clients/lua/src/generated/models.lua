@@ -1568,8 +1568,8 @@ Models.QuotasResponseLimits.__eq = Runtime.equality
 --- @param fields.global_days_of_events_retention_limit integer carries `global_days_of_events_retention_limit`.
 --- @param fields.global_event_types_per_application_limit integer carries `global_event_types_per_application_limit`.
 --- @param fields.global_events_per_day_limit integer carries `global_events_per_day_limit`.
+--- @param fields.global_free_organizations_per_user_limit integer carries `global_free_organizations_per_user_limit`.
 --- @param fields.global_members_per_organization_limit integer carries `global_members_per_organization_limit`.
---- @param fields.global_organizations_per_user_limit integer carries `global_organizations_per_user_limit`.
 --- @param fields.global_subscriptions_per_application_limit integer carries
 ---   `global_subscriptions_per_application_limit`.
 --- @return QuotasResponseLimits
@@ -1579,8 +1579,8 @@ function Models.QuotasResponseLimits.new(fields)
     global_days_of_events_retention_limit = fields.global_days_of_events_retention_limit,
     global_event_types_per_application_limit = fields.global_event_types_per_application_limit,
     global_events_per_day_limit = fields.global_events_per_day_limit,
+    global_free_organizations_per_user_limit = fields.global_free_organizations_per_user_limit,
     global_members_per_organization_limit = fields.global_members_per_organization_limit,
-    global_organizations_per_user_limit = fields.global_organizations_per_user_limit,
     global_subscriptions_per_application_limit = fields.global_subscriptions_per_application_limit,
   }, Models.QuotasResponseLimits)
 end
@@ -1607,12 +1607,16 @@ function Models.QuotasResponseLimits.from_json(value)
       Runtime.INTEGER
     ),
     global_events_per_day_limit = Runtime.read(fields, "global_events_per_day_limit", Runtime.INTEGER),
+    global_free_organizations_per_user_limit = Runtime.read(
+      fields,
+      "global_free_organizations_per_user_limit",
+      Runtime.INTEGER
+    ),
     global_members_per_organization_limit = Runtime.read(
       fields,
       "global_members_per_organization_limit",
       Runtime.INTEGER
     ),
-    global_organizations_per_user_limit = Runtime.read(fields, "global_organizations_per_user_limit", Runtime.INTEGER),
     global_subscriptions_per_application_limit = Runtime.read(
       fields,
       "global_subscriptions_per_application_limit",
@@ -1629,8 +1633,8 @@ function Models.QuotasResponseLimits:to_table()
     ["global_days_of_events_retention_limit"] = self.global_days_of_events_retention_limit,
     ["global_event_types_per_application_limit"] = self.global_event_types_per_application_limit,
     ["global_events_per_day_limit"] = self.global_events_per_day_limit,
+    ["global_free_organizations_per_user_limit"] = self.global_free_organizations_per_user_limit,
     ["global_members_per_organization_limit"] = self.global_members_per_organization_limit,
-    ["global_organizations_per_user_limit"] = self.global_organizations_per_user_limit,
     ["global_subscriptions_per_application_limit"] = self.global_subscriptions_per_application_limit,
   })
 end

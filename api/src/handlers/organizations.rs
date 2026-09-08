@@ -190,11 +190,11 @@ pub async fn create(
     let mut tx = state.db.begin().await?;
 
     // Must be the first statement of this transaction: it locks the user row and counts
-    // the organizations they created under that lock, so the insert below has to run in
-    // the same transaction for the count to stay true. See `Quotas::enforce_*`.
+    // the free organizations they belong to under that lock, so the insert below has to
+    // run in the same transaction for the count to stay true. See `Quotas::enforce_*`.
     state
         .quotas
-        .enforce_organizations_per_user(&mut tx, &token.user_id)
+        .enforce_free_organizations_per_user(&mut tx, &token.user_id)
         .await?;
 
     let organization_id = Uuid::new_v4();
@@ -881,7 +881,7 @@ mod quota_race_tests {
         state.quotas = Quotas::new(
             true,
             QuotaLimits {
-                global_organizations_per_user_limit: QuotaValue::MAX,
+                global_free_organizations_per_user_limit: QuotaValue::MAX,
                 global_members_per_organization_limit: MEMBERS_ALLOWED,
                 global_applications_per_organization_limit: QuotaValue::MAX,
                 global_events_per_day_limit: QuotaValue::MAX,
@@ -945,12 +945,12 @@ mod quota_race_tests {
         );
     }
 
-    /// The organizations-per-user limit already spends one slot on an organization the
-    /// user created earlier, so this leaves room for exactly one of the concurrent
+    /// The free-organizations-per-user limit already spends one slot on an organization
+    /// the user belongs to, so this leaves room for exactly one of the concurrent
     /// creations below.
     const ORGS_ALLOWED: QuotaValue = 2;
 
-    /// The organizations-per-user limit, held against creations arriving together.
+    /// The free-organizations-per-user limit, held against creations arriving together.
     #[sqlx::test]
     async fn concurrent_creations_cannot_take_a_user_past_their_organization_limit(pool: PgPool) {
         let options = (*pool.connect_options()).clone();
@@ -974,7 +974,7 @@ mod quota_race_tests {
         state.quotas = Quotas::new(
             true,
             QuotaLimits {
-                global_organizations_per_user_limit: ORGS_ALLOWED,
+                global_free_organizations_per_user_limit: ORGS_ALLOWED,
                 global_members_per_organization_limit: QuotaValue::MAX,
                 global_applications_per_organization_limit: QuotaValue::MAX,
                 global_events_per_day_limit: QuotaValue::MAX,
@@ -1073,7 +1073,7 @@ mod quota_race_tests {
         let quotas = Quotas::new(
             true,
             QuotaLimits {
-                global_organizations_per_user_limit: 2,
+                global_free_organizations_per_user_limit: 2,
                 global_members_per_organization_limit: QuotaValue::MAX,
                 global_applications_per_organization_limit: QuotaValue::MAX,
                 global_events_per_day_limit: QuotaValue::MAX,
@@ -1093,7 +1093,7 @@ mod quota_race_tests {
         seed_membership(&pool, user, joined, "editor").await;
 
         let mut tx = pool.begin().await.expect("open transaction");
-        let at_limit = quotas.enforce_organizations_per_user(&mut tx, &user).await;
+        let at_limit = quotas.enforce_free_organizations_per_user(&mut tx, &user).await;
         tx.rollback().await.ok();
         assert!(
             matches!(
@@ -1110,7 +1110,7 @@ mod quota_race_tests {
         attach_plan(&pool, joined).await;
 
         let mut tx = pool.begin().await.expect("open transaction");
-        let under_limit = quotas.enforce_organizations_per_user(&mut tx, &user).await;
+        let under_limit = quotas.enforce_free_organizations_per_user(&mut tx, &user).await;
         tx.rollback().await.ok();
         assert!(
             under_limit.is_ok(),

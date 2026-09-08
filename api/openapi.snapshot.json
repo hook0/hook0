@@ -773,11 +773,11 @@
                 "format": "int32",
                 "type": "integer"
               },
-              "global_members_per_organization_limit": {
+              "global_free_organizations_per_user_limit": {
                 "format": "int32",
                 "type": "integer"
               },
-              "global_organizations_per_user_limit": {
+              "global_members_per_organization_limit": {
                 "format": "int32",
                 "type": "integer"
               },
@@ -791,8 +791,8 @@
               "global_days_of_events_retention_limit",
               "global_event_types_per_application_limit",
               "global_events_per_day_limit",
+              "global_free_organizations_per_user_limit",
               "global_members_per_organization_limit",
-              "global_organizations_per_user_limit",
               "global_subscriptions_per_application_limit"
             ],
             "type": "object"
