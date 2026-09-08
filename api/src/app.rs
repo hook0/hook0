@@ -108,7 +108,6 @@ pub fn build_app(
         .add(("X-Content-Type-Options", "nosniff"))
         .add(("Referrer-Policy", "strict-origin-when-cross-origin"))
         .add(("X-XSS-Protection", "1; mode=block"))
-        .add(("Referrer-Policy", "SAMEORIGIN"))
         .add(("X-Frame-Options", "DENY"));
 
     let hsts_header =
