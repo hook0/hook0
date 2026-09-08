@@ -1098,7 +1098,9 @@ mod quota_race_tests {
         assert!(
             matches!(
                 at_limit,
-                Err(crate::problems::Hook0Problem::TooManyOrganizationsPerUser(_))
+                Err(crate::problems::Hook0Problem::TooManyOrganizationsPerUser(
+                    _
+                ))
             ),
             "two free memberships must already exhaust a cap of two"
         );
