@@ -148,6 +148,10 @@ struct Config {
     #[clap(long, env)]
     otlp_traces_endpoint: Option<Url>,
 
+    /// [Monitoring] Optional OTLP endpoint that will receive logs
+    #[clap(long, env)]
+    otlp_logs_endpoint: Option<Url>,
+
     /// [Monitoring] Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
     #[clap(long, env, hide_env_values = true)]
     otlp_authorization: Option<String>,
@@ -978,6 +982,20 @@ async fn main() -> anyhow::Result<()> {
     );
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
+        // The OTLP logs bridge is a tracing layer, so it has to be built *before*
+        // the subscriber is finalized in `hook0_sentry_integration::init`. Metrics
+        // and traces stay after that call so their startup log lines still reach the
+        // subscriber.
+        // The guard is bound here, before `_sentry`, on purpose: locals drop in reverse
+        // order, so it outlives the Sentry guard and lines logged while Sentry tears
+        // itself down still reach Loki.
+        let (_otlp_logs_guard, otlp_logs_layer) = opentelemetry::init_logs(
+            crate_version!(),
+            &config.otlp_authorization,
+            &config.otlp_logs_endpoint,
+        )?
+        .unzip();
+
         // Initialize app logger as well as Sentry integration
         // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
         let _sentry = hook0_sentry_integration::init(
@@ -986,6 +1004,7 @@ async fn main() -> anyhow::Result<()> {
             config.sentry_debug,
             config.sentry_send_default_pii,
             config.sentry_enable_spans,
+            otlp_logs_layer,
         );
 
         // Init OpenTelemetry
@@ -994,6 +1013,7 @@ async fn main() -> anyhow::Result<()> {
             &config.otlp_authorization,
             &config.otlp_metrics_endpoint,
             &config.otlp_traces_endpoint,
+            &config.otlp_logs_endpoint,
         )?;
 
         trace!("Starting {APP_TITLE}");

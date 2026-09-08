@@ -134,6 +134,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`SENTRY_SEND_DEFAULT_PII\` | Send default PII (IP addresses, cookies, etc.) to Sentry | \`false\` |  |
 | \`OTLP_METRICS_ENDPOINT\` | Optional OTLP endpoint that will receive metrics | - |  |
 | \`OTLP_TRACES_ENDPOINT\` | Optional OTLP endpoint that will receive traces | - |  |
+| \`OTLP_LOGS_ENDPOINT\` | Optional OTLP endpoint that will receive logs | - |  |
 | \`OTLP_AUTHORIZATION\` 🔒 | Optional value for OTLP \`Authorization\` header (for example: \`Bearer mytoken\`) | - |  |
 | \`DATABASE_URL\` 🔒 | Database URL (with credentials) | - | ✓ |
 | \`MAX_DB_CONNECTIONS\` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT) | \`5\` |  |

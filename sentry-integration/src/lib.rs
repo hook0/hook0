@@ -8,16 +8,32 @@ use sentry::{ClientInitGuard, Level, User, configure_scope};
 use std::collections::BTreeMap;
 use tracing::{info, warn};
 use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::registry::Registry;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{EnvFilter, Layer, fmt};
+
+/// A type-erased `tracing` layer that [`init`] installs on the process-wide
+/// subscriber alongside the fmt and Sentry layers.
+///
+/// The `tracing` subscriber can only be set once, and it is set here — before the
+/// OpenTelemetry pipeline is built. A caller that needs its own layer on that
+/// subscriber (in practice the OTLP logs bridge, whose concrete type this crate
+/// does not know) builds it beforehand and hands it in as this boxed value.
+pub type BoxedLayer = Box<dyn Layer<Registry> + Send + Sync>;
 
 /// Initialize Sentry integration
+///
+/// `extra_layer` is an optional additional `tracing` layer to install on the same
+/// subscriber (used to bridge `tracing` events to an OTLP logs exporter). It must
+/// be built before this call, since the subscriber is finalized here and cannot be
+/// changed afterwards.
 pub fn init(
     sentry_dsn: &Option<String>,
     traces_sample_rate: &Option<f32>,
     debug: bool,
     send_default_pii: bool,
     enable_spans: bool,
+    extra_layer: Option<BoxedLayer>,
 ) -> Option<ClientInitGuard> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -42,7 +58,11 @@ pub fn init(
         .as_ref()
         .map(|_| sentry::integrations::tracing::layer().span_filter(move |_| enable_spans));
 
+    // `extra_layer` goes on first so it targets the bare `Registry` type; `EnvFilter`
+    // stays a global filter and applies to every layer regardless of position, so the
+    // OTLP logs bridge sees exactly the same events as the fmt and Sentry layers.
     tracing_subscriber::registry()
+        .with(extra_layer)
         .with(env_filter)
         .with(fmt::layer())
         .with(sentry_layer)

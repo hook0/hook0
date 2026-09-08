@@ -106,6 +106,10 @@ struct Config {
     #[clap(long, env)]
     otlp_traces_endpoint: Option<Url>,
 
+    /// Optional OTLP endpoint that will receive logs
+    #[clap(long, env)]
+    otlp_logs_endpoint: Option<Url>,
+
     /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
     #[clap(long, env, hide_env_values = true)]
     otlp_authorization: Option<String>,
@@ -429,6 +433,14 @@ async fn main() -> anyhow::Result<()> {
         .to_owned()
         .unwrap_or_else(|| crate_version!().to_owned());
 
+    // The OTLP logs bridge is a tracing layer, so it has to be built *before* the
+    // subscriber is finalized in `hook0_sentry_integration::init`. Metrics and traces
+    // stay after that call so their startup log lines still reach the subscriber.
+    // The guard is bound here, before `_sentry`, on purpose: locals drop in reverse order,
+    // so it outlives the Sentry guard and the final log lines still reach Loki.
+    let (_otlp_logs_guard, otlp_logs_layer) =
+        opentelemetry::init_logs(&config, &worker_version)?.unzip();
+
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
     let _sentry = hook0_sentry_integration::init(
@@ -437,6 +449,7 @@ async fn main() -> anyhow::Result<()> {
         config.sentry_debug,
         config.sentry_send_default_pii,
         false,
+        otlp_logs_layer,
     );
 
     // Init OpenTelemetry
@@ -920,6 +933,8 @@ async fn main() -> anyhow::Result<()> {
     // Ensure all OpenTelemetry entities have been reported
     metrics_pool_handle.abort();
     otlp_exporters.shutdown()?;
+    // Logs are flushed by `_otlp_logs_guard` when it drops at the end of `main`, so the
+    // final line below is exported too.
 
     if task_tracker.is_closed() {
         info!("Worker gracefully terminated");
