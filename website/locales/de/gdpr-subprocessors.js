@@ -30,13 +30,13 @@
 module.exports = {
   pageTitle: 'Hook0 - DSGVO-Unterauftragsverarbeiter',
   pageDescription: 'Liste der Hook0-Unterauftragsverarbeiter. Transparenz zur Verarbeitung in Europa und zu Drittstaatentransfers.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-09-09',
   hero: {
     eyebrow: 'Compliance',
     title: 'DSGVO und Unterauftragsverarbeiter',
     subtitle: 'Unser Engagement für den Datenschutz und die Partner, mit denen wir arbeiten.',
     lastUpdatedLabel: 'Letzte Aktualisierung:',
-    lastUpdatedDate: '27. Juni 2026',
+    lastUpdatedDate: '9. September 2026',
   },
   intro: {
     p1Html: 'Die Datenschutz-Grundverordnung (DSGVO / GDPR) ist das strengste Datenschutz- und Sicherheitsgesetz der Welt. Sie verpflichtet Organisationen weltweit, sobald diese Personen in der Europäischen Union ansprechen oder Daten von ihnen erheben. Die Verordnung wurde im April 2016 vom Europäischen Parlament verabschiedet und ist am 25. Mai 2018 in Kraft getreten.',
@@ -70,6 +70,7 @@ module.exports = {
         },
         {
           name: 'Cloudflare, Inc. (101 Townsend St, San Francisco, CA 94107)',
+          dpaHref: '/legal/cloudflare-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'DNS und DDoS-Schutz',
@@ -100,6 +101,7 @@ module.exports = {
         },
         {
           name: 'Stripe Inc.',
+          dpaHref: '/legal/stripe-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Abonnementverwaltung der Hook0-Kunden',
@@ -114,6 +116,7 @@ module.exports = {
         },
         {
           name: 'Postmark',
+          dpaHref: '/legal/postmark-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Versand von Transaktions-E-Mails',
@@ -128,6 +131,7 @@ module.exports = {
         },
         {
           name: 'Sentry',
+          dpaHref: '/legal/sentry-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Fehler-Tracking',

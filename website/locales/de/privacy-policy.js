@@ -58,18 +58,18 @@
 module.exports = {
   pageTitle: 'Hook0 - Datenschutzerklärung',
   pageDescription: 'Datenschutzerklärung Hook0 (Art. 13 DSGVO): Rechtsgrundlagen, Aufbewahrungsfristen, Rechte, Unterauftragsverarbeiter, Drittstaaten.',
-  pageModified: '2026-08-06',
+  pageModified: '2026-09-09',
   hero: {
     eyebrow: 'Rechtliches',
     title: 'Datenschutzerklärung',
     subtitle: 'Wie Hook0 Ihre personenbezogenen Daten erhebt, verwendet und schützt, im Einklang mit Art. 13 DSGVO.',
     lastUpdatedLabel: 'Letzte Aktualisierung:',
-    lastUpdatedDate: '6. August 2026',
+    lastUpdatedDate: '9. September 2026',
   },
   controller: {
     title: '1. Verantwortlicher',
     p1: 'Der für die Verarbeitung Ihrer personenbezogenen Daten im Rahmen des Hook0-Dienstes Verantwortliche ist:',
-    identityHtml: '<strong class="text-white">FGRibreau SARL</strong>, eine Gesellschaft mit beschränkter Haftung nach französischem Recht (Société à Responsabilité Limitée) mit einem Stammkapital von 2 000 EUR, eingetragen im Handels- und Gesellschaftsregister von La Roche-sur-Yon unter der Nummer 850 824 350, USt-ID FR27850824350, mit Geschäftsadresse 3 rue de l\'Aubépine, 85110 Chantonnay, Frankreich.<br>Verantwortlicher für die Veröffentlichung: David Sferruzza.<br>Datenschutz-Kontakt: <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
+    identityHtml: '<strong class="text-white">FGRibreau SARL</strong>, eine Gesellschaft mit beschränkter Haftung nach französischem Recht (Société à Responsabilité Limitée) mit einem Stammkapital von 2 000 EUR, eingetragen im Handels- und Gesellschaftsregister von La Roche-sur-Yon unter der Nummer 850 824 350, USt-ID FR27850824350, mit Geschäftsadresse 3 rue de l\'Aubépine, 85110 Chantonnay, Frankreich.<br>Verantwortlicher für die Veröffentlichung: David Sferruzza.<br>Datenschutz-Kontakt: <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a><br>Datenschutzbeauftragter (DSB): erreichbar unter <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
     note: 'Hook0 ist eine ausschließlich für Geschäftskunden (B2B) bestimmte SaaS-Plattform. Wir erheben nicht absichtlich Daten von Personen, die in privater Eigenschaft handeln.',
   },
   purposes: {

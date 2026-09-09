@@ -3,7 +3,8 @@
 // Source: src/gdpr-subprocessors.ejs (legacy v2024-09-28). Inline legal-reviewer
 // audit applied before extraction; each correction is flagged inline below with
 // [LEGAL-CORRECTION L#] referencing the original line of the legacy template.
-// The "Last Update" date is bumped to 2026-06-27 to reflect those corrections.
+// The "Last Update" date is bumped to 2026-09-09 (DPA/SCC document links added
+// for US subprocessors); the 2026-06-27 legal corrections below are retained.
 //
 // Hard legal facts (CLAUDE.md / CLAUDE.local.md) kept verbatim across locales:
 //   - Controller relationship: FGRibreau SARL (data processor for Customer Content)
@@ -31,13 +32,13 @@
 module.exports = {
   pageTitle: 'Hook0 - GDPR Subprocessors',
   pageDescription: 'Learn about Hook0 GDPR compliance and the subprocessors we use to provide our webhook services. Full transparency on data processing in Europe and on US transfers.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-09-09',
   hero: {
     eyebrow: 'Compliance',
     title: 'GDPR & Subprocessors',
     subtitle: 'Our commitment to data protection and the partners we work with.',
     lastUpdatedLabel: 'Last Update:',
-    lastUpdatedDate: 'June 27, 2026',
+    lastUpdatedDate: 'September 9, 2026',
   },
   intro: {
     // [LEGAL-CORRECTION L78] Fix "DSVGO" typo → "DSGVO".
@@ -74,6 +75,7 @@ module.exports = {
         },
         {
           name: 'Cloudflare, Inc. (101 Townsend St, San Francisco, CA 94107)',
+          dpaHref: '/legal/cloudflare-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'DNS and DDoS protection',
@@ -104,6 +106,7 @@ module.exports = {
         },
         {
           name: 'Stripe Inc.',
+          dpaHref: '/legal/stripe-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Hook0\'s customer subscription management',
@@ -118,6 +121,7 @@ module.exports = {
         },
         {
           name: 'Postmark',
+          dpaHref: '/legal/postmark-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Automated emailing',
@@ -132,6 +136,7 @@ module.exports = {
         },
         {
           name: 'Sentry',
+          dpaHref: '/legal/sentry-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Error tracking',

@@ -47,13 +47,13 @@
 module.exports = {
   pageTitle: 'Hook0 - Politique de confidentialité',
   pageDescription: 'Politique de confidentialité Hook0, conforme à l\'article 13 du RGPD. Bases légales, durées de conservation, vos droits, sous-traitants et transferts hors UE.',
-  pageModified: '2026-08-06',
+  pageModified: '2026-09-09',
   hero: {
     eyebrow: 'Mentions légales',
     title: 'Politique de confidentialité',
     subtitle: 'Comment Hook0 collecte, utilise et protège vos données personnelles, conformément à l\'article 13 du RGPD.',
     lastUpdatedLabel: 'Dernière mise à jour :',
-    lastUpdatedDate: '6 août 2026',
+    lastUpdatedDate: '9 septembre 2026',
   },
   controller: {
     title: '1. Responsable du traitement',
@@ -63,7 +63,7 @@ module.exports = {
     // L'extrait legacy se limitait à l'adresse postale et au « SIRET sur
     // demande », ce qui est en dessous du standard art. 13(1)(a) RGPD + art.
     // 6-III LCEN.
-    identityHtml: '<strong class="text-white">FGRibreau SARL</strong>, société à responsabilité limitée de droit français au capital de 2 000 EUR, immatriculée au registre du commerce et des sociétés de La Roche-sur-Yon sous le numéro 850 824 350, TVA FR27850824350, dont le siège social est situé 3 rue de l\'Aubépine, 85110 Chantonnay, France.<br>Directeur de la publication : David Sferruzza.<br>Contact protection des données : <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
+    identityHtml: '<strong class="text-white">FGRibreau SARL</strong>, société à responsabilité limitée de droit français au capital de 2 000 EUR, immatriculée au registre du commerce et des sociétés de La Roche-sur-Yon sous le numéro 850 824 350, TVA FR27850824350, dont le siège social est situé 3 rue de l\'Aubépine, 85110 Chantonnay, France.<br>Directeur de la publication : David Sferruzza.<br>Contact protection des données : <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a><br>Délégué à la protection des données (DPD) : joignable à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
     note: 'Hook0 est une plateforme SaaS exclusivement destinée aux professionnels (B2B). Nous ne collectons pas intentionnellement de données relatives à des personnes physiques agissant à titre privé.',
   },
   purposes: {
