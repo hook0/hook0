@@ -1093,7 +1093,9 @@ mod quota_race_tests {
         seed_membership(&pool, user, joined, "editor").await;
 
         let mut tx = pool.begin().await.expect("open transaction");
-        let at_limit = quotas.enforce_free_organizations_per_user(&mut tx, &user).await;
+        let at_limit = quotas
+            .enforce_free_organizations_per_user(&mut tx, &user)
+            .await;
         tx.rollback().await.ok();
         assert!(
             matches!(
@@ -1110,7 +1112,9 @@ mod quota_race_tests {
         attach_plan(&pool, joined).await;
 
         let mut tx = pool.begin().await.expect("open transaction");
-        let under_limit = quotas.enforce_free_organizations_per_user(&mut tx, &user).await;
+        let under_limit = quotas
+            .enforce_free_organizations_per_user(&mut tx, &user)
+            .await;
         tx.rollback().await.ok();
         assert!(
             under_limit.is_ok(),
