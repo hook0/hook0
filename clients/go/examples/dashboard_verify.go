@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	hook0 "github.com/hook0/hook0-go/v2"
+	hook0 "github.com/hook0/hook0-go/v3"
 )
 
 // Verify against the *raw* body: one that has been parsed and serialised again no longer hashes to

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	hook0 "github.com/hook0/hook0-go/v2"
+	hook0 "github.com/hook0/hook0-go/v3"
 )
 
 const (

@@ -201,7 +201,7 @@ Three ecosystems can be published no other way, and their publish jobs are what
 the mirrors are for:
 
 - **Go** — a module is named by the address it is fetched at, so
-  `clients/go/go.mod` declares `github.com/hook0/hook0-go/v2` and the mirror is what
+  `clients/go/go.mod` declares `github.com/hook0/hook0-go/v3` and the mirror is what
   answers there. From v2 on the major is part of that address, so the path carries
   it and moves with every major release; `sdk-v2.0.1` went out with a path still
   written for v1, and the proxy answered `module path must match major version` to

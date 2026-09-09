@@ -8,7 +8,7 @@
 # How this language is named on screen.
 #
 # Nothing else in the tree carries it: the generator calls this target `go`, the registry calls the
-# package `github.com/hook0/hook0-go/v2`, and neither is what a reader is looking for in a list of
+# package `github.com/hook0/hook0-go/v3`, and neither is what a reader is looking for in a list of
 # languages.
 display_name = "Go"
 
