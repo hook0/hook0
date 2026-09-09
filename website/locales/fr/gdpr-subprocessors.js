@@ -25,13 +25,13 @@
 module.exports = {
   pageTitle: 'Sous-traitants RGPD | Hook0',
   pageDescription: 'Liste des sous-traitants Hook0 et transparence sur les traitements en Europe et les transferts vers les États-Unis.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-09-09',
   hero: {
     eyebrow: 'Conformité',
     title: 'RGPD et sous-traitants',
     subtitle: 'Notre engagement en matière de protection des données et les partenaires avec lesquels nous travaillons.',
     lastUpdatedLabel: 'Dernière mise à jour :',
-    lastUpdatedDate: '27 juin 2026',
+    lastUpdatedDate: '9 septembre 2026',
   },
   intro: {
     p1Html: 'Le Règlement général sur la protection des données (RGPD / DSGVO) est la législation la plus stricte au monde en matière de vie privée et de sécurité. Il impose des obligations aux organisations partout dans le monde, dès lors qu\'elles ciblent ou collectent des données relatives à des personnes situées dans l\'Union européenne. Le règlement a été adopté par le Parlement européen en avril 2016 et est entré en vigueur le 25 mai 2018.',
@@ -65,6 +65,7 @@ module.exports = {
         },
         {
           name: 'Cloudflare, Inc. (101 Townsend St, San Francisco, CA 94107)',
+          dpaHref: '/legal/cloudflare-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'DNS et protection anti-DDoS',
@@ -95,6 +96,7 @@ module.exports = {
         },
         {
           name: 'Stripe Inc.',
+          dpaHref: '/legal/stripe-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Gestion des abonnements clients Hook0',
@@ -109,6 +111,7 @@ module.exports = {
         },
         {
           name: 'Postmark',
+          dpaHref: '/legal/postmark-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Envoi d\'e-mails transactionnels',
@@ -123,6 +126,7 @@ module.exports = {
         },
         {
           name: 'Sentry',
+          dpaHref: '/legal/sentry-dpa.pdf',
           country: 'USA',
           countryIsEU: false,
           purpose: 'Suivi des erreurs',

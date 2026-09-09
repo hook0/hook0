@@ -62,13 +62,13 @@
 module.exports = {
   pageTitle: 'Hook0 - Privacy Policy',
   pageDescription: 'Hook0 Privacy Policy - GDPR Article 13 compliant. Legal basis, data retention, your rights, subprocessors, and transfers outside the EU.',
-  pageModified: '2026-08-06',
+  pageModified: '2026-09-09',
   hero: {
     eyebrow: 'Legal',
     title: 'Privacy Policy',
     subtitle: 'How Hook0 collects, uses, and protects your personal data, in compliance with GDPR Article 13.',
     lastUpdatedLabel: 'Last updated:',
-    lastUpdatedDate: 'August 6, 2026',
+    lastUpdatedDate: 'September 9, 2026',
   },
   controller: {
     title: '1. Data Controller',
@@ -77,7 +77,7 @@ module.exports = {
     // to align with the legal-pages identity used by `mentions-legales.ejs` and the
     // DPA. The legacy block only listed the postal address and "SIRET on request",
     // which is below the standard art. 13(1)(a) GDPR + art. 6-III LCEN bar.
-    identityHtml: '<strong class="text-white">FGRibreau SARL</strong>, a French limited liability company (Societe a Responsabilite Limitee) with a share capital of 2,000 EUR, registered with the Trade and Companies Register of La Roche-sur-Yon under number 850 824 350, VAT FR27850824350, with its registered office at 3 rue de l\'Aubepine, 85110 Chantonnay, France.<br>Director of publication: David Sferruzza.<br>Privacy contact: <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
+    identityHtml: '<strong class="text-white">FGRibreau SARL</strong>, a French limited liability company (Societe a Responsabilite Limitee) with a share capital of 2,000 EUR, registered with the Trade and Companies Register of La Roche-sur-Yon under number 850 824 350, VAT FR27850824350, with its registered office at 3 rue de l\'Aubepine, 85110 Chantonnay, France.<br>Director of publication: David Sferruzza.<br>Privacy contact: <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a><br>Data Protection Officer (DPO): reachable at <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
     note: 'Hook0 is a 100% B2B SaaS platform. We do not intentionally collect data from individuals acting in a personal capacity.',
   },
   purposes: {
