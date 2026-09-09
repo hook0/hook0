@@ -18,3 +18,4 @@ Severity plays no part in who gets an entry. A report we accept and fix earns on
 - Nishant Lungare, who reported that the password reset endpoint answered one way for an address with an account and another way for an address without one, and that nothing bounded the number of messages it could be made to send.
 - zoha siddiqui, who reported that the hostnames served through our CDN accept cipher suites built on CBC with a SHA-1 MAC.
 - Emma Nair, who reported the same cipher suites, independently.
+- Abdurazzoqov Javohir, who reported that the optional master API key was checked against the supplied token a byte at a time, so the time a wrong key took to be rejected showed how many of its leading bytes were right, and the key could be recovered one byte after another.
