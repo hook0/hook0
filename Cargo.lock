@@ -2999,6 +2999,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "strum 0.28.0",
+ "subtle",
  "test-log",
  "thiserror 2.0.20",
  "thousands",
