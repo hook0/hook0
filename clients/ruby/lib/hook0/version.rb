@@ -2,5 +2,5 @@
 
 module Hook0
   # What this gem is released as, which the gemspec reads rather than repeats.
-  VERSION = "2.0.3"
+  VERSION = "3.0.0"
 end
