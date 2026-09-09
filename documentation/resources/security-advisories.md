@@ -22,6 +22,24 @@ is on the [vulnerability disclosure policy](vulnerability-disclosure-policy.md)
 page. Everyone whose report we act on is credited on the
 [security acknowledgments](security-acknowledgments.md) page.
 
+## Master API key compared in non-constant time
+
+- **Reported by:** Abdurazzoqov Javohir
+- **Severity:** Low
+- **Weakness:** CWE-208 (observable timing discrepancy)
+- **CVE:** none requested (feature disabled by default, off on Hook0 Cloud)
+- **Fixed:** commit `0f7ab9a4`, 2026-09-09
+
+The master API key is an optional key that, once set, is accepted in place of a
+tenant token. The middleware compared the supplied token against the configured
+key with a derived equality that stops at the first byte that differs, so the
+time a wrong key took to be rejected depended on how many of its leading bytes
+were right. Anyone able to measure that time could recover the key a byte at a
+time. The key is disabled by default, is not enabled on Hook0 Cloud, and the
+self-hosting documentation says to turn it off once setup is done, so only a
+deployment that keeps it enabled against that guidance is exposed. The fix
+compares the sixteen bytes in constant time.
+
 ## Race condition bypasses the plan application limit
 
 - **Reported by:** Sagar Kirola
