@@ -121,6 +121,27 @@ pub fn set_user_from_token(token_id: &str) {
     });
 }
 
+fn set_tag(key: &str, value: &str) {
+    configure_scope(|scope| {
+        scope.set_tag(key, value);
+    });
+}
+
+/// Tag every subsequent report with the name of the worker that produced it.
+pub fn set_worker_name(worker_name: &str) {
+    set_tag("worker.name", worker_name);
+}
+
+/// Tag every subsequent report with the id of this process.
+pub fn set_service_instance_id(instance_id: &str) {
+    set_tag("service.instance.id", instance_id);
+}
+
+/// Tag every subsequent report with the queue type this worker resolved from the database.
+pub fn set_worker_queue_type(queue_type: &str) {
+    set_tag("worker.queue_type", queue_type);
+}
+
 /// Logs an object storage error event with static message (for Sentry grouping) and attaches extra context (error chain, object key) to the Sentry event.
 /// Also emits a warn-level tracing event with all details for stdout/log aggregation.
 pub fn _log_object_storage_error_with_context(

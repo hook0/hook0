@@ -452,6 +452,13 @@ async fn main() -> anyhow::Result<()> {
         otlp_logs_layer,
     );
 
+    // Tag Sentry on the main thread while the process hub is still the only one: hubs created
+    // later for tokio worker threads clone this scope, so the tags reach every event. Set before
+    // the PostgreSQL pool is built below, since connection failures are exactly the kind of
+    // startup error that needs to name its worker.
+    hook0_sentry_integration::set_worker_name(&worker_name);
+    hook0_sentry_integration::set_service_instance_id(&opentelemetry::service_instance_id());
+
     // Init OpenTelemetry
     let otlp_exporters = opentelemetry::init(&config, &worker_version)?;
 
@@ -502,6 +509,7 @@ async fn main() -> anyhow::Result<()> {
         .unwrap();
 
     let worker = get_worker(worker_name, &pool).await?;
+    hook0_sentry_integration::set_worker_queue_type(&worker.queue_type.to_string());
 
     if matches!(worker.queue_type, WorkerQueueType::Pg)
         && u32::from(config.concurrent) > config.max_db_connections

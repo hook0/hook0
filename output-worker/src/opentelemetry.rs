@@ -65,7 +65,9 @@ const SERVICE_INSTANCE_ID: &str = "service.instance.id";
 // calls (logs before the Sentry subscriber, metrics/traces after), and they must
 // all carry the *same* `service.instance.id`. Without caching, the random fallback
 // below would hand each signal a different id whenever the env detector finds none,
-// splitting a single worker into three "instances" in Grafana.
+// splitting a single worker into three "instances" in Grafana. Sentry is a fourth
+// consumer: `main` mirrors this value into a `service.instance.id` tag so an issue
+// points back at the exact process that raised it.
 static PROCESS_INSTANCE_ID: LazyLock<String> = LazyLock::new(|| {
     let detected = Resource::builder_empty()
         .with_detector(Box::new(EnvResourceDetector::new()))
@@ -76,7 +78,7 @@ static PROCESS_INSTANCE_ID: LazyLock<String> = LazyLock::new(|| {
     pick_service_instance_id(detected.as_deref())
 });
 
-fn service_instance_id() -> String {
+pub(crate) fn service_instance_id() -> String {
     PROCESS_INSTANCE_ID.clone()
 }
 
