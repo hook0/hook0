@@ -10,12 +10,27 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
+use subtle::ConstantTimeEq;
 use tracing::{debug, error, trace};
 use uuid::Uuid;
 
 use crate::iam::create_master_access_token;
 use crate::problems::Hook0Problem;
 use crate::rate_limiting::RateLimiterTokenKey;
+
+/// Compares a caller-supplied token against the configured master API key in constant time.
+///
+/// The master API key grants unscoped, instance-wide access, so the check must not leak
+/// how many leading bytes of a guess were correct: a byte-by-byte short-circuiting `==`
+/// (derived `Uuid::eq`) lets an attacker recover the key one byte at a time via response
+/// latency (CWE-208). `subtle::ConstantTimeEq` compares all 16 bytes regardless of where
+/// they first differ. A token that is not a well-formed UUID can never be the master key.
+fn is_master_api_key(token: &str, master_api_key: Uuid) -> bool {
+    match Uuid::parse_str(token) {
+        Ok(candidate) => candidate.as_bytes().ct_eq(master_api_key.as_bytes()).into(),
+        Err(_) => false,
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct BiscuitAuth {
@@ -151,12 +166,12 @@ where
                             }
                             Err(biscuit_err) => {
                                 let uuid_token = Uuid::parse_str(token);
-                                let is_master_key =
-                                    if let Some(master_api_key) = self.master_api_key {
-                                        uuid_token == Ok(master_api_key)
-                                    } else {
-                                        false
-                                    };
+                                let is_master_key = match self.master_api_key {
+                                    Some(master_api_key) => {
+                                        is_master_api_key(token, master_api_key)
+                                    }
+                                    None => false,
+                                };
 
                                 if is_master_key {
                                     match create_master_access_token(&self.biscuit_private_key) {
