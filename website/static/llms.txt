@@ -19,9 +19,21 @@
 - Coinbase is on the record. Ian Mukherjee (Coinbase): "Thank you for all of your help, we appreciate your partnership."
 - Platon Samuel left a 5/5 review on Product Hunt, and the GitHub star count is public and verifiable.
 
+## Compliance
+- [Data Processing Agreement (DPA)](https://www.hook0.com/data-processing-addendum): The GDPR data processing agreement covering how Hook0 handles customer data. Sign it before going live.
+- [GDPR Subprocessors](https://www.hook0.com/gdpr-subprocessors): Every subprocessor Hook0 relies on, what each one processes, and where it runs.
+
+## Free tools
+- [Webhook Tester](https://www.hook0.com/webhook-playground): Send test events, inspect payloads, and verify HMAC signatures in the browser. No signup. Handles Stripe, GitHub, and Shopify webhooks.
+- [GitHub Webhook Tester](https://www.hook0.com/github-webhook-tester): Inspect a GitHub delivery: the payload, the X-GitHub-Event header, and the X-Hub-Signature-256 you have to verify.
+- [Shopify Webhook Tester](https://www.hook0.com/shopify-webhook-tester): Inspect a Shopify delivery: the payload, the X-Shopify-Topic header, and the base64 X-Shopify-Hmac-Sha256 signature.
+- [Stripe Webhook Tester](https://www.hook0.com/stripe-webhook-tester): Read the raw body and the exact Stripe-Signature header so your whsec_ verification matches.
+
 ## Localized
 - [Webhook-Plattform (DE)](https://www.hook0.com/de/webhook-plattform): German page, EU-hosting and DSGVO angle for DACH.
+- [Webhook-MCP-Server für KI-Agenten (DE)](https://www.hook0.com/de/mcp-server-fuer-webhooks): German page, MCP-Server und Webhooks für KI-Agenten.
 - [Plateforme de webhooks (FR)](https://www.hook0.com/fr/plateforme-webhook): Page française, hébergement UE et conformité RGPD.
+- [Serveur MCP webhook pour agents IA (FR)](https://www.hook0.com/fr/serveur-mcp-webhook): Page française, serveur MCP et webhooks pour agents IA.
 
 ## Comparisons
 - [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix)
@@ -32,6 +44,7 @@
 - [Svix Alternatives](https://www.hook0.com/svix-alternatives): Hook0, Hookdeck, and Convoy measured against Svix on pricing, self-hosting, and source-available licensing.
 - [Webhook.site Alternative](https://www.hook0.com/migrate-from-webhook-site): Move from webhook.site debugging to production delivery. HMAC signatures, configurable retries, delivery logs, and a subscriber portal.
 - [Webhook Cost Comparison](https://www.hook0.com/webhook-cost-comparison): Public prices for Hook0, Svix, Hookdeck Outpost, and Convoy from 100k to 10M events per month, billing models side by side.
+- [Hook0 Alternatives](https://www.hook0.com/hook0-alternatives): Honest comparison of Hook0 against other webhook platforms.
 
 ## Learn
 - [How Webhooks Work](https://www.hook0.com/how-webhooks-work): Rebuilds GitLab's push webhook from scratch (the HTTP POST, the X-Gitlab-Event and X-Gitlab-Token headers, shared-token auth versus HMAC-SHA256 signatures), then shows how GitLab.com would run multitenant delivery on Hook0: one event published with labels fans out to project, group, and instance subscribers by label containment, with retries, signatures, and delivery logs per subscriber.
@@ -44,6 +57,8 @@
 - [MCP Server](https://documentation.hook0.com/reference/mcp): 17 tools (9 read, 8 write) that let Claude, Cursor, or Windsurf create subscriptions, emit events, and replay failed deliveries against a Hook0 account. Runs locally over stdio, or as an SSE service.
 
 ## Optional
+- [Built to Last](https://www.hook0.com/built-to-last): Why Hook0 is built as durable, open-source webhook infrastructure.
+- [Open-Source Friends](https://www.hook0.com/oss-friends): Other open-source projects Hook0 supports.
 - [GitHub](https://github.com/hook0/hook0): Source code (SSPL-1.0).
 - [GitLab](https://gitlab.com/hook0/hook0): Mirror.
 - [Playground](https://play.hook0.com): Free webhook testing tool, no signup.
