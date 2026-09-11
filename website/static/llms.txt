@@ -34,7 +34,7 @@
 - [Webhook Cost Comparison](https://www.hook0.com/webhook-cost-comparison): Public prices for Hook0, Svix, Hookdeck Outpost, and Convoy from 100k to 10M events per month, billing models side by side.
 
 ## Learn
-- [How Webhooks Work](https://www.hook0.com/how-webhooks-work): Explains webhooks by rebuilding GitLab's push webhook from scratch. Covers the HTTP POST, the X-Gitlab-Event and X-Gitlab-Token headers, GitLab's shared-token auth versus HMAC-SHA256 signatures, and the six problems (retries with backoff, idempotency, delivery logs) that separate a 40-line prototype from production delivery.
+- [How Webhooks Work](https://www.hook0.com/how-webhooks-work): Rebuilds GitLab's push webhook from scratch (the HTTP POST, the X-Gitlab-Event and X-Gitlab-Token headers, shared-token auth versus HMAC-SHA256 signatures), then shows how GitLab.com would run multitenant delivery on Hook0: one event published with labels fans out to project, group, and instance subscribers by label containment, with retries, signatures, and delivery logs per subscriber.
 
 ## Docs
 - [Documentation](https://documentation.hook0.com/): Full reference, guides, API, deploy.

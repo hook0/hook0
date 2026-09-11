@@ -125,6 +125,87 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
     </div>
 </section>
 
+<!-- Scale it: the multitenant problem -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.scale.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.scale.h2 %></h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto"><%= t.scale.sub %></p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 stagger-children mb-10">
+            <% t.scale.levels.forEach(function (l) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2"><%= l.title %></h3>
+                <p class="text-sm text-gray-400"><%= l.body %></p>
+            </div>
+            <% }); %>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-8 max-w-3xl mx-auto">
+            <p class="text-gray-300 leading-relaxed"><%= t.scale.body %></p>
+        </div>
+    </div>
+</section>
+
+<!-- The Hook0 way: publish once, route by label -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.multitenant.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.multitenant.h2 %></h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto"><%= t.multitenant.sub %></p>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-6 mb-8">
+            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= t.multitenant.publishTitle %></h3>
+            <pre class="text-sm text-gray-300 overflow-x-auto"><code><%= t.multitenant.publishCode %></code></pre>
+            <p class="mt-4 text-sm text-gray-500"><%= t.multitenant.publishFootnote %></p>
+        </div>
+
+        <p class="text-body-lg text-gray-400 max-w-3xl mx-auto text-center mb-8 animate-on-scroll"><%= t.multitenant.routingIntro %></p>
+
+        <div class="animate-on-scroll overflow-x-auto mb-10">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.multitenant.routingHeaders.subscriber %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-indigo-400 uppercase tracking-wider"><%= t.multitenant.routingHeaders.filter %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.multitenant.routingHeaders.receives %></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.multitenant.routingRows.forEach(function (r) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300"><%= r.subscriber %></td>
+                        <td class="py-4 px-6 text-indigo-300 font-mono text-sm"><%= r.filter %></td>
+                        <td class="py-4 px-6 text-green-400"><%= r.receives %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-8 max-w-3xl mx-auto">
+            <h3 class="text-lg font-semibold text-white mb-3"><%= t.multitenant.payoffTitle %></h3>
+            <p class="text-gray-300 leading-relaxed"><%= t.multitenant.payoffBody %></p>
+            <a href="<%= t.multitenant.docLinkHref %>" class="inline-flex items-center mt-5 text-indigo-400 hover:text-indigo-300 font-medium">
+                <%= t.multitenant.docLinkLabel %>
+                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+</section>
+
 <!-- Prototype vs Production -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
