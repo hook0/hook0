@@ -1,7 +1,25 @@
 ---
-title: "Webhook Delivery Monitoring — Catch Failures Before Users Do"
+title: "Webhook Delivery Monitoring: Catch Failures Before Users Do"
 description: "Track p95 latency, spot failing endpoints, and set alerts via API. Includes the Hook0 dashboard queries that surface silent delivery failures others miss."
 keywords: [webhook monitoring, webhook delivery tracking, webhook latency, webhook alerts, webhook performance dashboard, delivery failure monitoring]
+faqItems:
+  - question: "How do I monitor webhook delivery in Hook0?"
+    answer: >-
+      Every delivery attempt is recorded as a request attempt, carrying the HTTP
+      request, the response, timing, and retry count. Watch it from the
+      dashboard or pull it through the API, then track success rate, retry rate,
+      error distribution, and delivery latency over a rolling window.
+  - question: "What is a healthy webhook retry rate?"
+    answer: >-
+      Under 5 percent of events needing a retry is the range Hook0 treats as
+      healthy. Above that, read the error distribution: a spike in E_TIMEOUT or
+      E_CONNECTION usually points at a slow or flaky endpoint rather than at the
+      payload.
+  - question: "How fast should a webhook be delivered?"
+    answer: >-
+      For immediate deliveries, the time from event creation to a successful
+      attempt should stay under 30 seconds. Track that latency as succeeded_at
+      minus created_at on the request attempt and alert when the p95 drifts up.
 ---
 
 # Monitor Webhook Performance
