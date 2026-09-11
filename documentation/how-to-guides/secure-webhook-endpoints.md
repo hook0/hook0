@@ -2,6 +2,27 @@
 title: "Webhook Endpoint Security: 5 Attacks Most Receivers Don't Block"
 description: "Secure webhook endpoints against spoofing, replay, and injection. HMAC verification, timestamp validation, idempotency, and rate limiting, with examples."
 keywords: [secure webhook endpoints, webhook endpoint security, webhook replay attack, webhook hmac verification, webhook idempotency, webhook rate limiting, webhook threat model]
+faqItems:
+  - question: "What attacks does a webhook endpoint need to defend against?"
+    answer: >-
+      Four main classes. Spoofing, where forged requests pretend to come from
+      Hook0. Replay, where a captured but still-valid delivery is sent again.
+      Payload injection through unvalidated JSON. And duplicate processing when
+      the same event arrives twice. HMAC signature verification, timestamp
+      checks, schema validation, and event_id idempotency each close one of
+      them.
+  - question: "How do I make webhook processing idempotent?"
+    answer: >-
+      Store the event_id of every delivery you have already handled and skip any
+      repeat. Hook0 retries failed deliveries, so the same event_id can reach
+      your endpoint more than once; treating it as a dedup key stops retries
+      from running your side effects a second time.
+  - question: "Does IP allowlisting protect a webhook endpoint?"
+    answer: >-
+      Not reliably. Hook0 does not guarantee a fixed set of delivery IPs, so an
+      allowlist silently drops real webhooks once the addresses change. Verify
+      the HMAC signature instead; it is cryptographic and does not depend on
+      network configuration.
 ---
 
 # Securing webhook endpoints

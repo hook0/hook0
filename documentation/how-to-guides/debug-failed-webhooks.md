@@ -3,6 +3,25 @@ title: "Debug Failed Webhooks: Trace the Delivery That Never Arrived"
 sidebar_label: "Debug failed webhooks"
 description: "Diagnose webhook delivery failures in Hook0. Read request attempts, tell a 4xx that won't retry from a 5xx that will, and find the endpoint that fails without ever returning an error."
 keywords: [debug webhooks, failed webhook delivery, webhook not received, webhook delivery failure, request attempts, webhook troubleshooting]
+faqItems:
+  - question: "Why is my webhook not being delivered?"
+    answer: >-
+      Work down the short list first. Confirm the subscription is enabled, the
+      endpoint is reachable over HTTPS, it returns a 2xx within the timeout, and
+      the signature check passes. Then open the request attempts for the event
+      to see which of those actually failed.
+  - question: "Which webhook HTTP status codes get retried?"
+    answer: >-
+      All 5xx responses are retried, since they read as a temporary problem on
+      your side. 4xx responses are permanent and are not retried, with two
+      exceptions: 408 (request timeout) and 429 (rate limited), which Hook0 does
+      retry. A 2xx counts as success and never retries.
+  - question: "How do I find out why a webhook failed?"
+    answer: >-
+      Open the request attempt for the failed event and read its response
+      status, body, and error name. Codes like E_CONNECTION, E_TIMEOUT, E_DNS,
+      and E_HTTP pin the failure to the network, a slow endpoint, DNS
+      resolution, or a non-2xx response.
 ---
 
 # Debugging failed webhook deliveries
