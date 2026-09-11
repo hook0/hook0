@@ -41,6 +41,7 @@
 - [Documentation index for assistants](https://documentation.hook0.com/llms.txt): Every published documentation page, with a one-line summary each.
 - [Getting Started](https://documentation.hook0.com/tutorials/getting-started): 30-minute setup, free tier.
 - [CLI](https://documentation.hook0.com/reference/cli): Command-line client. Send and replay events, manage subscriptions and event types, and receive webhooks on localhost through a built-in tunnel, no exposed ports.
+- [MCP Server](https://documentation.hook0.com/reference/mcp): 17 tools (9 read, 8 write) that let Claude, Cursor, or Windsurf create subscriptions, emit events, and replay failed deliveries against a Hook0 account. Runs locally over stdio, or as an SSE service.
 
 ## Optional
 - [GitHub](https://github.com/hook0/hook0): Source code (SSPL-1.0).

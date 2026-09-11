@@ -161,6 +161,7 @@ module.exports = {
     "links": [
       { "label": "Webhook Platform", "href": "./webhook-platform" },
       { "label": "Webhook API", "href": "./webhook-api" },
+      { "label": "Webhook MCP Server", "href": "./webhooks-for-ai-agents" },
       { "label": "Build vs Buy Webhooks", "href": "./build-vs-buy-webhooks" },
       { "label": "Webhook Cost Comparison", "href": "./webhook-cost-comparison" },
       { "label": "EU Webhook Infrastructure", "href": "./eu-webhook-infrastructure" },

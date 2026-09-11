@@ -147,6 +147,10 @@ module.exports = {
         "href": "./webhook-service"
       },
       {
+        "label": "Webhook MCP Server",
+        "href": "./webhooks-for-ai-agents"
+      },
+      {
         "label": "Hook0 vs Svix",
         "href": "./hook0-vs-svix"
       },

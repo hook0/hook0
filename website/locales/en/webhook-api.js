@@ -87,6 +87,7 @@ module.exports = {
     "h2": "Related",
     "links": [
       { "label": "Webhook Platform", "href": "./webhook-platform" },
+      { "label": "Webhook MCP Server", "href": "./webhooks-for-ai-agents" },
       { "label": "Hook0 vs Svix", "href": "./hook0-vs-svix" },
       { "label": "Hook0 vs Hookdeck", "href": "./hook0-vs-hookdeck" },
       { "label": "Build vs Buy Webhooks", "href": "./build-vs-buy-webhooks" },
