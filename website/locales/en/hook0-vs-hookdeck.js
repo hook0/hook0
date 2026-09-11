@@ -81,6 +81,7 @@ module.exports = {
       { enSlug: 'build-vs-buy-webhooks', label: 'Build vs Buy Webhooks' },
       { enSlug: 'webhook-cost-comparison', label: 'Webhook Cost Comparison' },
       { enSlug: 'eu-webhook-infrastructure', label: 'EU Webhook Infrastructure' },
+      { enSlug: 'webhooks-for-ai-agents', label: 'Webhook MCP Server' },
     ],
   },
 };
