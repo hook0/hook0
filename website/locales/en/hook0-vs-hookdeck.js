@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck: Webhook Platform vs Gateway',
   pageDescription: 'Compare Hook0 and Hookdeck: an open-source webhook platform vs a gateway plus a separate delivery product. Licensing, self-hosting scope, and pricing tiers.',
-  pageModified: '2026-07-16',
+  pageModified: '2026-09-11',
   breadcrumb: 'Hook0 vs Hookdeck',
   hero: {
     eyebrow: 'Comparison',
@@ -47,6 +47,7 @@ module.exports = {
       { feature: 'Open-Source', hook0Html: 'Yes (SSPL-1.0)', hookdeckHtml: 'Partial (Outpost Apache-2.0, Gateway closed)' },
       { feature: 'Self-Hosting', hook0Html: 'Yes (Docker / K8s)', hookdeckHtml: 'Outpost only' },
       { feature: 'Send Webhooks', hook0Html: 'Yes (core feature)', hookdeckHtml: 'Yes (via Outpost)' },
+      { feature: 'Client SDKs', hook0Html: '11 languages (TS, Python, PHP, Ruby, Java, C#, Go, Rust, Kotlin, Lua, Zig)', hookdeckHtml: 'REST API / OpenAPI' },
       { feature: 'Subscriber Management', hook0Html: 'Built-in portal', hookdeckHtml: 'Not applicable' },
       { feature: 'HMAC Signatures', hook0Html: 'Generated automatically', hookdeckHtml: 'Verification only' },
       { feature: 'Event Type Management', hook0Html: 'Full event type registry', hookdeckHtml: 'No' },
@@ -57,7 +58,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
-    lastReviewed: 'Last reviewed July 2026.',
+    lastReviewed: 'Last reviewed September 2026.',
     items: [
       { q: 'What is the difference between Hook0 and Hookdeck?', a: "Hook0 is a webhook platform: you send events via API, Hook0 delivers them to subscribers with retries, signatures, and monitoring. Hookdeck's Event Gateway sits between existing webhook senders and receivers to add reliability. It doesn't send webhooks itself: that is Outpost, Hookdeck's second product." },
       { q: 'Is Hook0 open-source?', a: "Hook0's server is published under SSPL-1.0 and the SDKs under MIT. SSPL is a source-available copyleft license: you can inspect, modify, and self-host the entire platform freely. Hookdeck publishes Outpost, its delivery component, under Apache-2.0, and keeps its Event Gateway closed-source and managed-only." },
