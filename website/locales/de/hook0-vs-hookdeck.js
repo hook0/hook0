@@ -7,7 +7,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, Webhook-Plattform vs Gateway | Hook0',
   pageDescription: 'Vergleich Hook0 und Hookdeck: eine Open-Source-Webhook-Plattform (SSPL-1.0) gegen ein Gateway plus separates Zustellprodukt. Lizenzen, Selbst-Hosting und Tarife.',
-  pageModified: '2026-07-16',
+  pageModified: '2026-09-11',
   breadcrumb: 'Hook0 vs. Hookdeck',
   hero: {
     eyebrow: 'Vergleich',
@@ -51,6 +51,7 @@ module.exports = {
       { feature: 'Lizenz', hook0Html: 'SSPL-1.0 (Open Source)', hookdeckHtml: 'Outpost Apache-2.0, Event Gateway geschlossen' },
       { feature: 'Selbst-Hosting', hook0Html: 'Ja (Docker / K8s)', hookdeckHtml: 'Nur Outpost' },
       { feature: 'Webhooks senden', hook0Html: 'Ja (Kernfunktion)', hookdeckHtml: 'Ja (über Outpost)' },
+      { feature: 'Client-SDKs', hook0Html: '11 Sprachen (TS, Python, PHP, Ruby, Java, C#, Go, Rust, Kotlin, Lua, Zig)', hookdeckHtml: 'REST-API / OpenAPI' },
       { feature: 'Subscriber-Verwaltung', hook0Html: 'Integriertes Portal', hookdeckHtml: 'Nicht zutreffend' },
       { feature: 'HMAC-Signaturen', hook0Html: 'Automatisch erzeugt', hookdeckHtml: 'Nur Verifikation' },
       { feature: 'Event-Typ-Verwaltung', hook0Html: 'Vollständige Event-Typ-Registry', hookdeckHtml: 'Nein' },
@@ -61,7 +62,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Häufige Fragen',
-    lastReviewed: 'Zuletzt geprüft Juli 2026.',
+    lastReviewed: 'Zuletzt geprüft September 2026.',
     items: [
       { q: 'Was ist der Unterschied zwischen Hook0 und Hookdeck?', a: 'Hook0 ist eine Webhook-Plattform, du sendest Events per API, Hook0 stellt sie mit Wiederholungen, Signaturen und Monitoring an deine Subscriber zu. Hookdecks Event Gateway sitzt zwischen bestehenden Webhook-Sendern und -Empfängern und ergänzt Zuverlässigkeit. Es sendet selbst keine Webhooks, das übernimmt Outpost, Hookdecks zweites Produkt.' },
       { q: 'Ist Hook0 Open Source?', a: 'Der Hook0-Server wird unter SSPL-1.0 veröffentlicht und die SDKs unter MIT. SSPL ist eine Copyleft-Lizenz mit verfügbarem Quellcode, du darfst die gesamte Plattform frei prüfen, ändern und selbst hosten. Hookdeck veröffentlicht Outpost, seine Zustellungskomponente, unter Apache-2.0 und hält sein Event Gateway geschlossen und nur als verwalteten Dienst verfügbar.' },

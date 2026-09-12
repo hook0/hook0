@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, plateforme webhook vs gateway | Hook0',
   pageDescription: 'Compare Hook0 et Hookdeck : une plateforme webhook open source (SSPL-1.0) face à une gateway plus un produit de livraison séparé. Licences, auto-hébergement, tarifs.',
-  pageModified: '2026-07-16',
+  pageModified: '2026-09-11',
   breadcrumb: 'Hook0 vs Hookdeck',
   hero: {
     eyebrow: 'Comparaison',
@@ -49,6 +49,7 @@ module.exports = {
       { feature: 'Licence', hook0Html: 'SSPL-1.0 (open source)', hookdeckHtml: 'Outpost Apache-2.0, Event Gateway fermé' },
       { feature: 'Auto-hébergement', hook0Html: 'Oui (Docker / K8s)', hookdeckHtml: 'Outpost uniquement' },
       { feature: 'Envoi de webhooks', hook0Html: 'Oui (fonction centrale)', hookdeckHtml: 'Oui (via Outpost)' },
+      { feature: 'SDK clients', hook0Html: '11 langages (TS, Python, PHP, Ruby, Java, C#, Go, Rust, Kotlin, Lua, Zig)', hookdeckHtml: 'API REST / OpenAPI' },
       { feature: 'Gestion des souscripteurs', hook0Html: 'Portail intégré', hookdeckHtml: 'Sans objet' },
       { feature: 'Signatures HMAC', hook0Html: 'Générées automatiquement', hookdeckHtml: 'Vérification uniquement' },
       { feature: 'Gestion des types d\'events', hook0Html: 'Registre complet des types d\'events', hookdeckHtml: 'Non' },
@@ -59,7 +60,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
-    lastReviewed: 'Dernière revue, juillet 2026.',
+    lastReviewed: 'Dernière revue, septembre 2026.',
     items: [
       { q: 'Quelle est la différence entre Hook0 et Hookdeck ?', a: 'Hook0 est une plateforme webhook, tu envoies des events via API, Hook0 les livre à tes souscripteurs avec relances, signatures et monitoring. L\'Event Gateway de Hookdeck se place entre des émetteurs et des récepteurs de webhooks existants pour ajouter de la fiabilité. Elle n\'émet pas elle-même de webhooks, c\'est Outpost, le second produit de Hookdeck, qui s\'en charge.' },
       { q: 'Hook0 est-il open source ?', a: 'Le serveur Hook0 est publié sous SSPL-1.0 et les SDK sous MIT. SSPL est une licence copyleft à source disponible, tu peux inspecter, modifier et auto-héberger toute la plateforme librement. Hookdeck publie Outpost, son composant de livraison, sous Apache-2.0, et garde son Event Gateway en code fermé et disponible uniquement en SaaS managé.' },
