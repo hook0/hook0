@@ -2,6 +2,28 @@
 title: "Why Most Webhook Retry Strategies Fail — and How to Fix Yours"
 description: "Fixed interval, exponential backoff, jitter, and two-phase retry compared side by side, with real failure scenarios and how Hook0's own retry schedule works."
 keywords: [webhook retry strategy, exponential backoff webhook, webhook retry best practices, webhook delivery retry, retry with jitter, two-phase retry]
+faqItems:
+  - question: "How many times does Hook0 retry a failed webhook?"
+    answer: >-
+      Up to 24 times by default, spread across roughly 8 days. Two limits bound
+      the schedule and whichever is reached first stops it: MAX_RETRIES (default
+      24) and MAX_RETRY_WINDOW (default 8 days). Both are set on the output
+      worker, not per subscription.
+  - question: "What retry schedule does Hook0 use?"
+    answer: >-
+      One schedule of increasing delays applies to every failed delivery: 3
+      seconds, 10 seconds, 3 minutes, 30 minutes, 1 hour, 3 hours, 5 hours, then
+      10 hours from the eighth retry on. The short early delays catch transient
+      failures like container restarts and deploy rollouts; the hours-apart
+      delays cover longer outages without hammering an endpoint that is coming
+      back.
+  - question: "Why add jitter to webhook retries?"
+    answer: >-
+      Jitter breaks the synchronization between subscribers that failed at the
+      same moment, so their retries do not all land at the same instant and
+      trigger a thundering herd. Hook0 adds a small random amount on top of each
+      delay. That amount is only ever added, never subtracted, so a retry never
+      fires earlier than its base delay.
 ---
 
 # Webhook retry strategies compared

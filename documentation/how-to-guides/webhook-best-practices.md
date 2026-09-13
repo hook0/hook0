@@ -3,6 +3,25 @@ title: "Webhook Best Practices That Actually Prevent Outages"
 sidebar_label: "Webhook best practices"
 description: "Production patterns for both sides of a webhook: HMAC signatures, idempotency keys, exponential backoff, circuit breakers, and payload versioning that survives change."
 keywords: [webhook best practices, webhook security, webhook retry, webhook design, webhook versioning]
+faqItems:
+  - question: "How fast should a webhook endpoint respond?"
+    answer: >-
+      Return a 200 OK within 5 seconds and process the event asynchronously. If
+      the endpoint takes too long, the producer may time out and retry, which
+      leads to duplicate processing. Validate the signature, store the raw
+      event, return 200, then do the real work in the background.
+  - question: "How do you handle duplicate webhook deliveries?"
+    answer: >-
+      Deduplicate on the event_id. Store the ID of every event you have already
+      processed and skip any repeat. Webhooks can be delivered more than once
+      because failed deliveries are retried, so treating the event_id as a
+      dedup key keeps side effects from running twice.
+  - question: "How should you version webhook payloads?"
+    answer: >-
+      Version the event type rather than mutating an existing payload shape, for
+      example order.shipped.v1 then order.shipped.v2. Keep the old version
+      running for at least 6 months after you announce deprecation so consumers
+      have time to migrate.
 ---
 
 # Webhook best practices
