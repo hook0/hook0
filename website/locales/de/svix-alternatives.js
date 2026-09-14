@@ -4,8 +4,12 @@
 module.exports = {
   pageTitle: 'Svix-Alternativen 2026, Webhook-Plattformen | Hook0',
   pageDescription: 'Du evaluierst Svix? Vergleich Hook0, Hookdeck, Convoy: Preis, Selbst-Hosting, Lizenzierung und was « Open Source » bedeutet.',
-  pageModified: '2026-07-16',
+  pageModified: '2026-09-14',
   breadcrumb: 'Svix-Alternativen',
+  tldr: {
+    h2: 'Kurz gesagt',
+    body: 'Die beste Svix-Alternative hängt davon ab, was du brauchst, aber für wirklich offene Lizenzierung, EU-Datenresidenz und kostenloses Selbst-Hosting passt Hook0. Es läuft unter SSPL-1.0 ohne geschlossene Add-ons, hält seine Datenebene auf Clever Cloud in Frankreich und rechnet pro Event ab 59 €/Monat ab. Convoy und Hookdeck decken jeweils einen Teil davon ab, und die Tabelle unten zeigt, wo jede Option steht.',
+  },
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Du suchst eine Svix-Alternative?',
@@ -48,6 +52,9 @@ module.exports = {
       { q: 'Was ist die beste Svix-Alternative für Startups?', a: 'Hook0 funktioniert gut für Startups. Kostenloser Tarif, ohne Kreditkarte, Event-basierter Preis ab 59 €/Monat und kostenloses Selbst-Hosting via Docker oder Kubernetes. Das Unternehmen ist zu 100% bootstrappt, also kein VC, der nächstes Quartal auf höhere Preise drängt. Convoy ist auch einen Blick wert, steht aber unter der Elastic License 2.0, quelloffen verfügbar, wie Hook0s SSPL-1.0.' },
       { q: 'Wie schneiden die Preise von Svix gegen die Alternativen ab?', a: 'Svix bietet einen kostenlosen Tarif und Event-basierte Bezahlpläne, aber Selbst-Hosting und Enterprise-Features erfordern Enterprise-Pricing (Kontakt zum Vertrieb). Hook0 Cloud startet bei 59 €/Monat mit transparenten Preisen und enthält Selbst-Hosting kostenlos in jedem Tarif. Hookdeck rechnet pro Event ab, mit dem Event Gateway nur in der Cloud und Outpost selbst hostbar. Convoy ist nur selbst-gehostet, mit Enterprise-Pricing für Support. HostedHooks bietet nur kostenpflichtige Cloud-Pläne.' },
       { q: "Welche Svix-Alternative ist zugleich EU-gehostet und Open Source?", a: "Hook0. Seine Datenebene läuft in jedem Tarif auf Clever Cloud in Frankreich (innerhalb der EU), und der vollständige Server ist Open Source (SSPL-1.0), sodass Sie ihn prüfen oder selbst hosten können. Svix ist in den USA gehostet und open-core; viele in der EU gehostete Webhook-Dienste sind proprietär und rein cloudbasiert. Das vorgelagerte CDN von Hook0 Cloud ist Cloudflare (US), offengelegt in der öffentlichen Unterauftragsverarbeiter-Liste." },
+      { q: 'Gibt es eine kostenlose, quelloffene Svix-Alternative?', a: 'Ja. Hook0 ist quelloffen unter SSPL-1.0 und kostenlos selbst hostbar auf Docker oder Kubernetes, mit einem kostenlosen Cloud-Tarif ohne Kreditkarte. Convoy ist quelloffen verfügbar unter der Elastic License 2.0 und ebenfalls selbst hostbar, aber Hook0 bietet zusätzlich eine EU-gehostete Cloud, falls du es nicht selbst betreiben willst.' },
+      { q: 'Wie migriere ich von Svix zu Hook0?', a: 'Hook0 nutzt dieselben Webhook-Bausteine wie Svix, nämlich eine Event-API, Abonnements pro Endpoint, HMAC-Signaturen und automatische Wiederholungen. Du richtest deine Producer auf die Hook0-API, legst deine Abonnements neu an und stellst deine Signaturprüfung auf das Hook0-Secret um. Weil der Server quelloffen ist, kannst du den gesamten Ablauf auf einer selbst gehosteten Instanz proben, bevor du Produktionstraffic umziehst.' },
+      { q: 'Ist Hook0 im Vergleich zu Svix produktionsreif?', a: 'Hook0 liefert die Zustellgarantien, die du von einer Webhook-Plattform erwartest, nämlich HMAC-signierte Payloads, konfigurierbare Wiederholungen in schnellen und langsamen Phasen und Zustellungs-Monitoring in jedem Tarif. Weil der Server unter SSPL-1.0 quelloffen ist, kannst du den genauen Zustell- und Wiederholungscode lesen, statt einer Behauptung zu vertrauen, und ihn für volle Kontrolle selbst betreiben. Seine EU-Datenebene läuft auf Clever Cloud in Frankreich.' },
     ],
   },
   related: {

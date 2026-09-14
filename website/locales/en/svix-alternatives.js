@@ -1,10 +1,16 @@
 // Per-page strings for svix-alternatives (EN base).
-// VERBATIM extraction from the legacy inline template: do not humanize.
+// SEO refresh: title/meta rebuilt around the differentiators Svix cannot match
+// (full open-source, EU hosting, free self-host), a lead direct-answer block
+// for AI Overviews / featured snippets, and two switch-intent FAQ entries.
 module.exports = {
-  pageTitle: 'Best Svix Alternatives (2026): Open-Source Webhook Platforms Compared',
-  pageDescription: 'Evaluating Svix? Compare Hook0, Hookdeck, Convoy & more. Side-by-side on pricing, self-hosting, licensing, and what "open-source" means in practice.',
-  pageModified: '2026-07-16',
+  pageTitle: 'Svix Alternatives 2026: Open-Source, EU-Hosted Webhooks',
+  pageDescription: 'Comparing Svix? See how Hook0, Hookdeck, and Convoy compare on open-source licensing, free self-hosting, EU data residency, and per-event pricing.',
+  pageModified: '2026-09-14',
   breadcrumb: 'Svix alternatives',
+  tldr: {
+    h2: 'The Short Answer',
+    body: "The best open-source Svix alternative depends on what you need, but for full open-source licensing, EU data residency, and free self-hosting, Hook0 fits. It runs under SSPL-1.0 with no closed add-ons, keeps its data plane on Clever Cloud in France, and bills per event from €59/month. Convoy and Hookdeck each cover part of that, and the table below shows where every option lands.",
+  },
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Looking for a Svix Alternative?',
@@ -18,7 +24,7 @@ module.exports = {
     h2: 'Why Teams Look Elsewhere',
     cards: [
       { title: 'Open-Core Limitations', body: "Svix's MIT base is real open-source. The catch: enterprise features like SSO, advanced analytics, and dedicated support are proprietary. When you scale, you hit a paywall. If your team needs full source access, that's a problem." },
-      { title: '$17M in VC Means Pressure', body: "Venture capital expects a return. Svix raised $17M -- that money has to come back somehow, usually through price hikes, feature gating, or an acquisition. A bootstrapped vendor doesn't have that pressure." },
+      { title: '$17M in VC Means Pressure', body: "Venture capital expects a return. Svix raised $17M, and that money has to come back somehow, usually through price hikes, feature gating, or an acquisition. A bootstrapped vendor doesn't have that pressure." },
       { title: 'No European Hosting', body: "Svix is US-based and has no EU cloud option. If you're subject to GDPR or data sovereignty rules, that's a blocker. You could self-host, but that requires their enterprise plan." },
     ],
   },
@@ -47,6 +53,9 @@ module.exports = {
       { q: 'What is the best Svix alternative for startups?', a: "Hook0 works well for startups. Free tier, no credit card, per-event pricing starting at €59/month, and free self-hosting via Docker or Kubernetes. The company is 100% bootstrapped, so there's no VC pushing to raise prices next quarter. Convoy is worth a look too, though it ships under the Elastic License 2.0, which is source-available, like Hook0's SSPL-1.0." },
       { q: 'How does Svix pricing compare to alternatives?', a: 'Svix offers a free tier and per-event paid plans, but self-hosting and enterprise features require enterprise pricing (contact sales). Hook0 Cloud starts at €59/month with transparent pricing and includes self-hosting for free on any plan. Hookdeck prices per event, with its Event Gateway cloud-only and Outpost self-hostable. Convoy is self-hosted only with enterprise pricing for support. HostedHooks offers cloud-only paid plans.' },
       { q: 'Which Svix alternative is both EU-hosted and open-source?', a: 'Hook0. Its data plane runs on Clever Cloud in France (inside the EU) on every plan, and the full server is open-source under SSPL-1.0, so you can audit it or self-host it. Svix is US-hosted and open-core; many EU-hosted webhook services are closed and cloud-only. The CDN in front of Hook0 Cloud is Cloudflare (US), disclosed in the public sub-processor list.' },
+      { q: 'Is there a free, open-source alternative to Svix?', a: 'Yes. Hook0 is open-source under SSPL-1.0 and free to self-host on Docker or Kubernetes, with a free cloud tier that needs no credit card. Convoy is source-available under the Elastic License 2.0 and self-hostable too, though Hook0 is the one that also offers an EU-hosted cloud if you would rather not run it yourself.' },
+      { q: 'How do I migrate from Svix to Hook0?', a: "Hook0 uses the same webhook building blocks as Svix, namely an event API, per-endpoint subscriptions, HMAC signatures, and automatic retries. You point your producers at Hook0's API, recreate your subscriptions, and switch signature verification to Hook0's secret. Because the server is open-source, you can rehearse the whole flow on a self-hosted instance before moving production traffic." },
+      { q: 'Is Hook0 production-ready compared to Svix?', a: 'Hook0 ships the delivery guarantees you expect from a webhook platform, namely HMAC-signed payloads, configurable retries split into fast and slow phases, and delivery monitoring on every plan. Because the server is open-source under SSPL-1.0, you can read the exact delivery and retry code instead of trusting a claim, and run it yourself for full control. Its EU data plane sits on Clever Cloud in France.' },
     ],
   },
   related: {
