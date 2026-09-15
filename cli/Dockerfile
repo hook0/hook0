@@ -25,7 +25,7 @@ COPY src ./src
 RUN cargo build --release --locked
 
 # Runtime stage
-FROM alpine:3.21
+FROM alpine:3.24
 
 # Install runtime dependencies (CA certificates for HTTPS)
 RUN apk add --no-cache ca-certificates
