@@ -1,10 +1,14 @@
 // Per-page strings for hookdeck-alternatives (EN base).
 // VERBATIM extraction from the legacy inline template — do not humanize.
 module.exports = {
-  pageTitle: 'Best Hookdeck Alternatives (2026): Webhook Platforms That Do More',
-  pageDescription: 'Hookdeck splits inbound gateway and outbound delivery into two products. Compare alternatives: Hook0, Svix, Convoy for sending and monitoring webhooks.',
-  pageModified: '2026-07-16',
+  pageTitle: 'Hookdeck Alternatives 2026: Open-Source, EU-Hosted Webhook Platforms',
+  pageDescription: 'Hookdeck splits inbound and outbound into two products. See how Hook0, Svix, and Convoy compare on open-source licensing, free self-hosting, and EU data residency.',
+  pageModified: '2026-09-16',
   breadcrumb: 'Hookdeck alternatives',
+  tldr: {
+    h2: 'The Short Answer',
+    body: "Hookdeck's Event Gateway receives incoming webhooks, but sending them to your users runs through a separate product, Outpost. For a single open-source platform with EU data residency and free self-hosting, Hook0 fits. It runs under SSPL-1.0 with the full source open, keeps its data plane on Clever Cloud in France, bills per event from €59/month, and runs the same code in its cloud and on your own servers. Convoy and AWS EventBridge each cover part of that, and the table below shows where every option lands.",
+  },
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Hookdeck Alternatives',
@@ -58,6 +62,9 @@ module.exports = {
       { q: "What's the difference between a webhook proxy and a webhook platform?", a: 'A webhook proxy (like Hookdeck\'s Event Gateway) sits between a webhook sender and your application. It receives, routes, and retries incoming webhooks. A webhook platform (like Hook0 or Svix) lets you send webhooks to your users. It handles delivery, retries, signatures, and subscriber management for you. If you want to add webhooks to your product, you need a platform, not a proxy.' },
       { q: "What's the best Hookdeck alternative for sending webhooks?", a: 'Hook0, if you need to send webhooks. You publish events, Hook0 delivers them to your subscribers with retries, HMAC signatures, and a management dashboard. The code is open-source (SSPL-1.0), you can self-host it, the company is bootstrapped, and the cloud runs in Europe.' },
       { q: 'Which Hookdeck alternative is EU-hosted and open-source?', a: 'Hook0. Hookdeck opens only Outpost, its delivery component, under Apache-2.0; the Event Gateway stays closed-source and cloud-only. Hook0 runs its data plane on Clever Cloud in France (inside the EU), is open-source under SSPL-1.0, and self-hosts on Docker or Kubernetes, so you can read the code or keep webhook data inside your own network. The CDN in front of Hook0 Cloud is Cloudflare (US), disclosed in the public sub-processor list.' },
+      { q: 'How do I migrate from Hookdeck to Hook0?', a: 'The two tools overlap on outbound delivery, so a migration mostly moves your sending path. Point your event publishing at Hook0\'s API, recreate your event types and subscriptions, and keep your subscribers\' endpoint URLs as they are. Both sign payloads with HMAC, so consumers verify the signature the same way once you share the new secret. Hook0 is open-source under SSPL-1.0, so you can run it in Hook0 Cloud or self-host the same code while you cut over.' },
+      { q: 'Is there a free, open-source Hookdeck alternative?', a: 'Two options. Hook0 is fully open-source under SSPL-1.0 and self-hosts for free on Docker or Kubernetes, with the managed cloud running the same code. Convoy is source-available under the Elastic License 2.0, which the OSI does not approve and which forbids offering Convoy as a managed service. Hookdeck itself opens only Outpost, its delivery component, under Apache-2.0; the Event Gateway that ingests webhooks stays closed.' },
+      { q: 'How does Hookdeck pricing compare to Hook0?', a: 'Hookdeck\'s Event Gateway has a free tier around 100k events per month. Outpost managed starts at $10 per million events on the Starter tier, but SSO, RBAC, and SCIM only appear on the Growth tier, which starts at $499 per month on top of usage. Hook0 bills per event from €59/month, publishes its full pricing, and self-hosts for free with no feature gated behind an enterprise plan.' },
     ],
   },
   related: {

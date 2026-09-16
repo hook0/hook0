@@ -5,8 +5,12 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, plateforme webhook vs gateway | Hook0',
   pageDescription: 'Compare Hook0 et Hookdeck : une plateforme webhook open source (SSPL-1.0) face à une gateway plus un produit de livraison séparé. Licences, auto-hébergement, tarifs.',
-  pageModified: '2026-09-11',
+  pageModified: '2026-09-16',
   breadcrumb: 'Hook0 vs Hookdeck',
+  tldr: {
+    h2: 'En bref',
+    body: "Hookdeck et Hook0 résolvent deux moitiés différentes du problème des webhooks. La passerelle d'événements de Hookdeck reçoit et route les webhooks entrants, tu es donc le consommateur. Hook0 envoie des webhooks à tes utilisateurs avec retries, signatures HMAC et gestion des abonnés, tu es donc le producteur. Si ton produit doit publier des événements vers les endpoints de tes clients, c'est le rôle de Hook0. Il est open source (SSPL-1.0), s'auto-héberge sur Docker ou Kubernetes et tourne en UE sur Clever Cloud en France. Si au contraire tu dois consommer de façon fiable des webhooks tiers, la passerelle de Hookdeck est faite pour ça.",
+  },
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Hook0 vs Hookdeck',
