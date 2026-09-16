@@ -7,8 +7,12 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, Webhook-Plattform vs Gateway | Hook0',
   pageDescription: 'Vergleich Hook0 und Hookdeck: eine Open-Source-Webhook-Plattform (SSPL-1.0) gegen ein Gateway plus separates Zustellprodukt. Lizenzen, Selbst-Hosting und Tarife.',
-  pageModified: '2026-09-11',
+  pageModified: '2026-09-16',
   breadcrumb: 'Hook0 vs. Hookdeck',
+  tldr: {
+    h2: 'Kurz gesagt',
+    body: "Hookdeck und Hook0 lösen zwei verschiedene Hälften des Webhook-Problems. Hookdecks Event Gateway empfängt und routet eingehende Webhooks, du bist also der Konsument. Hook0 sendet Webhooks an deine Nutzer mit Retries, HMAC-Signaturen und Abonnentenverwaltung, du bist also der Produzent. Wenn dein Produkt Events an die Endpoints deiner Kunden veröffentlichen muss, ist das die Aufgabe von Hook0. Es ist Open Source (SSPL-1.0), hostet sich auf Docker oder Kubernetes selbst und läuft in der EU auf Clever Cloud in Frankreich. Wenn du hingegen zuverlässig Webhooks von Dritten empfangen musst, ist Hookdecks Gateway dafür gebaut.",
+  },
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hook0 vs Hookdeck',

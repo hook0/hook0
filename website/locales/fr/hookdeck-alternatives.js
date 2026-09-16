@@ -3,10 +3,14 @@
 // Hook0 = « open source (SSPL-1.0) ». Convoy = Elastic License 2.0, source disponible non OSI.
 // Hookdeck : Outpost (livraison) sous Apache-2.0 et auto-hébergeable, Event Gateway (ingestion) fermé.
 module.exports = {
-  pageTitle: 'Alternatives à Hookdeck 2026, plateformes webhook | Hook0',
-  pageDescription: 'Hookdeck sépare passerelle entrante et livraison sortante en deux produits. Compare les alternatives, Hook0, Svix, Convoy pour envoyer et monitorer tes webhooks.',
-  pageModified: '2026-07-16',
+  pageTitle: 'Alternatives à Hookdeck 2026, plateforme webhook open source et UE | Hook0',
+  pageDescription: 'Hookdeck sépare entrant et sortant en deux produits. Compare Hook0, Svix et Convoy sur les licences open source, l\'auto-hébergement gratuit et la résidence des données en UE.',
+  pageModified: '2026-09-16',
   breadcrumb: 'Alternatives à Hookdeck',
+  tldr: {
+    h2: 'En bref',
+    body: "La passerelle d'événements de Hookdeck reçoit les webhooks entrants, mais leur envoi vers tes utilisateurs passe par un produit distinct, Outpost. Pour une seule plateforme open source avec résidence des données en UE et auto-hébergement gratuit, Hook0 colle. Elle tourne sous SSPL-1.0 avec tout le code ouvert, garde son plan de données sur Clever Cloud en France, facture à l'event à partir de 59 €/mois et fait tourner le même code dans son cloud et sur tes serveurs. Convoy et AWS EventBridge en couvrent chacun une partie, et le tableau ci-dessous montre où se situe chaque option.",
+  },
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Alternatives à Hookdeck',
@@ -60,6 +64,9 @@ module.exports = {
       { q: 'Quelle est la différence entre un proxy webhook et une plateforme webhook ?', a: 'Un proxy webhook (comme l\'Event Gateway de Hookdeck) se place entre un émetteur webhook et ton application. Il reçoit, route et relance les webhooks entrants. Une plateforme webhook (comme Hook0 ou Svix) te permet d\'envoyer des webhooks à tes clients. Elle gère la livraison, les relances, les signatures et la gestion des abonnés à ta place. Si tu veux ajouter des webhooks à ton produit, il te faut une plateforme, pas un proxy.' },
       { q: 'Quelle est la meilleure alternative à Hookdeck pour envoyer des webhooks ?', a: 'Hook0, si tu as besoin d\'envoyer des webhooks. Tu publies des events, Hook0 les livre à tes abonnés avec relances, signatures HMAC et un dashboard de gestion. Le code est open source (SSPL-1.0), tu peux l\'auto-héberger, l\'entreprise est bootstrappée et le cloud tourne en Europe.' },
       { q: "Quelle alternative à Hookdeck est hébergée dans l'UE et open source ?", a: "Hook0. Hookdeck n'ouvre que Outpost, son composant de livraison, sous Apache-2.0, et son Event Gateway reste fermé et cloud uniquement. Hook0 fait tourner son plan de données sur Clever Cloud en France (dans l'UE), est open source (SSPL-1.0) et s'auto-héberge sur Docker ou Kubernetes, donc vous pouvez lire le code ou garder les données de webhook dans votre propre réseau. Le CDN en frontal de Hook0 Cloud est Cloudflare (US), divulgué dans la liste publique de sous-traitants." },
+      { q: 'Comment migrer de Hookdeck vers Hook0 ?', a: "Les deux outils se recouvrent sur la livraison sortante, donc une migration déplace surtout ton chemin d'envoi. Pointe la publication de tes événements vers l'API de Hook0, recrée tes types d'événements et tes souscriptions, et garde les URLs d'endpoint de tes abonnés telles quelles. Les deux signent les payloads en HMAC, donc tes consommateurs vérifient la signature de la même façon une fois le nouveau secret partagé. Hook0 est open source sous SSPL-1.0, tu peux donc l'exécuter dans Hook0 Cloud ou auto-héberger le même code pendant la bascule." },
+      { q: 'Existe-t-il une alternative à Hookdeck gratuite et open source ?', a: "Deux options. Hook0 est entièrement open source sous SSPL-1.0 et s'auto-héberge gratuitement sur Docker ou Kubernetes, le cloud managé faisant tourner le même code. Convoy est source-available sous Elastic License 2.0, que l'OSI n'approuve pas et qui interdit de proposer Convoy en service managé. Hookdeck n'ouvre qu'Outpost, sa brique de livraison, sous Apache-2.0 ; la passerelle d'événements qui ingère les webhooks reste fermée." },
+      { q: 'Comment se compare la tarification de Hookdeck face à Hook0 ?', a: "La passerelle d'événements de Hookdeck a un palier gratuit autour de 100k événements par mois. Outpost managé démarre à 10 $ par million d'événements sur l'offre Starter, mais le SSO, le RBAC et le SCIM n'apparaissent que sur l'offre Growth, à partir de 499 $ par mois en plus de l'usage. Hook0 facture à l'event à partir de 59 €/mois, publie toute sa grille et s'auto-héberge gratuitement sans fonctionnalité réservée à une offre entreprise." },
     ],
   },
   related: {
