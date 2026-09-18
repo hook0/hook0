@@ -22,9 +22,8 @@ upstream — tracked at https://github.com/tikv/jemallocator/issues
 # `hickory-proto` is at 0.26.1, which is the bump RUSTSEC-2026-0118 and -0119
 # were deferred against. `rsa` (RUSTSEC-2023-0071) came in through `sqlx-mysql`
 # and is no longer in `Cargo.lock` at all. Each was removed after checking the
-# lockfile rather than after reading the scanner's "unused ignores" list, which
-# in v2.3.0 names every entry whether or not it is doing anything — see the note
-# at the bottom of this file.
+# lockfile, which is the authority on whether a vulnerable version has actually
+# left the tree — see the note at the bottom of this file.
 
 # The three rustls-webpki entries below suppress the legacy TLS stack the AWS SDK compiles in
 # beside the one that actually runs, and there are two ways out of them rather than one.
@@ -124,30 +123,6 @@ available upstream.
 """
 
 [[IgnoredVulns]]
-id = "RUSTSEC-2026-0253"
-ignoreUntil = "2026-11-30T00:00:00Z"
-reason = """
-lru 0.16.4 is pulled only by aws-sdk-s3, and this is the one entry of the set that really is
-blocked on it. aws-sdk-s3 requires lru ^0.16.3 as a plain, non-optional dependency, up to and
-including 1.143.0, its latest published release and the one locked, so there is no bump. Nor is
-there a backport to reach: the published line runs 0.16.4 -> 0.17.0 -> 0.18.0 -> 0.18.1 -> 0.18.2,
-the fix is 0.18.2, and ^0.16.3 cannot cross either major-equivalent boundary. Unlike the
-rustls-webpki entries above, no feature flag turns this dependency off. It moves when aws-sdk-s3
-relaxes the requirement, and not before.
-
-The fixed line is already in the tree at 0.18.2 (via ratatui-core), so only the aws-sdk-s3 copy is
-affected.
-
-The advisory needs a panic to unwind out of a key's Drop while inside LruCache::pop(), caught by
-std::panic::catch_unwind. The workspace contains no catch_unwind at all, so the unsound state
-cannot be observed here.
-
-Re-verified 2026-08-21 against crates.io and the lockfile: the latest aws-sdk-s3, the lru
-requirement, the published lru versions and the absence of catch_unwind were each checked again
-rather than carried forward.
-"""
-
-[[IgnoredVulns]]
 id = "RUSTSEC-2026-0258"
 ignoreUntil = "2026-11-30T00:00:00Z"
 reason = """
@@ -174,18 +149,21 @@ ever starts terminating TLS itself, drop this entry and reassess the exposure fi
 above rests on the process never speaking HTTP/2.
 """
 
-# Do not prune this file from the scanner's "unused ignores" list.
+# Reading the scanner's "unused ignores" list.
 #
-# In osv-scanner v2.3.0 that list names every entry, working or not. `ShouldIgnore`
-# hands back a copy of the entry (internal/config/config.go), the filter calls
-# `MarkAsUsed()` on that copy (pkg/osvscanner/filter.go), and the copy is dropped
-# on the next line — so the flag the list reads is never set on the entry the
-# config holds. A run that filters eleven findings still reports all of its
-# ignores as unused, which is what this repository's own output shows.
+# osv-scanner v2.6.0 reports that list accurately: an id appears there only when
+# no finding matched it on this run. That is the signal an entry has gone dead —
+# the vulnerable version has left the tree — and the entry should then be dropped.
+# RUSTSEC-2026-0253 was removed for exactly this reason: aws-sdk-s3 1.147.0
+# relaxed its `lru` requirement and pulled 0.18.4, past the 0.18.2 fix line, so no
+# affected 0.16.x copy remains in Cargo.lock.
 #
-# What does say an entry is live is the `<id> has been filtered out because:` line
-# the same run prints, and what says one is dead is the crate being absent from
-# the lockfile. Both were checked before anything was removed here.
+# Earlier versions of the scanner (through v2.3.0) could not be read this way: a
+# MarkAsUsed bug flagged every entry as unused regardless, so the lockfile — not
+# the list — had to be the authority. v2.6.0 fixes that, but the lockfile check is
+# still worth doing: a live entry prints a `<id> has been filtered out because:`
+# line, a dead one has its crate (or the affected version range) absent from
+# Cargo.lock. Both were checked before RUSTSEC-2026-0253 was removed.
 #
-# The list is also harmless: it is logged at warning level, and only an
-# error-level log sets the exit code to 127.
+# An unused ignore is a warning only: it does not fail the scan (the run stays
+# exit 0). Removing the dead entry just keeps that warning from accumulating.
