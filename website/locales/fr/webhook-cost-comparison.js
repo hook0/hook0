@@ -9,6 +9,10 @@ module.exports = {
   pageModified: '2026-08-07',
   breadcrumb: 'Comparatif de coût webhook',
   track: 'fr-comparatif-cout-webhook',
+  tldr: {
+    h2: 'En bref',
+    body: "Sur les prix publics d'août 2026, un service webhook managé démarre à 59 €/mois sur Hook0 Startup, environ 490 $/mois sur Svix Professional, à peu près 10 $ par million d'events sur Hookdeck Outpost, et 0 $ ou un forfait à 999 $/mois sur Convoy. Hook0 facture à l'event plutôt qu'à la livraison, inclut la résidence des données en UE sur chaque plan, et son serveur open source (SSPL-1.0) s'auto-héberge gratuitement. Le prix affiché n'est qu'une partie de la facture : rétention, débit, support et conformité déplacent le vrai total, et le tableau ci-dessous montre où se situe chaque option.",
+  },
   hero: {
     eyebrow: 'Comparatif de coût',
     titleBefore: 'Comparatif du coût des webhooks :',
