@@ -7,6 +7,10 @@ module.exports = {
   pageDescription: 'Compare Hook0 et Svix : SSPL-1.0 vs open-core, bootstrappé vs VC, UE vs US, auto-hébergement sur tous les plans. Honnête.',
   pageModified: '2026-07-16',
   breadcrumb: 'Hook0 vs Svix',
+  tldr: {
+    h2: 'En bref',
+    body: "Hook0 et Svix sont tous deux des plateformes webhook, mais ils divergent sur la licence et le contrôle. Hook0 publie son serveur entier sous SSPL-1.0, sans palier entreprise fermé, héberge ses données chez Clever Cloud en France, est bootstrappé et s'auto-héberge gratuitement sur chaque plan. Svix garde un cœur MIT avec plusieurs fonctions entreprise fermées, est financé par des VC et réserve l'auto-hébergement à ses clients entreprise. Si tu veux le code source complet, un hébergement UE et zéro verrouillage fournisseur, Hook0 colle mieux, et le tableau ci-dessous détaille le reste.",
+  },
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Hook0 vs Svix',

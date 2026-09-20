@@ -6,6 +6,10 @@ module.exports = {
   pageDescription: 'Construire un système webhook coûte 3 sprints. Relances, signatures, monitoring : prends Hook0 et livre en 30 minutes.',
   pageModified: '2026-06-27',
   breadcrumb: 'Build vs Buy webhooks',
+  tldr: {
+    h2: 'En bref',
+    body: "Construire un système de webhooks en interne, c'est prendre en charge les relances avec backoff, les signatures HMAC, les journaux de livraison, une dead letter queue et le monitoring par endpoint, puis maintenir tout ça à mesure que le trafic grossit. Acheter te donne cette même couche de livraison en service, et ton équipe reste sur le produit. Hook0 est l'option open source. Le serveur entier est sous SSPL-1.0, l'offre gratuite traite 100 événements par jour sans carte bancaire, le plan de données est hébergé dans l'UE, et tu peux l'auto-héberger sur n'importe quelle offre. Construis quand la livraison de webhooks est ton cœur de produit, sinon Hook0 t'amène en production sans la plomberie.",
+  },
   hero: {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Arrête de construire des webhooks',

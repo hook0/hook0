@@ -4,6 +4,10 @@ module.exports = {
   pageTitle: 'Build vs Buy Webhooks: Ship in 30 Min | Hook0',
   pageDescription: 'Building webhooks from scratch costs 3+ sprints. Retries, signatures, monitoring, dead letter queues: or use Hook0 and ship in 30 minutes.',
   breadcrumb: 'Build vs Buy webhooks',
+  tldr: {
+    h2: 'The Short Answer',
+    body: "Building a webhook system in-house means owning retries with backoff, HMAC signatures, delivery logs, a dead letter queue, and per-endpoint monitoring, then maintaining all of it as your traffic grows. Buying gives you that same delivery layer as a service so your team stays on the product. Hook0 is the open-source option. The whole server is SSPL-1.0, the free tier runs 100 events per day with no credit card, the data plane is hosted in the EU, and you can self-host on any plan if you'd rather run it yourself. Build when webhook delivery is your core product, otherwise Hook0 gets you to production without the plumbing.",
+  },
   hero: {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Stop Building Webhooks',

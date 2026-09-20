@@ -7,6 +7,10 @@ module.exports = {
   pageDescription: 'Compare Hook0, Svix, Hookdeck et Convoy côte à côte : licences, auto-hébergement, tarification et fonctionnalités.',
   pageModified: '2026-06-27',
   breadcrumb: 'Alternatives à Hook0',
+  tldr: {
+    h2: 'En bref',
+    body: "Les principales alternatives à Hook0 sont Svix, Hookdeck et Convoy, et chacune résout une part différente du problème des webhooks. Svix est open core avec des fonctions entreprise fermées et 17 M$ de VC ; Hookdeck associe une passerelle inbound fermée à son moteur de livraison Outpost sous Apache-2.0 ; Convoy est source-available sous Elastic License v2.0. Hook0 est celle qui est entièrement open source sous SSPL-1.0, bootstrappée et gratuite à auto-héberger, avec le même code qui tourne dans le cloud managé en UE et sur tes propres serveurs. Le tableau ci-dessous met les quatre côte à côte.",
+  },
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Alternatives à Hook0',

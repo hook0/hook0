@@ -9,6 +9,10 @@ module.exports = {
   pageDescription: 'Vergleich Hook0 (Rust, SSPL-1.0, EU-gehostete Cloud ab 59 €/Monat) und Convoy (Go, Elastic License v2.0, 0 bis 999 $/Monat): Features, Lizenzen und Preise Seite an Seite.',
   pageModified: '2026-07-08',
   breadcrumb: 'Hook0 vs. Convoy',
+  tldr: {
+    h2: 'Kurz gesagt',
+    body: "Hook0 und Convoy veröffentlichen beide ihren vollständigen Quellcode und laufen auf PostgreSQL, die echten Kompromisse liegen also woanders. Hook0 ist in Rust unter SSPL-1.0 geschrieben, mit einer managed EU-Cloud ab 59 €/Monat und einer Pro-Stufe bei 190 €. Convoy ist in Go unter der Elastic License v2.0 geschrieben, und seine Bezahlstufen springen vom kostenlosen Community-Tier direkt auf pauschale 999 $/Monat, ohne etwas dazwischen und ohne managed EU-Datenresidenz. Wähle Convoy für Inbound und Outbound in einem Produkt; wähle Hook0 für eine Rust-Datenebene, EU-Residenz und eine Preisstruktur, die ein wachsendes Team abdeckt.",
+  },
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hook0 vs Convoy',
