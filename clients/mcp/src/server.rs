@@ -12,7 +12,7 @@ use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, GetPromptRequestParams,
     GetPromptResponse, Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
     PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse,
-    ReadResourceResult, Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
+    ReadResourceResult, Resource, ResourceContents, ServerCapabilities, ServerConfig, Tool,
 };
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler};
@@ -235,8 +235,8 @@ impl Hook0McpServer {
 }
 
 impl ServerHandler for Hook0McpServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()

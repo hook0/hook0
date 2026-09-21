@@ -15,7 +15,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.104"
-aws-sdk-s3 = { version = "1.147.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.148.0", features = ["behavior-version-latest"] }
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.7", features = ["derive", "env", "cargo", "wrap_help"] }
@@ -29,10 +29,10 @@ humantime = "2.4.0"
 itertools = "0.15.0"
 thousands = "0.2.0"
 tracing = "0.1.44"
-opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "logs"] }
-opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "logs", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
-opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio"] }
-opentelemetry-appender-tracing = "0.32.0"
+opentelemetry = { version = "0.33.0", default-features = false, features = ["trace", "metrics", "logs"] }
+opentelemetry-otlp = { version = "0.33.0", default-features = false, features = ["trace", "metrics", "logs", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
+opentelemetry_sdk = { version = "0.33.0", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio"] }
+opentelemetry-appender-tracing = "0.33.0"
 papaya = "0.2.5"
 pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 rand = "0.10"

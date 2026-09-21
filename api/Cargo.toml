@@ -21,7 +21,7 @@ actix-web = "4.15.0"
 anyhow = "1.0.104"
 argon2 = "0.6.0"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.147.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.148.0", features = ["behavior-version-latest"] }
 base64 = "0.23.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.45", features = ["serde"] }
@@ -39,18 +39,18 @@ ipnetwork = "0.21.1"
 lettre = { version = "0.11.23", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
 thousands = "0.2.0"
 tracing = "0.1.44"
-tracing-actix-web = "0.7.22"
+tracing-actix-web = "0.7.25"
 mrml = "6.0.1"
-opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "logs"] }
-opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "logs", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
-opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio", "spec_unstable_metrics_views"] }
-opentelemetry-appender-tracing = "0.32.0"
+opentelemetry = { version = "0.33.0", default-features = false, features = ["trace", "metrics", "logs"] }
+opentelemetry-otlp = { version = "0.33.0", default-features = false, features = ["trace", "metrics", "logs", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
+opentelemetry_sdk = { version = "0.33.0", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio", "spec_unstable_metrics_views"] }
+opentelemetry-appender-tracing = "0.33.0"
 paperclip = { version = "0.9.7", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.13.1"
 reqwest = { version = "0.13.5", features = ["hickory-dns", "form", "json"] }
 rustls = { version = "0.23.45", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
-sentry-actix = "0.49.2"
+sentry-actix = "0.49.3"
 serde = "1.0.229"
 serde_json = "1.0.151"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
