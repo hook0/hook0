@@ -23,13 +23,19 @@ include:
 #
 # Overriding `script` alone leaves the image, the clever-tools install and the branch rules coming
 # from the component.
+#
+# The runner's clone leaves a git-lfs `pre-push` hook behind, but the component's image has no
+# git-lfs, so the hook aborts the push. Clever Cloud has no LFS endpoint and none of the deployed
+# code lives in LFS, so the hook is removed instead of installing git-lfs.
 "deploy output_worker to staging":
   script:
+    - rm -f "$(git rev-parse --git-path hooks/pre-push)"
     - clever link $CLEVERCLOUD_STAGING_OUTPUT_WORKER_ID
     - clever deploy --same-commit-policy rebuild
 
 "deploy output_worker to production":
   script:
+    - rm -f "$(git rev-parse --git-path hooks/pre-push)"
     - clever link $CLEVERCLOUD_PRODUCTION_OUTPUT_WORKER_ID
     - clever deploy --same-commit-policy rebuild
 

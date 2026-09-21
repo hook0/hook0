@@ -23,13 +23,19 @@ include:
 #
 # Overriding `script` alone leaves the image, the clever-tools install and the branch rules coming
 # from the component.
+#
+# The runner's clone leaves a git-lfs `pre-push` hook behind, but the component's image has no
+# git-lfs, so the hook aborts the push. Clever Cloud has no LFS endpoint and none of the deployed
+# code lives in LFS, so the hook is removed instead of installing git-lfs.
 "deploy api to staging":
   script:
+    - rm -f "$(git rev-parse --git-path hooks/pre-push)"
     - clever link $CLEVERCLOUD_STAGING_APP_ID
     - clever deploy --same-commit-policy rebuild
 
 "deploy api to production":
   script:
+    - rm -f "$(git rev-parse --git-path hooks/pre-push)"
     - clever link $CLEVERCLOUD_PRODUCTION_APP_ID
     - clever deploy --same-commit-policy rebuild
 
@@ -88,4 +94,3 @@ api.check:
     # protobuf crate's own tests run: every other `cargo test` in this pipeline is scoped to
     # the package it was launched from, so the wire format had two tests nothing executed.
     - cargo test -p hook0-protobuf
-
