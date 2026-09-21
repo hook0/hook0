@@ -891,21 +891,29 @@ pub async fn edit(
 
             // Mark pending request attempts as failed if subscription is disabled
             // This is idempotent: if already marked as failed, nothing happens
+            // Run twice: the first pass may block on an attempt locked by an in-flight worker, which can
+            // insert a retry before committing; that retry is invisible to the first statement's snapshot
+            // but visible to the second one (READ COMMITTED). The retry delay is much longer than
+            // the gap between passes, so no worker can pick the retry and create yet another one in between.
             let cancelled_request_attempts = if !body.is_enabled {
-                let update = query!(
-                    "
-                        UPDATE webhook.request_attempt
-                        SET failed_at = statement_timestamp()
-                        WHERE subscription__id = $1
-                          AND failed_at IS NULL
-                          AND succeeded_at IS NULL
-                    ",
-                    &s.subscription__id
-                )
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
-                update.rows_affected()
+                let mut cancelled_request_attempts = 0;
+                for _ in 0..2 {
+                    cancelled_request_attempts += query!(
+                        "
+                            UPDATE webhook.request_attempt
+                            SET failed_at = statement_timestamp()
+                            WHERE subscription__id = $1
+                              AND failed_at IS NULL
+                              AND succeeded_at IS NULL
+                        ",
+                        &s.subscription__id
+                    )
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(Hook0Problem::from)?
+                    .rows_affected();
+                }
+                cancelled_request_attempts
             } else {
                 0
             };
@@ -1035,20 +1043,27 @@ pub async fn delete(
             .map_err(Hook0Problem::from)?;
 
             // Mark pending request attempts as failed
-            let cancelled_request_attempts_result = query!(
-                "
-                    UPDATE webhook.request_attempt
-                    SET failed_at = statement_timestamp()
-                    WHERE subscription__id = $1
-                      AND failed_at IS NULL
-                      AND succeeded_at IS NULL
-                ",
-                &s.subscription__id
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(Hook0Problem::from)?;
-            let cancelled_request_attempts = cancelled_request_attempts_result.rows_affected();
+            // Run twice: the first pass may block on an attempt locked by an in-flight worker, which can
+            // insert a retry before committing; that retry is invisible to the first statement's snapshot
+            // but visible to the second one (READ COMMITTED). The retry delay is much longer than
+            // the gap between passes, so no worker can pick the retry and create yet another one in between.
+            let mut cancelled_request_attempts = 0;
+            for _ in 0..2 {
+                cancelled_request_attempts += query!(
+                    "
+                        UPDATE webhook.request_attempt
+                        SET failed_at = statement_timestamp()
+                        WHERE subscription__id = $1
+                          AND failed_at IS NULL
+                          AND succeeded_at IS NULL
+                    ",
+                    &s.subscription__id
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(Hook0Problem::from)?
+                .rows_affected();
+            }
 
             tx.commit().await.map_err(Hook0Problem::from)?;
 
