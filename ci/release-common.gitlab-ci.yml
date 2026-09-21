@@ -123,7 +123,15 @@
     # Gate: fail the release on anything HIGH/CRITICAL that upstream has already
     # fixed. --ignore-unfixed keeps a tag from being held hostage by a CVE with
     # no patch to apply; those still show up in the report above.
-    - trivy image --scanners vuln --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$SCAN_IMAGE"
+    #
+    # --ignorefile applies the repo-root .trivyignore.yaml, whose entries carry an
+    # expiry: a base-image CVE fixed upstream but not yet in a published base image
+    # is held here until the date it must be re-checked, then the gate fails again
+    # on its own. Trivy only auto-loads a plain .trivyignore, so the YAML (which is
+    # what supports the expiry) has to be named explicitly. A missing file is a
+    # no-op, so removing an allowlist entirely needs no change here. The report run
+    # above is left without it, so the dashboard still shows the whole picture.
+    - trivy image --scanners vuln --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --ignorefile "$CI_PROJECT_DIR/.trivyignore.yaml" "$SCAN_IMAGE"
   artifacts:
     reports:
       container_scanning: gl-container-scanning-report.json

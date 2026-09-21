@@ -1,0 +1,53 @@
+# Temporary allowlist — HIGH CVEs carried by the Caddy base image (Go stdlib + x/crypto/x/net,
+# compiled into the caddy binary) and the alpine curl layer. caddy:2.11.4 ships go1.26.3 / x-crypto
+# v0.52.0; fixes exist upstream (Go 1.26.6, x-crypto 0.55.0) but Caddy has not published a rebuilt
+# image yet. Each entry expires so the gate re-fails and forces a re-check once upstream catches up.
+vulnerabilities:
+  - id: CVE-2026-27145
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-33818
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-39821
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-39822
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-42504
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-46600
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56852
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56853
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56854
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56858
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56859
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56860
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-56862
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-84304
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: CVE-2026-84445
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
+  - id: GHSA-hrxh-6v49-42gf
+    expired_at: 2026-10-31
+    statement: "Caddy base-image lag; fixed upstream (Go 1.26.6 / x-crypto 0.55.0), pending a rebuilt caddy image. Re-scan and drop when available."
