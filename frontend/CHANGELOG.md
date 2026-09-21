@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [frontend/v1.2.0] - 2026-09-21
+
+### Added
+
+- Show the delivered webhook on the onboarding success screen (frontend)
+
+### Other
+
+- Bump dependencies and base images (deps)
+- Bump zod to latest 4.5.x patch in frontend lockfile (deps)
+- Regenerate sdkExamples artefact (frontend)
+- Bump dependencies (Rust + npm) (deps)
+- Update dependencies
+- Update dependencies
+
 ## [frontend/v1.1.0] - 2026-08-30
 
 ### Added
