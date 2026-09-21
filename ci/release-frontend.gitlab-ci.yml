@@ -51,6 +51,14 @@ frontend.release-build:
     - job: frontend.verify-version
   variables:
     GIT_LFS_SKIP_SMUDGE: "1"
+    # The shipped image serves this pre-built dist/ and swaps the API endpoint at
+    # container start (docker-entrypoint.sh sed) so one image works for any deployment.
+    # That only works if the token is in the bundle: without these, Vite expands
+    # frontend/.env's ${API_ENDPOINT} from an empty shell env, bakes an empty string,
+    # the entrypoint has nothing to replace, and the app falls back to relative URLs
+    # (405 on login/register). The dev frontend/Dockerfile bakes them the same way.
+    VITE_API_ENDPOINT: API_ENDPOINT_PLACEHOLDER
+    VITE_API_TIMEOUT: API_TIMEOUT_PLACEHOLDER
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends git-lfs
     - git lfs install --local
@@ -66,6 +74,11 @@ frontend.release-build:
     - cd frontend
     - npm ci
     - npm run build
+    # The runtime endpoint swap (docker-entrypoint.sh) is a no-op unless this token
+    # is in the bundle. Fail the release here rather than shipping an image that 405s
+    # on login because it only ever talks to relative URLs.
+    - |
+      grep -rq 'API_ENDPOINT_PLACEHOLDER' dist/ || { echo "ERROR: API_ENDPOINT_PLACEHOLDER missing from built bundle"; exit 1; }
     - cd ..
     - mkdir -p artifacts
     - tar -czf artifacts/frontend-dist.tar.gz -C frontend dist
