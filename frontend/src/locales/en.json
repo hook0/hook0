@@ -1133,6 +1133,7 @@
     "passwordSimilarToEmail": "Password must not be built from your email address: anyone who knows it would guess your password",
     "passwordSimilarToName": "Password must not be built from your name: it is one of the first things an attacker tries",
     "passwordsMismatch": "Passwords do not match",
+    "eventTypeSegment": "{field} may only contain letters, digits, '_' and '-' (max 50 characters)",
     "required": "{field} is required",
     "validEmail": "Enter a valid email address",
     "validRole": "Select a valid role",

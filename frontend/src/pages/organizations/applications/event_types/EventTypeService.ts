@@ -13,7 +13,7 @@ export function create(event_type: EventTypePost): Promise<EventType> {
 
 export function deactivate(application_id: string, event_type_name: string): Promise<void> {
   return unwrapResponse(
-    http.delete<void>(`/event_types/${event_type_name}`, {
+    http.delete<void>(`/event_types/${encodeURIComponent(event_type_name)}`, {
       params: {
         application_id,
       },
@@ -32,5 +32,5 @@ export function list(application_id: UUID): Promise<Array<EventType>> {
 }
 
 export function get(id: UUID): Promise<EventType> {
-  return unwrapResponse(http.get<EventType>(`/event_types/${id}`));
+  return unwrapResponse(http.get<EventType>(`/event_types/${encodeURIComponent(id)}`));
 }

@@ -1,6 +1,8 @@
+use regex::Regex;
 use reqwest::header::HeaderMap;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use validator::{ValidateNonControlCharacter, ValidationError};
 
 use crate::password::MAXIMUM_LENGTH as SECRET_MAX_LENGTH;
@@ -16,6 +18,8 @@ const EVENT_TYPES_MIN_SIZE: usize = 1;
 const EVENT_TYPES_MAX_SIZE: usize = 100;
 const EVENT_TYPES_NAME_MIN_LENGTH: usize = 1;
 const EVENT_TYPES_NAME_MAX_LENGTH: usize = 200;
+const EVENT_TYPE_SEGMENT_MIN_LENGTH: usize = 1;
+const EVENT_TYPE_SEGMENT_MAX_LENGTH: usize = 50;
 const SUBSCRIPTION_TARGET_HTTP_ALLOWED_METHODS: &[&str] =
     &["GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"];
 const SUBSCRIPTION_TARGET_HTTP_URL_MAX_LENGTH: usize = 1000;
@@ -44,6 +48,7 @@ const CODE_LABELS_SIZE: &str = "labels-size";
 const CODE_LABELS_PROPERTY_LENGTH: &str = "labels-property-length";
 const CODE_EVENT_TYPES_SIZE: &str = "event-types-size";
 const CODE_EVENT_TYPES_NAME_LENGTH: &str = "event-types-name-length";
+const CODE_EVENT_TYPE_SEGMENT_CHARACTERS: &str = "event-type-segment-characters";
 const CODE_SUBSCRIPTION_TARGET_HTTP_METHOD: &str = "subscription-target-http-method";
 const CODE_SUBSCRIPTION_TARGET_HTTP_URL_LENGTH: &str = "subscription-target-http-url-length";
 const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_SIZE: &str = "subscription-target-http-headers-size";
@@ -228,6 +233,39 @@ pub fn event_types(val: &[String]) -> Result<(), ValidationError> {
     }
 }
 
+/// Allow-list for a single event type segment: letters, digits, `_` and `-`,
+/// bounded to the segment length. The bound lives in the pattern so the
+/// validator is the whole contract on its own.
+static EVENT_TYPE_SEGMENT_ALLOWED: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(&format!(
+        r"^[A-Za-z0-9_-]{{{EVENT_TYPE_SEGMENT_MIN_LENGTH},{EVENT_TYPE_SEGMENT_MAX_LENGTH}}}$"
+    ))
+    .expect("event type segment regex must compile")
+});
+
+/// A single segment (`service`, `resource_type` or `verb`) of an event type
+/// name. The three segments are concatenated into a dot-delimited name that is
+/// later interpolated into a URL path referencing the event type, so a stored
+/// name is only ever safe there if no segment can carry the characters that
+/// build a different path — `/`, `.`, `#`, `?`, `%`. Restricting each segment
+/// to an explicit allow-list at creation is what keeps `../application/<uuid>`
+/// out of a name in the first place.
+pub fn event_type_segment(val: &str) -> Result<(), ValidationError> {
+    if EVENT_TYPE_SEGMENT_ALLOWED.is_match(val) {
+        return Ok(());
+    }
+    Err(ValidationError {
+        code: CODE_EVENT_TYPE_SEGMENT_CHARACTERS.into(),
+        message: Some(
+            format!(
+                "Event type segments may only contain letters, digits, '_' and '-', and must be between {EVENT_TYPE_SEGMENT_MIN_LENGTH} and {EVENT_TYPE_SEGMENT_MAX_LENGTH} characters"
+            )
+            .into(),
+        ),
+        params: HashMap::new(),
+    })
+}
+
 pub fn subscription_target_http_method(val: &String) -> Result<(), ValidationError> {
     if !SUBSCRIPTION_TARGET_HTTP_ALLOWED_METHODS.contains(&val.as_str()) {
         Err(ValidationError {
@@ -320,6 +358,7 @@ pub fn subscription_target_http_method_headers(val: &HeaderMap) -> Result<(), Va
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     /// The prefix is the whole mechanism: `Hook0Problem::Validation` decides
     /// what to strip from a code alone, so a secret validator whose code drops
@@ -630,5 +669,96 @@ mod tests {
             output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
             CODE_EVENT_TYPES_NAME_LENGTH
         );
+    }
+
+    #[test]
+    fn event_type_segment_accepts_conventional_names() {
+        // Every segment Hook0 itself emits (api.*.created / _removed) must keep
+        // passing, or the platform's own event types become uncreatable.
+        for segment in [
+            "order",
+            "payment",
+            "completed",
+            "api",
+            "organization",
+            "application_secret",
+            "event_type",
+            "service_token",
+            "a-b",
+            "A0_-9",
+        ] {
+            assert!(
+                event_type_segment(segment).is_ok(),
+                "{segment} is a conventional event type segment and should be accepted"
+            );
+        }
+    }
+
+    #[test]
+    fn event_type_segment_rejects_path_building_characters() {
+        // The exact characters a stored name would need to resolve to a
+        // different URL path than the event type it labels.
+        for segment in ["a/b", "a.b", "a#b", "a?b", "a%2f", "..", ".", "a b"] {
+            let output = event_type_segment(segment);
+            assert!(
+                output.is_err(),
+                "{segment} can shape a URL path and must be refused"
+            );
+            assert_eq!(
+                output.err().map(|e| e.code).unwrap_or_else(|| "".into()),
+                CODE_EVENT_TYPE_SEGMENT_CHARACTERS
+            );
+        }
+    }
+
+    #[test]
+    fn event_type_segment_rejects_the_reported_payload() {
+        // The three fields from the disclosure, frozen so this exact traversal
+        // can never be stored again.
+        assert!(event_type_segment("../application/as/").is_err());
+        assert!(event_type_segment("./00000000-0000-0000-0000-000000000000#").is_err());
+        assert!(event_type_segment("#").is_err());
+    }
+
+    #[test]
+    fn event_type_segment_is_bounded_in_length() {
+        assert!(event_type_segment("").is_err());
+        assert!(event_type_segment(&"a".repeat(EVENT_TYPE_SEGMENT_MAX_LENGTH)).is_ok());
+        assert!(event_type_segment(&"a".repeat(EVENT_TYPE_SEGMENT_MAX_LENGTH + 1)).is_err());
+    }
+
+    proptest! {
+        /// Anything within the allow-list and the length bound is accepted:
+        /// the tightening must not reject legitimate segments.
+        #[test]
+        fn any_allowed_segment_within_bounds_is_accepted(
+            s in "[A-Za-z0-9_-]{1,50}"
+        ) {
+            prop_assert!(event_type_segment(&s).is_ok());
+        }
+
+        /// The invariant the disclosure violated: no segment carrying a `/`
+        /// can ever pass, whatever surrounds it — a `/` is what escapes the
+        /// event_types path segment.
+        #[test]
+        fn any_segment_carrying_a_slash_is_rejected(
+            prefix in "[A-Za-z0-9_-]{0,20}",
+            suffix in "[A-Za-z0-9_-]{0,20}",
+        ) {
+            let with_slash = format!("{prefix}/{suffix}");
+            prop_assert!(
+                event_type_segment(&with_slash).is_err(),
+                "a segment containing '/' can escape the event_types path"
+            );
+        }
+
+        /// Length is bounded on the long side too, so a segment cannot grow
+        /// without limit.
+        #[test]
+        fn any_over_length_segment_is_rejected(
+            s in "[A-Za-z0-9_-]{51,120}"
+        ) {
+            prop_assert!(event_type_segment(&s).is_err());
+        }
     }
 }

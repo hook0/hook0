@@ -31,11 +31,11 @@ pub struct Qs {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct EventTypePost {
     application_id: Uuid,
-    #[validate(non_control_character, length(min = 1, max = 50))]
+    #[validate(custom(function = "crate::validators::event_type_segment"))]
     service: String,
-    #[validate(non_control_character, length(min = 1, max = 50))]
+    #[validate(custom(function = "crate::validators::event_type_segment"))]
     resource_type: String,
-    #[validate(non_control_character, length(min = 1, max = 50))]
+    #[validate(custom(function = "crate::validators::event_type_segment"))]
     verb: String,
 }
 
