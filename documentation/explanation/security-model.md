@@ -47,6 +47,21 @@ subscription:manage
 - Subscriptions tied to applications
 - Service tokens can be application-specific
 
+### Role-based access control
+
+Members of an organization hold one of two roles:
+
+- **Viewer** — read-only access to the organization's resources.
+- **Editor** — read/write access, including managing members, service tokens, and applications.
+
+#### Roles and session lifetime
+
+User sessions are backed by short-lived access tokens; a longer-lived refresh token is exchanged for a new access token as needed. Each token carries the roles it was issued with.
+
+**A change to a member's access takes effect immediately.** When an Editor is downgraded to Viewer, or a member is removed from an organization, that user's in-flight sessions (their current access and refresh tokens) are revoked at once. The next request made with a revoked token is rejected, and the user must sign in again to obtain a token reflecting their new access. This closes the window in which an already-issued token could otherwise keep exercising a privilege that was just taken away, until it expired on its own.
+
+Service tokens are independent of member roles: changing a person's role does not affect an organization's service tokens, which are managed (and revoked) separately.
+
 ### API security
 
 #### Transport security

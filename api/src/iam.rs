@@ -5,7 +5,7 @@ use biscuit_auth::{AuthorizerLimits, Biscuit, KeyPair, PrivateKey};
 use chrono::{DateTime, Utc};
 use paperclip::v2::schema::TypedData;
 use serde::Serialize;
-use sqlx::{PgPool, query_scalar};
+use sqlx::{PgPool, query, query_scalar};
 
 use crate::problems::Hook0Problem;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -59,6 +59,57 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
     get_owner_organization_or_db_error(db, application_id)
         .await
         .unwrap_or(None)
+}
+
+/// Expire every in-flight *session* token (`user_access` + `refresh`) held by a
+/// user, so the next request re-derives their authorization from the database
+/// instead of a stale, already-signed token.
+///
+/// Service tokens (`service_access`) are deliberately left untouched: they are
+/// organization-scoped API credentials, independent of any member's role, and a
+/// role change on a person must not silently break another org's automation.
+///
+/// # Why this exists
+/// A user access token freezes the member's `organization_role` as a signed
+/// Biscuit fact at emission time (see [`create_user_access_token`]).
+/// Authorization then reads that frozen fact and never re-reads the live
+/// `iam.user__organization` row. So without this call, demoting a member
+/// (Editor→Viewer) or removing them entirely stays ineffective until their token
+/// expires on its own — up to `USER_ACCESS_TOKEN_EXPIRATION` — during which the
+/// old privilege remains usable. Expiring the rows here makes the Biscuit
+/// middleware reject the stale token on its very next request (it requires a
+/// non-expired `iam.token` row for the presented `revocation_id`); a subsequent
+/// refresh or login re-mints a token carrying the current roles.
+///
+/// Trade-off: the access token spans all of the user's organizations, so this
+/// forces a re-login across every org they belong to, not just the one whose
+/// role changed. That is the accepted cost of closing the window using the
+/// existing revocation path (zero per-request overhead) rather than a live
+/// database check on every privileged call.
+///
+/// Caller note: run this in the same transaction as the role mutation so the two
+/// commit together — a committed demotion whose token revocation was rolled back
+/// would leave the very window this closes.
+pub async fn revoke_user_session_tokens<'e, E>(
+    executor: E,
+    user_id: &Uuid,
+) -> Result<(), sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    query!(
+        "
+            UPDATE iam.token
+            SET expired_at = statement_timestamp()
+            WHERE user__id = $1
+                AND type IN ('user_access', 'refresh')
+                AND (expired_at IS NULL OR expired_at > statement_timestamp())
+        ",
+        user_id,
+    )
+    .execute(executor)
+    .await?;
+    Ok(())
 }
 
 #[derive(
