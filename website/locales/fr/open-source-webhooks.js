@@ -9,6 +9,10 @@
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
+  "tldr": {
+    "h2": "En bref",
+    "body": "Hook0 est un serveur de webhooks entièrement open source sous SSPL-1.0. Ton équipe sécurité peut auditer chaque ligne, et tu l'auto-héberges sur Docker ou Kubernetes sans aucune fonction bridée. Il n'y a pas d'astuce open-core, et le même code tourne dans Hook0 Cloud et sur ta propre infrastructure. Svix est distribué en open-core et Convoy sous Elastic License 2.0, donc c'est la licence qui les distingue le plus. Fais-le tourner gratuitement sur tes serveurs, ou prends le cloud hébergé en UE à partir de 59 €/mois avec mises à jour gérées. Hook0 est bootstrappé, sans VC ni add-ons fermés."
+  },
   pageTitle: 'Webhooks open source (SSPL-1.0) : Hook0',
   pageDescription: 'Hook0 est une plateforme webhooks open source (SSPL-1.0). Cloud UE managé ou auto-hébergement libre.',
   "pageModified": "2026-07-16",

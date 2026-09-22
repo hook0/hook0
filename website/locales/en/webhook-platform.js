@@ -1,6 +1,10 @@
 // Per-page strings for webhook-platform (EN base).
 // VERBATIM extraction from the legacy inline template — do not humanize.
 module.exports = {
+  "tldr": {
+    "h2": "The Short Answer",
+    "body": "Hook0 is an open-source webhook platform that sends events to your subscribers with HMAC-SHA256 signatures, two-phase retries that back off over days, and a dead letter queue when an endpoint stays down. Every delivery is logged with request, response, status code and latency, and you can replay any event from the dashboard. A drop-in subscriber portal lets your users manage their own endpoints, secrets and event filters, so support stops fielding secret-rotation tickets. Run it self-hosted on Docker or Kubernetes, or on the cloud, free for 100 events a day with no credit card. Same SSPL-1.0 code both ways, with no enterprise tier hiding the useful parts."
+  },
   "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
   "pageDescription": "Open-source webhook platform delivering events with HMAC signatures, retries, dead letter queues and a subscriber portal. Free forever, no credit card.",
   "track": "webhook-platform",

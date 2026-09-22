@@ -9,6 +9,10 @@
 // DSGVO als Prozess-Claim («auf DSGVO-Konformität ausgelegt»),
 // keine absoluten Zertifizierungsaussagen.
 module.exports = {
+  "tldr": {
+    "h2": "Kurz gesagt",
+    "body": "Du kannst Hook0 auf deiner eigenen Infrastruktur selbst hosten, mit Docker Compose oder Kubernetes, und dabei denselben Code wie die Cloud-Version betreiben, sodass nichts hinter Funktionsschranken liegt. Deine Webhook-Payloads verlassen niemals dein Netzwerk, was CISOs bei Workloads in Gesundheit, Finanzen, Behörden und DSGVO beruhigt. Hook0 ist Open Source unter SSPL-1.0, kommt ohne Telemetrie und ohne Anbieterbindung, denn der Code gehört dir in jedem Fall. Starte im kostenlosen Tarif und wechsle zum Selbst-Hosting, wenn die Datensouveränität es verlangt."
+  },
   pageTitle: 'Selbst-gehostete Webhooks: Hook0 auf deiner Infra',
   pageDescription: 'Hostet Hook0 selbst auf eurer Infrastruktur. Open Source (SSPL-1.0), Docker, Kubernetes, Postgres und S3 unterstützt.',
   "pageModified": "2026-07-16",

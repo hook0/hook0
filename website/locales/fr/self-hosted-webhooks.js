@@ -6,6 +6,10 @@
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
+  "tldr": {
+    "h2": "En bref",
+    "body": "Tu peux auto-héberger Hook0 sur ta propre infrastructure avec Docker Compose ou Kubernetes, en faisant tourner le même code que la version cloud, donc rien n'est bridé. Tes payloads de webhooks ne quittent jamais ton réseau, ce qui rassure les RSSI pour les charges santé, finance, secteur public et RGPD. Hook0 est open source sous SSPL-1.0, sans télémétrie, et sans verrouillage fournisseur, puisque le code t'appartient dans tous les cas. Commence sur l'offre gratuite, puis passe à l'auto-hébergement quand la souveraineté des données l'exige."
+  },
   pageTitle: 'Webhooks auto-hébergés : déploie Hook0 chez toi | Hook0',
   pageDescription: 'Auto-héberge Hook0 sur ton infra. Open source (SSPL-1.0), Docker, Kubernetes, support Postgres et S3.',
   "pageModified": "2026-07-16",

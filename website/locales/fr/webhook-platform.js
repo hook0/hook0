@@ -1,6 +1,10 @@
 // Per-page strings for webhook-platform (FR).
 // /humanizer pro + legal-reviewer applied.
 module.exports = {
+  "tldr": {
+    "h2": "En bref",
+    "body": "Hook0 est une plateforme de webhooks open source qui envoie tes events à tes abonnés avec des signatures HMAC-SHA256, des relances en deux temps qui s'espacent sur plusieurs jours, et une file de messages morts quand un endpoint reste hors service. Chaque livraison est journalisée avec la requête, la réponse, le code de statut et la latence, et tu peux rejouer n'importe quel event depuis le tableau de bord. Un portail abonné prêt à l'emploi laisse tes utilisateurs gérer leurs endpoints, leurs secrets et leurs filtres d'events, donc le support arrête de traiter les tickets de rotation de secret. Fais-le tourner en auto-hébergé sur Docker ou Kubernetes, ou sur le cloud, gratuit jusqu'à 100 events par jour sans carte bancaire. Le même code SSPL-1.0 dans les deux cas, sans palier entreprise qui cache les fonctions utiles."
+  },
   pageTitle: 'Plateforme webhooks en Europe, alignée RGPD | Hook0',
   pageDescription: 'Plateforme webhooks open source (SSPL-1.0) : HMAC, relances, file des échecs, portail abonnés. Données en France (Clever Cloud).',
   "pageModified": "2026-06-25",

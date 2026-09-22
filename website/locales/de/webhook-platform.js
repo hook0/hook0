@@ -1,6 +1,10 @@
 // Per-page strings for webhook-platform (DE).
 // /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = « Open Source (SSPL-1.0) », nie « Open Source » allein.
 module.exports = {
+  "tldr": {
+    "h2": "Kurz gesagt",
+    "body": "Hook0 ist eine quelloffene Webhook-Plattform, die deine Events mit HMAC-SHA256-Signaturen an deine Abonnenten sendet, mit zweistufigen Wiederholungen, die sich über Tage strecken, und einer Dead-Letter-Queue, wenn ein Endpunkt ausfällt. Jede Zustellung wird mit Anfrage, Antwort, Statuscode und Latenz protokolliert, und du kannst jedes Event über das Dashboard erneut abspielen. Ein einsatzfertiges Abonnenten-Portal lässt deine Nutzer ihre eigenen Endpunkte, Secrets und Event-Filter verwalten, sodass der Support keine Tickets zur Secret-Rotation mehr bearbeitet. Betreibe es selbst-gehostet auf Docker oder Kubernetes oder in der Cloud, kostenlos für 100 Events pro Tag ohne Kreditkarte. Derselbe SSPL-1.0-Code in beiden Fällen, ohne Enterprise-Stufe, die die nützlichen Teile versteckt."
+  },
   pageTitle: 'Webhook-Plattform in Europa, DSGVO-konform betrieben',
   pageDescription: 'Open-Source-Webhook-Plattform (SSPL-1.0): HMAC, Retries, Failed-Queue, Subscriber-Portal. Daten in Frankreich (Clever Cloud).',
   "pageModified": "2026-06-25",

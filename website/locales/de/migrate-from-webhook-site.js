@@ -2,6 +2,10 @@
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
 // SSPL für Hook0 = « Open Source (SSPL-1.0) », NIE « Open Source » allein.
 module.exports = {
+  tldr: {
+    h2: 'Kurz gesagt',
+    body: 'webhook.site inspiziert eingehende HTTP-Anfragen zum Debuggen; Hook0 sendet deine Webhooks an deine Abonnenten in Produktion, mit HMAC-Signaturen, konfigurierbaren Wiederholungen, Dead-Letter-Queues, Zustelllogs und einem Self-Service-Abonnenten-Portal. Die Migration dauert etwa 30 Minuten. Du erstellst ein Konto und eine Anwendung und ersetzt dann die webhook.site-URL durch einen einzigen Hook0-API-Aufruf, ohne weitere Code-Änderung. Hook0 ist Open Source unter SSPL-1.0, selbst-hostbar auf Docker oder Kubernetes und kostenlos für 100 Events pro Tag ohne Kreditkarte. Wenn du nur eine wegwerfbare Inspektions-URL brauchst, macht play.hook0.com dieselbe Arbeit wie webhook.site.',
+  },
   pageTitle: 'webhook.site-Alternative: in 30 Min zu Hook0 | Hook0',
   pageDescription: 'Production-Upgrade von webhook.site: HMAC-Signaturen, konfigurierbare Wiederholungen, Subscriber-Portal, Open Source (SSPL-1.0).',
   pageModified: '2026-06-27',

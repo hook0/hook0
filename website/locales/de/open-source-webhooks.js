@@ -11,6 +11,10 @@
 // DSGVO als Prozess-Claim («auf DSGVO-Konformität ausgelegt»),
 // keine absoluten Zertifizierungsaussagen.
 module.exports = {
+  "tldr": {
+    "h2": "Kurz gesagt",
+    "body": "Hook0 ist ein vollständig quelloffener Webhook-Server unter SSPL-1.0. Dein Sicherheitsteam kann jede Zeile prüfen, und du hostest ihn selbst auf Docker oder Kubernetes, ohne dass eine Funktion zurückgehalten wird. Es gibt keine Open-Core-Tricks, und derselbe Code läuft in Hook0 Cloud und auf deiner eigenen Infrastruktur. Svix wird als Open-Core ausgeliefert und Convoy unter der Elastic License 2.0, die Lizenz ist also der größte Unterschied. Betreibe ihn kostenlos auf deinen Servern, oder nutze die EU-gehostete Cloud ab 59 €/Monat mit verwalteten Updates. Hook0 ist bootstrapped, ohne VC und ohne geschlossene Add-ons."
+  },
   "pageTitle": "Bester Open-Source-Webhook-Server (2026) | Hook0",
   "pageDescription": "Open-Source-Webhook-Server im Vergleich: Hook0 (SSPL-1.0, voll funktional), Svix (Open Core), Convoy (Elastic License 2.0). Cloud ab 59 €/Monat oder selbst gehostet für Compliance.",
   "pageModified": "2026-07-16",

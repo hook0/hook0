@@ -3,6 +3,10 @@
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
+  "tldr": {
+    "h2": "The Short Answer",
+    "body": "Hook0 is a fully open-source webhook server under SSPL-1.0, so your security team can audit every line, and you self-host on Docker or Kubernetes with no feature held back. There are no open-core tricks, and the same code runs in Hook0 Cloud and on your own infrastructure. Svix ships as open-core and Convoy under the Elastic License 2.0, so licensing is where the three differ most. Run it free on your own servers, or use the EU-hosted cloud from €59/month with managed updates. Hook0 is bootstrapped, with no VC and no closed add-ons."
+  },
   "pageTitle": "Best Open-Source Webhook Server (2026) | Hook0",
   "pageDescription": "Compare open-source webhook servers: Hook0 (SSPL, full-feature), Svix (open-core), Convoy (Elastic License 2.0). Cloud from €59/month, or self-host for compliance.",
   "pageModified": "2026-07-16",
