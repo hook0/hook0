@@ -16,7 +16,7 @@ use crate::hook0_client::{
 };
 use crate::iam::{
     Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role,
-    authorize_for_organization, authorize_only_user,
+    authorize_for_organization, authorize_only_user, revoke_user_session_tokens,
 };
 use crate::onboarding::{
     OnboardingStepStatus, OrganizationOnboardingSteps, get_organization_onboarding_steps,
@@ -654,6 +654,11 @@ pub async fn revoke(
 
     match user_role {
         Some(_) => {
+            // Removing the membership and revoking the member's in-flight tokens
+            // must commit together: otherwise a removed member keeps acting on the
+            // organization until their frozen-role token expires on its own.
+            let mut tx = state.db.begin().await?;
+
             query!(
                 "
                     DELETE FROM iam.user__organization
@@ -663,8 +668,12 @@ pub async fn revoke(
                 &body.user_id,
                 &organization_id,
             )
-            .execute(&state.db)
+            .execute(&mut *tx)
             .await?;
+
+            revoke_user_session_tokens(&mut *tx, &body.user_id).await?;
+
+            tx.commit().await?;
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventOrganizationRevoked {
@@ -723,6 +732,12 @@ pub async fn edit_role(
         return Err(Hook0Problem::Forbidden);
     }
 
+    // The role mutation and the revocation of the target's in-flight tokens must
+    // land together: a committed demotion whose token revocation was lost would
+    // reopen the stale-privilege window this closes (see
+    // `revoke_user_session_tokens`).
+    let mut tx = state.db.begin().await?;
+
     query!(
         "
             UPDATE iam.user__organization
@@ -734,8 +749,14 @@ pub async fn edit_role(
         &body.user_id,
         &organization_id,
     )
-    .execute(&state.db)
+    .execute(&mut *tx)
     .await?;
+
+    // A user access token carries the role frozen at emission, so the new role is
+    // not honored until the old token dies. Force its immediate re-derivation.
+    revoke_user_session_tokens(&mut *tx, &body.user_id).await?;
+
+    tx.commit().await?;
 
     Ok(body)
 }
@@ -911,6 +932,107 @@ mod quota_race_tests {
             accepted,
             MEMBERS_ALLOWED as usize - 1,
             "more callers were told their invitation went through than the plan allows"
+        );
+    }
+}
+
+#[cfg(test)]
+mod role_revocation_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_membership, seed_org, seed_user, test_state,
+    };
+    use actix_web::{App, test, web};
+    use sqlx::PgPool;
+
+    /// Demoting a member must not leave their pre-demotion token usable on
+    /// Editor-only endpoints (HOO-1741: a Biscuit freezes the role at emission,
+    /// so authorization would keep honoring `Editor` until the token expires on
+    /// its own). Replaying that token against `invite` — the persistent-backdoor
+    /// vector — must be refused once the role changes.
+    #[sqlx::test]
+    async fn demotion_revokes_the_members_in_flight_token(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        // An admin who performs the demotion, and the victim who gets demoted.
+        // `edit_role` forbids acting on oneself, hence two distinct Editors.
+        let admin = seed_user(&pool).await;
+        let org = seed_org(&pool, admin).await;
+        seed_membership(&pool, admin, org, "editor").await;
+        let admin_token = issue_user_token(&pool, &private_key, admin, org, "editor").await;
+
+        let victim = seed_user(&pool).await;
+        seed_membership(&pool, victim, org, "editor").await;
+        let victim_token = issue_user_token(&pool, &private_key, victim, org, "editor").await;
+
+        // Distinct invitees for the before/after probes: reusing one would let a
+        // duplicate-membership error masquerade as the post-fix refusal.
+        let invitee_before = seed_user(&pool).await;
+        let invitee_after = seed_user(&pool).await;
+
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/organizations")
+                        .wrap(biscuit_auth)
+                        .route("/{organization_id}/invite", web::post().to(super::invite))
+                        .route(
+                            "/{organization_id}/edit_role",
+                            web::post().to(super::edit_role),
+                        ),
+                ),
+            ),
+        )
+        .await;
+
+        let invite = |token: &str, invitee: uuid::Uuid| {
+            test::TestRequest::post()
+                .uri(&format!("/api/v1/organizations/{org}/invite"))
+                .insert_header(("Authorization", format!("Bearer {token}")))
+                .set_json(serde_json::json!({
+                    "email": format!("e2e-{invitee}@example.com"),
+                    "role": "viewer",
+                }))
+                .to_request()
+        };
+
+        // Positive control: the victim's token really is an accepted Editor token
+        // before the demotion, so a later refusal can only come from the demotion.
+        let before = test::call_service(&app, invite(&victim_token, invitee_before)).await;
+        assert!(
+            before.status().is_success(),
+            "victim's Editor token should be accepted before demotion, got {}",
+            before.status()
+        );
+
+        // The admin demotes the victim to Viewer.
+        let demote = test::TestRequest::post()
+            .uri(&format!("/api/v1/organizations/{org}/edit_role"))
+            .insert_header(("Authorization", format!("Bearer {admin_token}")))
+            .set_json(serde_json::json!({"user_id": victim, "role": "viewer"}))
+            .to_request();
+        let demote_res = test::call_service(&app, demote).await;
+        assert!(
+            demote_res.status().is_success(),
+            "the demotion itself should succeed, got {}",
+            demote_res.status()
+        );
+
+        // Replaying the pre-demotion token on an Editor-only action must now be
+        // refused. Before the fix it stayed accepted (the window this closes).
+        let after = test::call_service(&app, invite(&victim_token, invitee_after)).await;
+        assert_eq!(
+            after.status(),
+            actix_web::http::StatusCode::FORBIDDEN,
+            "the pre-demotion token must be rejected after the role change"
         );
     }
 }
