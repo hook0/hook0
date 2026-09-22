@@ -46,6 +46,21 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
 
 <%- include('./includes/_social-proof-bar.ejs') %>
 
+<!-- Direct-answer summary (AEO): a self-contained lead answer that featured
+     snippets and AI Overviews can lift verbatim, and that states the migration
+     case up front for readers who skim. Rendered only when the locale supplies
+     `t.tldr`, so a locale not yet translated for it skips the block cleanly. -->
+<% if (t.tldr) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card card--glow p-8 animate-on-scroll">
+            <h2 class="text-xl font-bold text-white mb-3"><%= t.tldr.h2 %></h2>
+            <p class="text-body-lg text-gray-300"><%= t.tldr.body %></p>
+        </div>
+    </div>
+</section>
+<% } %>
+
 <!-- Same problem, different tools -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>

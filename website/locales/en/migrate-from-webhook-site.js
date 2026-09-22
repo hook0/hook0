@@ -1,6 +1,10 @@
 // Per-page strings for migrate-from-webhook-site (EN base).
 // VERBATIM extraction from the legacy inline template: do not humanize.
 module.exports = {
+  tldr: {
+    h2: 'The Short Answer',
+    body: 'webhook.site inspects inbound HTTP requests for debugging; Hook0 sends webhooks out to your subscribers in production, with HMAC signatures, configurable retries, dead letter queues, delivery logs and a self-serve subscriber portal. Migrating takes about 30 minutes. You sign up, create an application, then swap the webhook.site URL for a single Hook0 API call, with no other code change. Hook0 is open-source under SSPL-1.0, self-hostable on Docker or Kubernetes, and free for 100 events a day with no credit card. When you only need a throwaway inspection URL, play.hook0.com does the same job as webhook.site.',
+  },
   pageTitle: 'Webhook.site Alternative: Switch to Hook0 in 30 Min',
   pageDescription: 'Looking for a webhook.site alternative? Hook0 is the production-grade upgrade: HMAC signatures, configurable retries, subscriber portal, open-source. Free forever.',
   breadcrumb: 'Migrate from webhook.site',

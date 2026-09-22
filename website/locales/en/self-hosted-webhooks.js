@@ -3,6 +3,10 @@
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
+  "tldr": {
+    "h2": "The Short Answer",
+    "body": "You can self-host Hook0 on your own infrastructure with Docker Compose or Kubernetes, running the same codebase as the cloud version so nothing is feature-gated. Your webhook payloads never leave your network, which keeps CISOs comfortable for healthcare, finance, government and GDPR workloads. It is open-source under SSPL-1.0, ships with no telemetry, and carries no vendor lock-in, since you own the code either way. Start on the free tier, then move to self-hosting when data sovereignty demands it."
+  },
   "pageTitle": "Self-Hosted Webhooks: Docker & Kubernetes | Hook0",
   "pageDescription": "Deploy Hook0 on your infrastructure with Docker or Kubernetes. Fully open-source, same code as cloud. No data leaves your network.",
   "pageModified": "2026-07-16",
