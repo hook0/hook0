@@ -415,6 +415,9 @@ pub enum RequestAttemptStatusType {
     /// The `pending` the API answers with.
     #[serde(rename = "pending")]
     Pending,
+    /// The `paused` the API answers with.
+    #[serde(rename = "paused")]
+    Paused,
     /// The `in_progress` the API answers with.
     #[serde(rename = "in_progress")]
     InProgress,
@@ -432,6 +435,7 @@ impl RequestAttemptStatusType {
         match self {
             Self::Waiting => "waiting",
             Self::Pending => "pending",
+            Self::Paused => "paused",
             Self::InProgress => "in_progress",
             Self::Successful => "successful",
             Self::Failed => "failed",
@@ -1025,7 +1029,7 @@ pub struct RequestAttempt {
     /// `retry_count`.
     #[serde(rename = "retry_count")]
     pub retry_count: i32,
-    /// `status`: Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - in_progre
+    /// `status`: Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - paused: {
     #[serde(rename = "status")]
     pub status: RequestAttemptStatus,
     /// `subscription`.
@@ -1059,11 +1063,11 @@ pub struct RequestAttemptStatus {
     #[serde(rename = "full_processing_ms")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub full_processing_ms: Option<i64>,
-    /// `since`: Timestamp when the status started (present in waiting, pending, in_progress)
+    /// `since`: Timestamp when the status started (present in waiting, pending, paused, in_progress)
     #[serde(rename = "since")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub since: Option<DateTime<Utc>>,
-    /// `type`: Status type discriminator. One of: waiting, pending, in_progress, successful, failed
+    /// `type`: Status type discriminator. One of: waiting, pending, paused, in_progress, successful, failed
     #[serde(rename = "type")]
     pub type_: RequestAttemptStatusType,
     /// `until`: Timestamp until which waiting (only present in waiting status)

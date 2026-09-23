@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT webhook.effective_subscription_health(s.subscription__id, s.application__id) <> 'healthy' AS \"throttled!\"\n                    FROM webhook.subscription AS s\n                    INNER JOIN event.application AS a ON a.application__id = s.application__id\n                    WHERE s.subscription__id = $1\n                        AND s.deleted_at IS NULL\n                        AND s.is_enabled\n                        AND a.deleted_at IS NULL\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "throttled!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3b9948575de86558ba1a3f3f0b40f85828869c66bc7a2b73fbee229724118a1c"
+}

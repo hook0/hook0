@@ -252,6 +252,7 @@ end
 Models.RequestAttemptStatusType = {
   WAITING = "waiting",
   PENDING = "pending",
+  PAUSED = "paused",
   IN_PROGRESS = "in_progress",
   SUCCESSFUL = "successful",
   FAILED = "failed",
@@ -261,6 +262,7 @@ Models.RequestAttemptStatusType = {
 Models.RequestAttemptStatusType.VALUES = {
   Models.RequestAttemptStatusType.WAITING,
   Models.RequestAttemptStatusType.PENDING,
+  Models.RequestAttemptStatusType.PAUSED,
   Models.RequestAttemptStatusType.IN_PROGRESS,
   Models.RequestAttemptStatusType.SUCCESSFUL,
   Models.RequestAttemptStatusType.FAILED,
@@ -1684,7 +1686,7 @@ Models.RequestAttempt.__eq = Runtime.equality
 --- @param fields.retry_count integer carries `retry_count`.
 --- @param fields.status RequestAttemptStatus carries `status`: Status of a request attempt. The 'type' field indicates
 ---   the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} -
----   Ready to be processed - in_progre
+---   Ready to be processed - paused: {
 --- @param fields.subscription RequestAttemptSubscription carries `subscription`.
 --- @param fields.delay_until string|nil carries `delay_until`.
 --- @param fields.failed_at string|nil carries `failed_at`.
@@ -1796,12 +1798,12 @@ Models.RequestAttemptStatus.__eq = Runtime.equality
 
 --- Build one out of the members it carries.
 --- @param fields.type string carries `type`, one of `Models.RequestAttemptStatusType.VALUES`: Status type
----   discriminator. One of: waiting, pending, in_progress, successful, failed
+---   discriminator. One of: waiting, pending, paused, in_progress, successful, failed
 --- @param fields.at string|nil carries `at`: Timestamp when completed (present in successful, failed)
 --- @param fields.full_processing_ms integer|nil carries `full_processing_ms`: Total processing time in milliseconds
 ---   (present in successful, failed)
 --- @param fields.since string|nil carries `since`: Timestamp when the status started (present in waiting, pending,
----   in_progress)
+---   paused, in_progress)
 --- @param fields.until_ string|nil carries `until`: Timestamp until which waiting (only present in waiting status)
 --- @return RequestAttemptStatus
 function Models.RequestAttemptStatus.new(fields)

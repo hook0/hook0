@@ -131,6 +131,7 @@ export type ProblemId = (typeof ProblemId)[keyof typeof ProblemId];
 export const RequestAttemptStatusType = {
   Waiting: 'waiting',
   Pending: 'pending',
+  Paused: 'paused',
   InProgress: 'in_progress',
   Successful: 'successful',
   Failed: 'failed',
@@ -532,7 +533,7 @@ export interface RequestAttempt {
   readonly response_id?: string;
   /** `retry_count`. */
   readonly retry_count: number;
-  /** `status`: Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - in_progre */
+  /** `status`: Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - paused: { */
   readonly status: RequestAttemptStatus;
   /** `subscription`. */
   readonly subscription: RequestAttemptSubscription;
@@ -554,9 +555,9 @@ export interface RequestAttemptStatus {
   readonly at?: string;
   /** `full_processing_ms`: Total processing time in milliseconds (present in successful, failed) */
   readonly full_processing_ms?: number;
-  /** `since`: Timestamp when the status started (present in waiting, pending, in_progress) */
+  /** `since`: Timestamp when the status started (present in waiting, pending, paused, in_progress) */
   readonly since?: string;
-  /** `type`: Status type discriminator. One of: waiting, pending, in_progress, successful, failed */
+  /** `type`: Status type discriminator. One of: waiting, pending, paused, in_progress, successful, failed */
   readonly type: RequestAttemptStatusType;
   /** `until`: Timestamp until which waiting (only present in waiting status) */
   readonly until?: string;

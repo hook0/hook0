@@ -19,7 +19,7 @@ import java.util.UUID;
  * @param retryCount carries `retry_count`.
  * @param status carries `status`: Status of a request attempt. The 'type' field indicates the status variant. -
  *     waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed -
- *     in_progre
+ *     paused: {
  * @param subscription carries `subscription`.
  * @param delayUntil carries `delay_until`, or nothing when the API answers none.
  * @param failedAt carries `failed_at`, or nothing when the API answers none.

@@ -681,7 +681,7 @@ export interface paths {
     };
     /**
      * List request attempts
-     * @description Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.
+     * @description Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, paused, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.
      */
     get: operations['requestAttempts.read'];
     put?: never;
@@ -1297,7 +1297,7 @@ export interface components {
       response_id?: string;
       /** Format: int32 */
       retry_count: number;
-      /** @description Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - in_progress: {type, since} - Currently being delivered - successful: {type, at, full_processing_ms} - Delivered successfully - failed: {type, at, full_processing_ms} - Delivery failed */
+      /** @description Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - paused: {type, since} - Held back because the subscription's endpoint has recently been failing; released gradually - in_progress: {type, since} - Currently being delivered - successful: {type, at, full_processing_ms} - Delivered successfully - failed: {type, at, full_processing_ms} - Delivery failed */
       status: {
         /**
          * Format: date-time
@@ -1311,14 +1311,14 @@ export interface components {
         full_processing_ms?: number;
         /**
          * Format: date-time
-         * @description Timestamp when the status started (present in waiting, pending, in_progress)
+         * @description Timestamp when the status started (present in waiting, pending, paused, in_progress)
          */
         since?: string;
         /**
-         * @description Status type discriminator. One of: waiting, pending, in_progress, successful, failed
+         * @description Status type discriminator. One of: waiting, pending, paused, in_progress, successful, failed
          * @enum {string}
          */
-        type: 'waiting' | 'pending' | 'in_progress' | 'successful' | 'failed';
+        type: 'waiting' | 'pending' | 'paused' | 'in_progress' | 'successful' | 'failed';
         /**
          * Format: date-time
          * @description Timestamp until which waiting (only present in waiting status)
@@ -4839,6 +4839,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;

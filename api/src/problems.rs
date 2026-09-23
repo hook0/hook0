@@ -899,6 +899,8 @@ mod tests {
     use std::sync::OnceLock;
     use url::Url;
 
+    use crate::app::test_support::operations;
+
     /// The identifiers published in the OpenAPI schema, as a client reading the spec sees them.
     fn published_identifiers() -> BTreeSet<String> {
         Hook0ProblemId::raw_schema()
@@ -1253,23 +1255,6 @@ mod tests {
         DOCUMENT.get_or_init(|| {
             actix_web::rt::System::new().block_on(crate::app::test_support::openapi_spec())
         })
-    }
-
-    /// Every operation of a served document, named by method and path.
-    ///
-    /// An entry of a path item that declares responses is an operation; reading it that way keeps
-    /// a list of HTTP methods from having to be maintained here alongside the one the document
-    /// already carries.
-    fn operations(document: &Value) -> Vec<(String, &Value)> {
-        let mut operations = Vec::new();
-        for (path, item) in document["paths"].as_object().into_iter().flatten() {
-            for (method, operation) in item.as_object().into_iter().flatten() {
-                if operation["responses"].is_object() {
-                    operations.push((format!("{method} {path}"), operation));
-                }
-            }
-        }
-        operations
     }
 
     /// Every status the API can answer with, taken from the problems themselves rather than

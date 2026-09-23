@@ -8,8 +8,8 @@ use actix_web::web::Query;
 use actix_web::{HttpResponse, Responder};
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, OperationModifier, api_v2_operation};
-use paperclip::v2::models::{DefaultSchemaRaw, Either, Reference, Response};
-use paperclip::v2::schema::Apiv2Schema;
+use paperclip::v2::models::{DefaultSchemaRaw, Either, Response};
+use paperclip::v2::schema::{Apiv2Errors, Apiv2Schema};
 use pulsar::proto::command_get_topics_of_namespace::Mode;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query};
@@ -133,13 +133,18 @@ impl Responder for HealthCheck {
     }
 }
 
-pub struct HealthCheckWithOa(pub HealthCheck);
+/// Carries the error too, so that its error definitions are applied before the 503 below: paperclip's
+/// `Result<T, E>` applies `E`'s after `T`'s, which would document the 503 body as a `Problem`
+pub struct HealthCheckWithOa(pub Result<HealthCheck, Hook0Problem>);
 
 impl Responder for HealthCheckWithOa {
     type Body = <HealthCheck as Responder>::Body;
 
     fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        self.0.respond_to(req)
+        match self.0 {
+            Ok(health_check) => health_check.respond_to(req),
+            Err(e) => HttpResponse::from_error(e).map_into_right_body(),
+        }
     }
 }
 
@@ -159,24 +164,26 @@ impl OperationModifier for HealthCheckWithOa {
     }
 
     fn update_response(op: &mut paperclip::v2::models::DefaultOperationRaw) {
-        HealthCheck::update_response(op);
-        let schema_with_ref = HealthCheck::schema_with_ref();
-        let response = match schema_with_ref.reference {
-            Some(reference) => Either::Left(Reference { reference }),
-            None => Either::Right(Response {
-                description: schema_with_ref.description.to_owned(),
-                schema: Some(schema_with_ref),
-                headers: BTreeMap::new(),
-            }),
-        };
-        op.responses.insert("200".to_owned(), response.clone());
-        op.responses.insert("503".to_owned(), response);
+        Hook0Problem::update_error_definitions(op);
+        for status in [StatusCode::OK, StatusCode::SERVICE_UNAVAILABLE] {
+            let mut schema = HealthCheck::schema_with_ref();
+            schema.retain_ref();
+            op.responses.insert(
+                status.as_str().to_owned(),
+                Either::Right(Response {
+                    description: status.canonical_reason().map(ToOwned::to_owned),
+                    schema: Some(schema),
+                    headers: BTreeMap::new(),
+                }),
+            );
+        }
     }
 
     fn update_definitions(
         map: &mut std::collections::BTreeMap<String, paperclip::v2::models::DefaultSchemaRaw>,
     ) {
         HealthCheck::update_definitions(map);
+        Hook0Problem::update_definitions(map);
     }
 
     fn update_security(op: &mut paperclip::v2::models::DefaultOperationRaw) {
@@ -204,10 +211,14 @@ pub struct Key {
     produces = "application/json",
     tags("Hook0")
 )]
-pub async fn health(
+pub async fn health(state: Data<crate::State>, qs: Query<Key>) -> HealthCheckWithOa {
+    HealthCheckWithOa(check_health(state, qs).await)
+}
+
+async fn check_health(
     state: Data<crate::State>,
     qs: Query<Key>,
-) -> Result<HealthCheckWithOa, Hook0Problem> {
+) -> Result<HealthCheck, Hook0Problem> {
     let qs_key = qs.into_inner().key.unwrap_or_else(|| "".to_owned());
 
     match state.health_check_key.as_deref() {
@@ -277,7 +288,7 @@ pub async fn health(
                     "health check completed"
                 );
 
-                Ok(HealthCheckWithOa(health_check))
+                Ok(health_check)
             } else {
                 Err(Hook0Problem::Forbidden)
             }
@@ -453,4 +464,33 @@ async fn generate_profile(duration: std::time::Duration) -> anyhow::Result<Vec<u
     profile.write_to_writer(&mut pprof)?;
 
     Ok(pprof)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    use crate::app::test_support::{openapi_spec, operations};
+
+    /// An unhealthy instance answers 503 with the same body as a healthy one, but `Hook0Problem`
+    /// declares 503 too and used to take the documented schema over silently. Both responses are
+    /// described like every other one, which OpenAPI requires.
+    #[actix_web::test]
+    async fn health_documents_its_200_and_503_responses_as_health_checks() {
+        let document = openapi_spec().await;
+        let (_, operation) = operations(&document)
+            .into_iter()
+            .find(|(_, operation)| operation["operationId"] == "instance.health")
+            .expect("the served document declares instance.health");
+        let response = |status: &str| -> &Value { &operation["responses"][status] };
+        let schema = |status: &str| -> &Value {
+            &response(status)["content"]["application/json"]["schema"]["$ref"]
+        };
+
+        assert_eq!(schema("200"), "#/components/schemas/HealthCheck");
+        assert_eq!(schema("503"), "#/components/schemas/HealthCheck");
+        assert_eq!(schema("403"), "#/components/schemas/Problem");
+        assert_eq!(response("200")["description"], "OK");
+        assert_eq!(response("503")["description"], "Service Unavailable");
+    }
 }

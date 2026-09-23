@@ -16,6 +16,9 @@ enum class RequestAttemptStatusType(val wireValue: String) {
   /** The API spells this one `pending`. */
   PENDING("pending"),
 
+  /** The API spells this one `paused`. */
+  PAUSED("paused"),
+
   /** The API spells this one `in_progress`. */
   IN_PROGRESS("in_progress"),
 

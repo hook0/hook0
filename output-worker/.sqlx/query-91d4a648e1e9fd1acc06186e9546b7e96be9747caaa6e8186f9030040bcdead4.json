@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        UPDATE webhook.request_attempt\n                        SET paused = true, delay_until = statement_timestamp() + make_interval(secs => $2)\n                        WHERE request_attempt__id = ANY($1)\n                            AND succeeded_at IS NULL AND failed_at IS NULL\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "91d4a648e1e9fd1acc06186e9546b7e96be9747caaa6e8186f9030040bcdead4"
+}

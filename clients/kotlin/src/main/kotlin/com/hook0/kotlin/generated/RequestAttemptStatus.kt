@@ -9,13 +9,14 @@ import java.time.OffsetDateTime
 /**
  * The `RequestAttemptStatus` the API declares.
  *
- * @property type carries `type`: Status type discriminator. One of: waiting, pending, in_progress, successful, failed
+ * @property type carries `type`: Status type discriminator. One of: waiting, pending, paused, in_progress, successful,
+ *     failed
  * @property at carries `at`, or nothing when the API answers none: Timestamp when completed (present in successful,
  *     failed)
  * @property fullProcessingMs carries `full_processing_ms`, or nothing when the API answers none: Total processing time
  *     in milliseconds (present in successful, failed)
  * @property since carries `since`, or nothing when the API answers none: Timestamp when the status started (present in
- *     waiting, pending, in_progress)
+ *     waiting, pending, paused, in_progress)
  * @property until carries `until`, or nothing when the API answers none: Timestamp until which waiting (only present in
  *     waiting status)
  */

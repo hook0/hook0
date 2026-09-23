@@ -17,7 +17,7 @@ import java.util.UUID
  * @property retryCount carries `retry_count`.
  * @property status carries `status`: Status of a request attempt. The 'type' field indicates the status variant. -
  *     waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed -
- *     in_progre
+ *     paused: {
  * @property subscription carries `subscription`.
  * @property delayUntil carries `delay_until`, or nothing when the API answers none.
  * @property failedAt carries `failed_at`, or nothing when the API answers none.

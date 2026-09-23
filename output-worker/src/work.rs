@@ -37,6 +37,9 @@ pub enum ResponseError {
     Timeout,
     #[strum(serialize = "E_HTTP")]
     Http,
+    /// A failure on Hook0's side that says nothing about the target (it does not count against the subscription's health)
+    #[strum(serialize = "E_INTERNAL")]
+    Internal,
 }
 
 /// A failure that happened before any HTTP request was made: the stored URL could not be
@@ -145,7 +148,7 @@ pub async fn work(
                 Err(e) => {
                     error!("Could not create HTTP client: {e}");
                     return Response {
-                        response_error: Some(ResponseError::Unknown),
+                        response_error: Some(ResponseError::Internal),
                         http_code: None,
                         headers: None,
                         body: Some(e.to_string().into_bytes()),

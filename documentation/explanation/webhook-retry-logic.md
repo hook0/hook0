@@ -102,6 +102,57 @@ Some errors are never retried because retrying would produce the same result:
 
 Before scheduling a retry, Hook0 checks that the subscription is still enabled, has not been soft-deleted, and that the parent application still exists. If any of these fail, the retry is skipped.
 
+If the subscription is [degraded or recovering](#subscription-health), the next retry is scheduled at least 1 hour later (`DEGRADED_SUBSCRIPTION_MIN_RETRY_DELAY`), or later if the normal delay (including `Retry-After` and jitter) is longer. This never changes how many retries a delivery gets.
+
+## Subscription health
+
+When most deliveries of a subscription fail, retrying them at the normal pace only adds load on an endpoint that is already struggling. Hook0 can track the health of each subscription and slow down deliveries of unhealthy ones until their endpoint recovers.
+
+### How health is computed
+
+Every 5 minutes (`SUBSCRIPTION_HEALTH_PROBE_PERIOD`), Hook0 looks at the delivery attempts of each active subscription that completed during the last 15 minutes (`SUBSCRIPTION_HEALTH_PROBE_WINDOW`):
+
+- **Unhealthy**: at least 10 completed attempts (`SUBSCRIPTION_HEALTH_UNHEALTHY_MIN_ATTEMPTS`) and more than 30% of them failed (`SUBSCRIPTION_HEALTH_MAX_FAILURE_RATIO`).
+- **Healthy**: at least 1 completed attempt and at most 30% of them failed.
+- Otherwise (for example, no completed attempt), nothing changes.
+
+Failures caused by Hook0 itself (`E_INTERNAL`, `E_INVALID_HEADER`) are not counted at all, so an incident on Hook0's side does not make subscriptions unhealthy. Cancelled attempts (subscription disabled or deleted) are not counted either.
+
+A subscription then moves between three states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> healthy
+    healthy --> degraded : unhealthy
+    degraded --> recovering : healthy
+    recovering --> degraded : unhealthy
+    recovering --> healthy : healthy for long enough
+```
+
+A recovering subscription goes back to healthy after 1 hour (`SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION`), or earlier, after 10 minutes (`SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION`), if at least 10 attempts (`SUBSCRIPTION_HEALTH_RECOVERING_MIN_ATTEMPTS`) completed since it started recovering. It has to be healthy at every check in the meantime.
+
+### Effects on deliveries
+
+While a subscription is degraded or recovering:
+
+- New request attempts (including the ones created by replaying an event) are created **paused**: they are not sent right away.
+- Each output worker regularly releases paused attempts, oldest first, so that the subscription gets at most 50 (degraded) or 500 (recovering) request attempts per minute, counting the ones that were just processed and the ones already waiting. Once the subscription is healthy again, the remaining paused attempts are released at up to 5000 per minute. See the `PAUSED_REQUEST_ATTEMPTS_RELEASE_*` settings of the output worker.
+- Retries are scheduled at least 1 hour later (see [Subscription and application checks](#subscription-and-application-checks)).
+
+A paused attempt is never dropped: it is eventually sent, or cancelled if the subscription is disabled or deleted.
+
+### Modes
+
+Subscription health is controlled by `SUBSCRIPTION_HEALTH_PROBE_MODE` on the API:
+
+| Mode | Behavior |
+|------|----------|
+| `off` (default) | Subscriptions are not classified and health has no effect |
+| `shadow` | Health is computed and recorded, but has no effect on deliveries |
+| `enforce` | Health pauses and slows down deliveries of unhealthy subscriptions; `SUBSCRIPTION_HEALTH_ENFORCE_ONLY_FOR` can restrict this to some applications |
+
+Switching from `enforce` back to `off` or `shadow` (and restarting the API) stops pausing new attempts; attempts that are still paused are released at the healthy rate.
+
 ## Delivery status flow
 
 Each webhook delivery attempt goes through these states:
@@ -109,6 +160,8 @@ Each webhook delivery attempt goes through these states:
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING
+    [*] --> PAUSED : subscription degraded or recovering
+    PAUSED --> PENDING : released
     PENDING --> IN_PROGRESS
     IN_PROGRESS --> SUCCESSFUL
     IN_PROGRESS --> FAILED
@@ -116,15 +169,16 @@ stateDiagram-v2
     FAILED --> [*] : no retry (final FAILED)
 ```
 
-More precisely, Hook0 tracks five statuses:
+More precisely, Hook0 tracks six statuses (the API value is the `status.type` field of a request attempt):
 
-| Status | Meaning |
-|--------|---------|
-| Waiting | Scheduled for future delivery (`delay_until` has not elapsed yet) |
-| Pending | Ready to be picked up by a worker |
-| In Progress | Currently being delivered (picked by a worker) |
-| Successful | Delivery succeeded (2xx HTTP response) |
-| Failed | Delivery failed |
+| Status | API value | Meaning |
+|--------|-----------|---------|
+| Waiting | `waiting` | Scheduled for future delivery (`delay_until` has not elapsed yet) |
+| Pending | `pending` | Ready to be picked up by a worker |
+| Paused | `paused` | Held back because the subscription is [degraded or recovering](#subscription-health); it will be released gradually |
+| In Progress | `in_progress` | Currently being delivered (picked by a worker) |
+| Successful | `successful` | Delivery succeeded (2xx HTTP response) |
+| Failed | `failed` | Delivery failed |
 
 The `request_attempt` table stores every attempt with timestamps (`created_at`, `picked_at`, `succeeded_at`, `failed_at`, `delay_until`), so you can calculate:
 - Time to first delivery: `picked_at - created_at`
@@ -182,6 +236,9 @@ The output worker's retry and delivery behavior is configured via environment va
 | `CONNECT_TIMEOUT` | 5 seconds | Timeout for establishing a TCP connection |
 | `TIMEOUT` | 15 seconds | Total HTTP request timeout (including connect) |
 | `CONCURRENT` | 1 | Number of request attempts handled concurrently |
+| `DEGRADED_SUBSCRIPTION_MIN_RETRY_DELAY` | 1 hour | Minimum retry delay while a subscription is degraded or recovering |
+
+Subscription health settings are listed in the [configuration reference](/reference/configuration).
 
 ## Error types
 
@@ -195,6 +252,7 @@ When a delivery fails, Hook0 records one of these error codes:
 | `E_HTTP` | The server responded with a non-2xx status code |
 | `E_INVALID_TARGET` | The target URL is invalid, does not exist (NXDOMAIN), or resolves to a forbidden IP |
 | `E_INVALID_HEADER` | A required header value could not be constructed (non-retryable) |
+| `E_INTERNAL` | A failure on Hook0's side that says nothing about the target (for example, the event's payload could not be found); it does not count against the subscription's health |
 | `E_UNKNOWN` | An unexpected error occurred |
 
 ## SSRF protection

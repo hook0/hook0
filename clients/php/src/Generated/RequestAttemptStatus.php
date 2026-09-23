@@ -16,12 +16,12 @@ final class RequestAttemptStatus
 {
     /**
      * @param RequestAttemptStatusType $type carries `type`, one of `RequestAttemptStatusType`: Status type
-     *   discriminator. One of: waiting, pending, in_progress, successful, failed
+     *   discriminator. One of: waiting, pending, paused, in_progress, successful, failed
      * @param \DateTimeImmutable|null $at carries `at`: Timestamp when completed (present in successful, failed)
      * @param int|null $fullProcessingMs carries `full_processing_ms`: Total processing time in milliseconds (present in
      *   successful, failed)
      * @param \DateTimeImmutable|null $since carries `since`: Timestamp when the status started (present in waiting,
-     *   pending, in_progress)
+     *   pending, paused, in_progress)
      * @param \DateTimeImmutable|null $until carries `until`: Timestamp until which waiting (only present in waiting
      *   status)
      */

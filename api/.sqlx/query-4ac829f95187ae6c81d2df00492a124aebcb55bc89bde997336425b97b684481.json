@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        INSERT INTO webhook.subscription_health (subscription__id, status)\n                        SELECT * FROM UNNEST($1::uuid[], $2::text[])\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ac829f95187ae6c81d2df00492a124aebcb55bc89bde997336425b97b684481"
+}

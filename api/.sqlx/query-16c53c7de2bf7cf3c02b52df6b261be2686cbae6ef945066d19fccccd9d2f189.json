@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO infrastructure.state (key, value_boolean)\n            VALUES ('subscription_health_enforced', $1)\n            ON CONFLICT (key) DO UPDATE\n                SET value_boolean = EXCLUDED.value_boolean\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "16c53c7de2bf7cf3c02b52df6b261be2686cbae6ef945066d19fccccd9d2f189"
+}

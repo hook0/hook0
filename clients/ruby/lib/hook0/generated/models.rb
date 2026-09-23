@@ -240,6 +240,7 @@ module Hook0
     module RequestAttemptStatusType
       WAITING = "waiting"
       PENDING = "pending"
+      PAUSED = "paused"
       IN_PROGRESS = "in_progress"
       SUCCESSFUL = "successful"
       FAILED = "failed"
@@ -248,6 +249,7 @@ module Hook0
       VALUES = [
         WAITING,
         PENDING,
+        PAUSED,
         IN_PROGRESS,
         SUCCESSFUL,
         FAILED
@@ -2280,7 +2282,7 @@ module Hook0
       # @param retry_count [Integer] carries `retry_count`.
       # @param status [RequestAttemptStatus] carries `status`: Status of a request attempt. The 'type' field indicates
       #   the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} -
-      #   Ready to be processed - in_progre
+      #   Ready to be processed - paused: {
       # @param subscription [RequestAttemptSubscription] carries `subscription`.
       # @param delay_until [Time, nil] carries `delay_until`.
       # @param failed_at [Time, nil] carries `failed_at`.
@@ -2441,12 +2443,12 @@ module Hook0
                   :until_
 
       # @param type [String] carries `type`, one of `RequestAttemptStatusType::VALUES`: Status type discriminator. One
-      #   of: waiting, pending, in_progress, successful, failed
+      #   of: waiting, pending, paused, in_progress, successful, failed
       # @param at [Time, nil] carries `at`: Timestamp when completed (present in successful, failed)
       # @param full_processing_ms [Integer, nil] carries `full_processing_ms`: Total processing time in milliseconds
       #   (present in successful, failed)
       # @param since [Time, nil] carries `since`: Timestamp when the status started (present in waiting, pending,
-      #   in_progress)
+      #   paused, in_progress)
       # @param until_ [Time, nil] carries `until`: Timestamp until which waiting (only present in waiting status)
       def initialize(type:, at: nil, full_processing_ms: nil, since: nil, until_: nil)
         @type = type

@@ -586,7 +586,7 @@ until?: string
 ## type generated.RequestAttemptStatusType
 
 ```ts
-"waiting" | "pending" | "in_progress" | "successful" | "failed"
+"waiting" | "pending" | "paused" | "in_progress" | "successful" | "failed"
 ```
 
 ## interface generated.RequestAttemptSubscription

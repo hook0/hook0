@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use aws_sdk_s3::error::DisplayErrorContext;
-use aws_sdk_s3::operation::get_object::GetObjectError;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
@@ -17,10 +16,10 @@ use crate::opentelemetry::{
     report_delivery_outcome, report_worker_delivery_lag, start_request_attempt_span,
 };
 use crate::throughput_log::ThroughputStats;
-use crate::work::{ResponseError, work};
+use crate::work::work;
 use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, RetryPolicy, SlotRole, Worker,
-    compute_next_retry,
+    Config, MissingPayload, ObjectStorageConfig, RequestAttemptWithOptionalPayload, RetryPolicy,
+    SlotRole, Worker, compute_next_retry, fetch_event_payload, give_up_on_missing_payload,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -85,7 +84,8 @@ pub async fn look_for_work(
                 INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
                 INNER JOIN event.event AS e ON e.event__id = ra.event__id
                 WHERE
-                    ra.succeeded_at IS NULL
+                    NOT ra.paused
+                    AND ra.succeeded_at IS NULL
                     AND ra.failed_at IS NULL
                     AND s.is_enabled
                     AND s.deleted_at IS NULL
@@ -149,56 +149,18 @@ pub async fn look_for_work(
             // object storage not being configured), which we retry later instead.
             let (payload, give_up): (Option<Vec<u8>>, bool) = if let Some(p) = attempt.payload {
                 (Some(p), false)
-            } else if let Some(os) = &object_storage {
-                let key = format!(
-                    "{}/event/{}/{}",
-                    attempt.application_id,
-                    attempt.event_received_at.naive_utc().date(),
-                    attempt.event_id
-                );
-                match os
-                    .client
-                    .get_object()
-                    .bucket(&os.bucket)
-                    .key(&key)
-                    .send()
-                    .await
-                {
-                    Ok(obj) => match obj.body.collect().await {
-                        Ok(ab) => (Some(ab.to_vec()), false),
-                        Err(e) => {
-                            log_object_storage_error_with_context!(
-                                "S3 GET OBJECT body collect failed",
-                                error_chain = format!("{e}"),
-                                object_key = &key,
-                            );
-                            (None, false)
-                        }
-                    },
-                    Err(e)
-                        if matches!(e.as_service_error(), Some(GetObjectError::NoSuchKey(_))) =>
-                    {
-                        log_object_storage_error_with_context!(
-                            "S3 GET OBJECT failed: payload object is missing",
-                            error_chain = DisplayErrorContext(&e).to_string(),
-                            object_key = &key,
-                        );
-                        (None, true)
-                    }
-                    Err(e) => {
-                        log_object_storage_error_with_context!(
-                            "S3 GET OBJECT failed",
-                            error_chain = DisplayErrorContext(&e).to_string(),
-                            object_key = &key,
-                        );
-                        (None, false)
-                    }
-                }
             } else {
-                // Object storage is not configured but the payload is not in the DB
-                // either. Treat as recoverable (an operator can fix the config and
-                // restart) rather than dropping the event.
-                (None, false)
+                match fetch_event_payload(
+                    object_storage,
+                    attempt.application_id,
+                    attempt.event_received_at,
+                    attempt.event_id,
+                )
+                .await
+                {
+                    Ok(p) => (Some(p), false),
+                    Err(missing) => (None, missing == MissingPayload::Gone),
+                }
             };
 
             if let Some(p) = payload {
@@ -385,32 +347,7 @@ pub async fn look_for_work(
                     "Payload object is missing from object storage; giving up on this request attempt"
                 );
 
-                // Record a synthetic failed response (reusing the generic E_UNKNOWN
-                // error) so the abandoned attempt keeps the usual response association,
-                // then mark it failed. No retry is created and retry_count is untouched.
-                let response_id = query!(
-                    "
-                        INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
-                        VALUES ($1, $2, $3, $4, $5)
-                        RETURNING response__id
-                    ",
-                    Some(ResponseError::Unknown.to_string()),
-                    None::<i16>,
-                    None::<serde_json::Value>,
-                    None::<Vec<u8>>,
-                    0_i32,
-                )
-                .fetch_one(&mut *tx)
-                .await?
-                .response__id;
-
-                query!(
-                    "UPDATE webhook.request_attempt SET response__id = $1, failed_at = statement_timestamp() WHERE request_attempt__id = $2",
-                    response_id,
-                    attempt.request_attempt_id,
-                )
-                .execute(&mut *tx)
-                .await?;
+                give_up_on_missing_payload(&mut tx, attempt.request_attempt_id).await?;
 
                 tx.commit().await?;
             } else {

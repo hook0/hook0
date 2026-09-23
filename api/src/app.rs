@@ -610,6 +610,23 @@ pub(crate) mod test_support {
         let body = test::read_body(response).await;
         serde_json::from_slice(&body).expect("the served OpenAPI document is valid JSON")
     }
+
+    /// Every operation of a served document, named by method and path.
+    ///
+    /// An entry of a path item that declares responses is an operation; reading it that way keeps
+    /// a list of HTTP methods from having to be maintained here alongside the one the document
+    /// already carries.
+    pub(crate) fn operations(document: &serde_json::Value) -> Vec<(String, &serde_json::Value)> {
+        let mut operations = Vec::new();
+        for (path, item) in document["paths"].as_object().into_iter().flatten() {
+            for (method, operation) in item.as_object().into_iter().flatten() {
+                if operation["responses"].is_object() {
+                    operations.push((format!("{method} {path}"), operation));
+                }
+            }
+        }
+        operations
+    }
 }
 
 #[cfg(test)]

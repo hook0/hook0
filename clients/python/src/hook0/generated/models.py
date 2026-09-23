@@ -133,6 +133,7 @@ class RequestAttemptStatusType(StrEnum):
 
     WAITING = "waiting"
     PENDING = "pending"
+    PAUSED = "paused"
     IN_PROGRESS = "in_progress"
     SUCCESSFUL = "successful"
     FAILED = "failed"

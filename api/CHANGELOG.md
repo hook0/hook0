@@ -54,6 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   warning support beforehand, and worth not deploying in the minutes after a wave of reset
   mail. Nothing else needs doing, since the two migrations add columns that fill themselves in.
 
+- The request attempt status `inprogress` is now `in_progress` (api)
+
+  The API sent `inprogress` while its OpenAPI document, the generated SDKs and the CLI all
+  expected `in_progress`, so a strict client failed to read any attempt that was being
+  delivered. The API now sends what it documents. A client that matched on `inprogress`
+  itself has to switch to `in_progress`.
+
+- Request attempts have a new `paused` status (api)
+
+  An attempt whose subscription is degraded or recovering (see subscription health below) is
+  created paused and reported as `paused` until an output worker releases it. SDK versions
+  generated before this one have a closed list of statuses and fail to read such an attempt;
+  upgrading the SDK is enough.
+
 ### Security
 
 - A reset mail that fails to send no longer leaves the link already in the mailbox dead (api)
@@ -98,6 +112,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   request arrives wearing the proxy's address and the whole internet shares one quota. Set it
   wider than the proxy, and anyone inside the range gets to claim whatever address they like
   and walk past this limiter along with the per-IP one.
+
+### Added
+
+- Subscription health (api)
+
+  A probe classifies subscriptions from their recently completed request attempts as healthy,
+  degraded or recovering, ignoring failures caused by Hook0 itself. With
+  `SUBSCRIPTION_HEALTH_PROBE_MODE=enforce`, new request attempts of degraded and recovering
+  subscriptions are created paused and released gradually by output workers, and their
+  retries wait at least an hour, so a failing endpoint stops taking delivery capacity from
+  everyone else. `shadow` computes and records health without any effect, and `off`, the
+  default, does nothing. Output workers must be upgraded along with the API: the migration
+  keeps the previous waiting index for them, and a later one will drop it. On a large
+  instance, create the new column and indexes by hand beforehand (the statements are at the
+  top of the migration). The API now refuses to start if it cannot share the subscription
+  health settings with output workers.
 
 ### Changed
 

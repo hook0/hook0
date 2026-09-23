@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE webhook.request_attempt\n                    SET paused = false, delay_until = statement_timestamp()\n                    WHERE request_attempt__id IN (\n                        SELECT request_attempt__id\n                        FROM webhook.request_attempt\n                        WHERE request_attempt__id = ANY($1)\n                            AND paused AND succeeded_at IS NULL AND failed_at IS NULL\n                        FOR UPDATE SKIP LOCKED\n                    )\n                    RETURNING request_attempt__id\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "request_attempt__id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webhook.request_attempt",
+            "name": "request_attempt__id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2f86a2ce8ac79802e4e0d47dc38fca1e47ae455bb82bd426e9d4215658756c2a"
+}

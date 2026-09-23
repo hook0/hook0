@@ -868,6 +868,7 @@ where
             LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
             WHERE ra.event__id = $1
                 AND ra.succeeded_at IS NULL AND ra.failed_at IS NULL
+                AND NOT ra.paused
                 AND a.deleted_at IS NULL
         ",
         &event_id,
