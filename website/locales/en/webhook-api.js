@@ -3,6 +3,10 @@
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
+  tldr: {
+    h2: 'The Short Answer',
+    body: 'Hook0\'s webhook API is one REST endpoint. You POST your event to /api/v1/event with a bearer token, and Hook0 takes care of delivery. It signs each request with HMAC-SHA256, retries failed endpoints in two phases (fast retries for short blips, slow retries over days for real outages), moves exhausted deliveries to a dead letter queue, and records every attempt in the delivery logs. Pass your own event_id and Hook0 deduplicates on it, so a retried call never fires twice downstream. SDKs cover Python and Node.js. The server is open-source under SSPL-1.0, with a free tier of 100 events a day and no credit card.',
+  },
   "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
   "pageDescription": "Hook0 exposes a clean REST webhook API: one call to send an event, automatic HMAC signing, configurable retries and SDKs for Python, Node.js and more. Free forever.",
   "track": "webhook-api",

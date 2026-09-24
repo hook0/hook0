@@ -6,6 +6,10 @@
 // pageTitle/pageDescription are intentionally AEO-optimized (curiosity-gap, to
 // compete with AI Overviews) and are NOT bound to the legacy template.
 module.exports = {
+  tldr: {
+    h2: 'The Short Answer',
+    body: 'Hook0 has a free Developer plan with 100 webhook events a day, HMAC signatures and delivery monitoring, and no credit card. Paid Cloud plans start at €59 a month for Startup, with Pro for higher volume. On paid plans, overage is billed per event rather than blocked (€0.003 on Startup, €0.0001 on Pro), so a traffic spike never interrupts delivery. Retries, HMAC signing and delivery logs are included, with no per-endpoint fees. Hook0 Cloud runs on EU infrastructure hosted in France by default, and the server is open-source under SSPL-1.0, so you can self-host it for free on Docker or Kubernetes when you need data sovereignty.',
+  },
   "pageTitle": "Hook0 Pricing: Free Tier, and What Happens When You Go Over",
   "pageDescription": "Free forever tier, no credit card. Paid plans never block overage; they bill a fraction of a cent per event. Cloud from €59/month, or self-host the SSPL code.",
   "track": "pricing",

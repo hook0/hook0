@@ -1,6 +1,10 @@
 // Per-page strings for webhook-api (DE).
 // /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = « Open Source (SSPL-1.0) », nie « Open Source » allein.
 module.exports = {
+  tldr: {
+    h2: 'Kurz gesagt',
+    body: 'Die Webhook-API von Hook0 besteht aus einem einzigen REST-Endpoint. Du sendest dein Event per POST an /api/v1/event mit einem Bearer-Token, und Hook0 übernimmt die Zustellung. Sie signiert jede Anfrage mit HMAC-SHA256, wiederholt fehlgeschlagene Endpoints in zwei Phasen (schnelle Wiederholungen bei kurzen Aussetzern, langsame über mehrere Tage bei echten Ausfällen), verschiebt erschöpfte Zustellungen in eine Dead-Letter-Queue und protokolliert jeden Versuch in den Zustellprotokollen. Du übergibst deine eigene event_id, und Hook0 dedupliziert darauf, sodass eine wiederholte Anfrage nachgelagert nie zweimal auslöst. Die SDKs decken Python und Node.js ab. Der Server ist Open Source (SSPL-1.0), mit einem kostenlosen Tarif von 100 Events pro Tag und ohne Kreditkarte.',
+  },
   pageTitle: 'Webhook-API: ein POST liefert ein Event | Hook0',
   pageDescription: 'Schlanke REST-API: ein POST löst ein Event aus, automatische HMAC-Signatur, konfigurierbare Retries, Python- und Node.js-SDKs.',
   "pageModified": "2026-06-27",
