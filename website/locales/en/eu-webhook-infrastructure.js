@@ -18,8 +18,18 @@
 module.exports = {
   "pageTitle": "EU Webhook Infrastructure: Hosted in France by Default | Hook0",
   "pageDescription": "Hook0 runs its webhook data plane on Clever Cloud (France) from the free tier up. French-law company, public sub-processor list, self-host or on-prem anytime.",
-  "pageModified": "2026-07-16",
+  "pageModified": "2026-09-24",
   "track": "eu-webhook-infrastructure",
+  // Direct-answer (AEO) lead block. Every figure is grounded in the on-page copy
+  // below: Clever Cloud SAS (France, EEA) data plane on every plan, French-law
+  // company, Cloudflare Inc. (USA) edge disclosed under 2021 SCC + TIA + EU-US
+  // DPF, GDPR/NIS2/DORA as process claims, open-source (SSPL-1.0) reversibility,
+  // 100 events/day free, paid from €59/month. Deliberately states the EU-by-
+  // default posture WITHOUT claiming full sovereignty (no "no byte leaves the EU").
+  "tldr": {
+    "h2": "The Short Answer",
+    "body": "Hook0 runs its webhook data plane (payloads, database and backups) on Clever Cloud SAS in France, inside the European Economic Area, on every plan including the free tier. The company behind Hook0 is incorporated under French law, with no US parent. The CDN and DDoS layer in front of the site and API is Cloudflare, Inc. (USA), disclosed in a public sub-processor list and framed by the 2021 Standard Contractual Clauses, a documented Transfer Impact Assessment and, where applicable, the EU-US Data Privacy Framework. That makes it EU by default, without claiming that no byte ever reaches a US company. Hook0 is designed for GDPR, NIS2 and DORA requirements rather than certified against them, and it stays reversible: cloud, self-hosted (open-source SSPL-1.0, Docker or Kubernetes) and managed on-premise all run the same codebase. Free for 100 events a day with no credit card; paid plans start at €59/month."
+  },
   "hero": {
     "eyebrow": "EU Webhook Infrastructure",
     "titleLine1": "EU by Default,",

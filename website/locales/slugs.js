@@ -50,7 +50,7 @@ module.exports = {
   'webhooks-for-ai-agents': { fr: 'serveur-mcp-webhook', de: 'mcp-server-fuer-webhooks' },
   // EN + FR only (DE gate: no second DE cluster until paid DE proves demand).
   'webhook-cost-comparison': { fr: 'comparatif-cout-webhook' },
-  'eu-webhook-infrastructure': { fr: 'infrastructure-webhook-europeenne' },
+  'eu-webhook-infrastructure': { fr: 'infrastructure-webhook-europeenne', de: 'eu-webhook-infrastruktur' },
   'hookdeck-alternatives': { fr: 'alternatives-a-hookdeck', de: 'hookdeck-alternativen' },
   'hook0-alternatives': { fr: 'alternatives-a-hook0', de: 'hook0-alternativen' },
   'mediakit': { fr: 'kit-presse', de: 'pressekit' },
