@@ -14,10 +14,11 @@ module.exports = {
   'webhook-platform': { fr: 'plateforme-webhook', de: 'webhook-plattform' },
   'pricing': { fr: 'tarifs', de: 'preise' },
   'webhook-api': { fr: 'api-webhook', de: 'webhook-api' },
-  // EN-only for now: paid-search landing for the "webhook service" cluster, whose
-  // queries arrive in English. Localize once it earns impressions (test-and-scale,
-  // same rule as the tester pages below).
-  'webhook-service': {},
+  // Localized once it earned impressions (test-and-scale): the EN page now draws
+  // organic impressions from the "webhook service" cluster, so FR/DE render too.
+  // DE ships organic; a native German proofread is still owed before any paid DE
+  // campaign (same DE gate as webhooks-for-ai-agents).
+  'webhook-service': { fr: 'service-webhook', de: 'webhook-service' },
   'oss-friends': { fr: 'amis-open-source', de: 'open-source-freunde' },
   'security': { fr: 'securite', de: 'sicherheit' },
   'webhook-playground': { fr: 'testeur-webhook', de: 'webhook-tester' },

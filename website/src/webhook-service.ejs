@@ -49,6 +49,21 @@ var t = locals.t;
 <%- include('./includes/_social-proof-bar.ejs') %>
 <% } %>
 
+<!-- TL;DR / short answer: a self-contained block answer engines and AI Overviews
+     can lift verbatim, stating the core answer up front for readers who skim.
+     Rendered only when the locale supplies `t.tldr`, so a locale without it
+     skips the block cleanly. Mirrors webhook-platform.ejs. -->
+<% if (t.tldr) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card card--glow p-8 animate-on-scroll">
+            <h2 class="text-xl font-bold text-white mb-3"><%= t.tldr.h2 %></h2>
+            <p class="text-body-lg text-gray-300"><%= t.tldr.body %></p>
+        </div>
+    </div>
+</section>
+<% } %>
+
 <!-- What a webhook service owes you -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
