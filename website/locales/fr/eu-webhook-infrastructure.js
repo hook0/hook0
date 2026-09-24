@@ -12,8 +12,18 @@
 module.exports = {
   "pageTitle": "Infrastructure webhook européenne : hébergée en France | Hook0",
   "pageDescription": "Le data plane webhook de Hook0 tourne chez Clever Cloud, en France, dès le tier gratuit. Éditeur de droit français, sous-traitants publics, self-host possible.",
-  "pageModified": "2026-07-16",
+  "pageModified": "2026-09-24",
   "track": "fr-infrastructure-webhook-eu",
+  // Bloc réponse directe (AEO). Chaque fait est ancré dans la copie de la page :
+  // data plane Clever Cloud SAS (France, EEE) sur chaque offre, éditeur de droit
+  // français, edge Cloudflare Inc. (USA) divulgué sous CCT 2021 + TIA + DPF UE-USA,
+  // RGPD/NIS2/DORA en claims de processus, réversibilité open source (SSPL-1.0),
+  // 100 events/jour gratuits, à partir de 59 €/mois. Pose l'Europe par défaut SANS
+  // revendiquer une souveraineté totale (jamais « aucune donnée ne quitte l'UE »).
+  "tldr": {
+    "h2": "En bref",
+    "body": "Hook0 fait tourner son data plane webhook (payloads, base de données et sauvegardes) chez Clever Cloud SAS en France, dans l'Espace économique européen, sur chaque offre y compris le tier gratuit. L'éditeur est une société de droit français, sans maison-mère américaine. La couche CDN et anti-DDoS devant le site et l'API est Cloudflare, Inc. (États-Unis), divulguée dans une liste publique de sous-traitants et encadrée par les clauses contractuelles types 2021, une analyse d'impact de transfert documentée et, le cas échéant, le Data Privacy Framework UE-États-Unis. C'est l'Europe par défaut, sans prétendre qu'aucun octet ne touche jamais une société américaine. Hook0 est conçu pour les exigences RGPD, NIS2 et DORA plutôt que certifié sur ces textes, et il reste réversible : cloud, self-host (open source SSPL-1.0, Docker ou Kubernetes) et on-premise géré tournent sur le même code. Gratuit jusqu'à 100 events par jour sans carte bancaire ; offres payantes à partir de 59 €/mois."
+  },
   "hero": {
     "eyebrow": "Infrastructure webhook européenne",
     "titleLine1": "L'Europe par défaut,",
