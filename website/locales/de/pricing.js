@@ -4,6 +4,10 @@
 // Stack», «keine Daten verlassen die EU», «CLOUD Act free». NIS2/DORA nur als
 // Kunden-Kontext, niemals als Zertifizierung.
 module.exports = {
+  tldr: {
+    h2: 'Kurz gesagt',
+    body: 'Hook0 hat einen kostenlosen Developer-Tarif mit 100 Webhook-Events pro Tag, HMAC-Signaturen und Zustellüberwachung, ohne Kreditkarte. Die kostenpflichtigen Cloud-Tarife beginnen bei 59 €/Monat für Startup, mit Pro für höhere Volumen. Bei den kostenpflichtigen Tarifen wird ein Überschreiten pro Event abgerechnet statt blockiert (0,003 € bei Startup, 0,0001 € bei Pro), sodass eine Lastspitze deine Zustellung nie unterbricht. Wiederholungsversuche, HMAC-Signierung und Zustellprotokolle sind enthalten, ohne Gebühren pro Endpoint. Hook0 Cloud läuft standardmäßig auf europäischer Infrastruktur, gehostet in Frankreich, und der Server ist Open Source (SSPL-1.0), sodass du ihn bei Bedarf an Datensouveränität kostenlos auf Docker oder Kubernetes selbst hosten kannst.',
+  },
   pageTitle: 'Hook0 Preise: kostenloser Tarif, EU-Cloud | Webhooks',
   pageDescription: 'Developer-Tarif dauerhaft kostenlos. Cloud ab 59 €/Monat, Open Source (SSPL-1.0), selbst hostbar. Keine versteckten Kosten.',
   "pageModified": "2026-06-27",

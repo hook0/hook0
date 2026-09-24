@@ -2,6 +2,10 @@
 // /humanizer pro + legal-reviewer applied.
 // SSPL = «open source (SSPL-1.0)», jamais «open source» seul (L121-1).
 module.exports = {
+  tldr: {
+    h2: 'En bref',
+    body: 'Hook0 propose un plan Developer gratuit avec 100 events webhook par jour, signatures HMAC et suivi des livraisons, sans carte bancaire. Les plans Cloud payants démarrent à 59 € HT/mois pour Startup, avec Pro pour les gros volumes. Sur les plans payants, le dépassement est facturé à l\'event plutôt que bloqué (0,003 € sur Startup, 0,0001 € sur Pro), donc un pic de trafic n\'interrompt jamais tes livraisons. Les relances, la signature HMAC et les logs de livraison sont inclus, sans frais par endpoint. Hook0 Cloud tourne sur une infrastructure européenne hébergée en France par défaut, et le serveur est open source (SSPL-1.0), donc tu peux l\'auto-héberger gratuitement sur Docker ou Kubernetes quand tu as besoin de souveraineté des données.',
+  },
   pageTitle: 'Tarifs Hook0 : offre gratuite, cloud UE | Webhooks',
   pageDescription: 'Developer gratuit à vie. Cloud dès 59 € HT/mois, open source (SSPL-1.0), auto-hébergeable. Aucun frais caché.',
   "pageModified": "2026-06-27",
