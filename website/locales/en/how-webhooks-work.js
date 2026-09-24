@@ -10,7 +10,7 @@ module.exports = {
     "Rebuild GitLab's webhook, then see how Hook0 labels route one event to project, group, and instance subscribers, the way GitLab.com would deliver at scale.",
   breadcrumb: 'How webhooks work',
   pageType: 'article',
-  pageModified: '2026-09-10',
+  pageModified: '2026-09-24',
   pageSchema: {
     '@context': 'https://schema.org',
     '@type': 'TechArticle',
@@ -19,7 +19,7 @@ module.exports = {
       "A webhook is an HTTP POST your server sends when something happens. Rebuild GitLab's push webhook to see the moving parts, then see how one label-routed event on Hook0 reaches project, group, and instance subscribers at once.",
     inLanguage: 'en',
     datePublished: '2026-09-03',
-    dateModified: '2026-09-10',
+    dateModified: '2026-09-24',
     author: { '@type': 'Organization', name: 'Hook0', url: 'https://www.hook0.com' },
     publisher: {
       '@type': 'Organization',
@@ -35,6 +35,14 @@ module.exports = {
       { '@type': 'Thing', name: 'Multitenant webhooks' },
       { '@type': 'Thing', name: 'Webhook routing' },
     ],
+  },
+  // Direct-answer summary (AEO): a self-contained lead answer that featured
+  // snippets and AI Overviews can lift verbatim. Every claim is grounded in the
+  // concept, multitenant, and FAQ copy already on this page.
+  tldr: {
+    h2: 'The Short Answer',
+    body:
+      "A webhook is one HTTP POST a provider sends the moment an event happens on their side, like a new commit, a paid invoice, or a closed merge request. You register a URL, and instead of polling for changes you receive a JSON payload the instant the event exists. GitLab, Stripe, GitHub, and Shopify all deliver this way. Sending that POST takes about 40 lines; the retries with backoff, HMAC signatures, idempotency, delivery logs, and multitenant routing are the rest of the job. On Hook0 you publish an event once with labels, and every subscription whose labels match receives it, so a single push reaches repository, group, and instance subscribers with no custom fan-out code.",
   },
   hero: {
     eyebrow: 'Webhooks, explained',

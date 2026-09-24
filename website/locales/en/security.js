@@ -3,11 +3,20 @@
 module.exports = {
   "pageTitle": "Hook0 - Security and Compliance",
   "pageDescription": "Learn about Hook0 security practices: GDPR compliance, TLS encryption, cryptographic signatures, and enterprise-grade data protection. Hosted in Europe.",
-  "pageModified": "2026-06-29",
+  "pageModified": "2026-09-24",
   "hero": {
     "eyebrow": "Trust & Safety",
     "h1": "Security & Compliance",
     "subtitle": "We take security seriously. Learn about our comprehensive approach to protecting your data."
+  },
+  // Direct-answer summary (AEO). Humanizer pro pass applied (this block only; the
+  // sections below stay verbatim from the legacy template). Every claim is
+  // grounded in the sections on this page: EU hosting, GDPR/DPA, PCI via Stripe,
+  // encrypted backups, restricted access, vulnerability disclosure. SOC 2 and
+  // ISO 27001 are attributed to Clever Cloud, not claimed as Hook0's own.
+  "tldr": {
+    "h2": "The Short Answer",
+    "body": "Hook0 runs its data plane on Clever Cloud in France, so your webhook data stays in the EU under a GDPR-focused setup with a signed DPA and disclosed subprocessors. Payment data never touches Hook0; Stripe handles cards as a PCI Level 1 provider. The infrastructure keeps hourly encrypted backups across multiple regions, restores cross-region after an outage, and limits production access to SSH keys behind a two-factor VPN, with every change gated by code review and CI. The data centers Hook0 builds on carry Clever Cloud's SOC 2 and ISO 27001 audits. Report a vulnerability to security@hook0.com; the API also has an open bug bounty for critical findings."
   },
   "sections": [
     {

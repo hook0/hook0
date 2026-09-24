@@ -7,11 +7,17 @@
 module.exports = {
   pageTitle: 'Sécurité de Hook0 : HMAC, audits, isolation | Hook0',
   pageDescription: 'Sécurité Hook0 : signatures HMAC, isolation des tenants, audits ISO 27001 inspirés, hébergement en France (Clever Cloud).',
-  "pageModified": "2026-06-27",
+  "pageModified": "2026-09-24",
   "hero": {
     "eyebrow": "Confiance et sécurité",
     "h1": "Sécurité et conformité",
     "subtitle": "Notre approche de la protection de tes données, dans le détail."
+  },
+  // Réponse directe (AEO). Passe humanizer pro, registre tu, faits ancrés sur les
+  // sections de la page. SOC 2 / ISO 27001 attribués à Clever Cloud, pas à Hook0.
+  "tldr": {
+    "h2": "En bref",
+    "body": "Hook0 fait tourner son plan de données chez Clever Cloud en France, donc tes données de webhook restent dans l'UE, dans un cadre conçu pour le RGPD, avec un DPA signé et des sous-traitants divulgués. Les données de paiement ne passent jamais par Hook0 ; Stripe gère les cartes en tant que prestataire PCI Level 1. L'infrastructure conserve des sauvegardes chiffrées horaires dans plusieurs régions, se restaure d'une région à l'autre après une panne, et limite l'accès production à des clés SSH derrière un VPN à deux facteurs, chaque changement passant par revue de code et CI. Les datacenters sur lesquels Hook0 s'appuie portent les audits SOC 2 et ISO 27001 de Clever Cloud. Pour signaler une vulnérabilité, écris à security@hook0.com ; l'API dispose aussi d'un bug bounty ouvert pour les failles critiques."
   },
   "sections": [
     {
