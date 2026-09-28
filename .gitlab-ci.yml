@@ -73,6 +73,23 @@ variables:
   # price of runners held for half an hour doing nothing.
   CACHE_REQUEST_TIMEOUT: "2"
 
+# Retry any job on an infrastructure failure, never on a script failure.
+# `runner_system_failure` covers the case where the job's pod cannot be
+# scheduled ("timed out waiting for pod to start", saturated runner cluster):
+# a transient red that has nothing to do with the code and that a plain retry
+# clears. `script_failure` is left out on purpose — a code bug, a broken test
+# or a failing lint stays red and gets fixed.
+#
+# This default generalises the pattern already carried by `osv_dependency_scan`
+# and `.release-container-scan`; those two jobs keep their own `retry` block,
+# which overrides this default for them (same values).
+default:
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
 stages:
   - build
   - test
