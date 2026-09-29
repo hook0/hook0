@@ -304,6 +304,9 @@ pub enum ProblemId {
     /// The `AuthEmailExpired` the API answers with.
     #[serde(rename = "AuthEmailExpired")]
     AuthEmailExpired,
+    /// The `TooManyOrganizationsPerUser` the API answers with.
+    #[serde(rename = "TooManyOrganizationsPerUser")]
+    TooManyOrganizationsPerUser,
     /// The `TooManyMembersPerOrganization` the API answers with.
     #[serde(rename = "TooManyMembersPerOrganization")]
     TooManyMembersPerOrganization,
@@ -380,6 +383,7 @@ impl ProblemId {
             Self::AuthEmailAlreadyVerified => "AuthEmailAlreadyVerified",
             Self::AuthFailedRefresh => "AuthFailedRefresh",
             Self::AuthEmailExpired => "AuthEmailExpired",
+            Self::TooManyOrganizationsPerUser => "TooManyOrganizationsPerUser",
             Self::TooManyMembersPerOrganization => "TooManyMembersPerOrganization",
             Self::TooManyApplicationsPerOrganization => "TooManyApplicationsPerOrganization",
             Self::TooManyEventsToday => "TooManyEventsToday",
@@ -964,6 +968,9 @@ pub struct QuotasResponseLimits {
     /// `global_events_per_day_limit`.
     #[serde(rename = "global_events_per_day_limit")]
     pub global_events_per_day_limit: i32,
+    /// `global_free_organizations_per_user_limit`.
+    #[serde(rename = "global_free_organizations_per_user_limit")]
+    pub global_free_organizations_per_user_limit: i32,
     /// `global_members_per_organization_limit`.
     #[serde(rename = "global_members_per_organization_limit")]
     pub global_members_per_organization_limit: i32,

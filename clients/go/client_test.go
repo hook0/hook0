@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	hook0 "github.com/hook0/hook0-go/v2"
+	hook0 "github.com/hook0/hook0-go/v3"
 )
 
 func client(api *fakeAPI, options hook0.Options) *hook0.Client {

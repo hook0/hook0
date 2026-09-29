@@ -128,6 +128,8 @@ object Problems {
 
       ProblemId.TOO_MANY_MEMBERS_PER_ORGANIZATION -> TooManyMembersPerOrganizationException(status, problem, detail)
 
+      ProblemId.TOO_MANY_ORGANIZATIONS_PER_USER -> TooManyOrganizationsPerUserException(status, problem, detail)
+
       ProblemId.TOO_MANY_SUBSCRIPTIONS_PER_APPLICATION ->
         TooManySubscriptionsPerApplicationException(status, problem, detail)
 

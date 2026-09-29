@@ -90,6 +90,7 @@ public final class Problems {
           new TooManyEventTypesPerApplicationException(status, problem, detail);
       case TOO_MANY_EVENTS_TODAY -> new TooManyEventsTodayException(status, problem, detail);
       case TOO_MANY_MEMBERS_PER_ORGANIZATION -> new TooManyMembersPerOrganizationException(status, problem, detail);
+      case TOO_MANY_ORGANIZATIONS_PER_USER -> new TooManyOrganizationsPerUserException(status, problem, detail);
       case TOO_MANY_SUBSCRIPTIONS_PER_APPLICATION ->
           new TooManySubscriptionsPerApplicationException(status, problem, detail);
       case UNAUTHORIZED_WORKERS -> new UnauthorizedWorkersException(status, problem, detail);

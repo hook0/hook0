@@ -149,6 +149,8 @@ const (
 	ProblemIdAuthFailedRefresh ProblemId = "AuthFailedRefresh"
 	// ProblemIdAuthEmailExpired is the `AuthEmailExpired` the API answers with.
 	ProblemIdAuthEmailExpired ProblemId = "AuthEmailExpired"
+	// ProblemIdTooManyOrganizationsPerUser is the `TooManyOrganizationsPerUser` the API answers with.
+	ProblemIdTooManyOrganizationsPerUser ProblemId = "TooManyOrganizationsPerUser"
 	// ProblemIdTooManyMembersPerOrganization is the `TooManyMembersPerOrganization` the API answers with.
 	ProblemIdTooManyMembersPerOrganization ProblemId = "TooManyMembersPerOrganization"
 	// ProblemIdTooManyApplicationsPerOrganization is the `TooManyApplicationsPerOrganization` the API answers with.
@@ -547,6 +549,8 @@ type QuotasResponseLimits struct {
 	GlobalEventTypesPerApplicationLimit int32 `json:"global_event_types_per_application_limit"`
 	// GlobalEventsPerDayLimit carries `global_events_per_day_limit`.
 	GlobalEventsPerDayLimit int32 `json:"global_events_per_day_limit"`
+	// GlobalFreeOrganizationsPerUserLimit carries `global_free_organizations_per_user_limit`.
+	GlobalFreeOrganizationsPerUserLimit int32 `json:"global_free_organizations_per_user_limit"`
 	// GlobalMembersPerOrganizationLimit carries `global_members_per_organization_limit`.
 	GlobalMembersPerOrganizationLimit int32 `json:"global_members_per_organization_limit"`
 	// GlobalSubscriptionsPerApplicationLimit carries `global_subscriptions_per_application_limit`.

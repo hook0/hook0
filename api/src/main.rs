@@ -391,6 +391,10 @@ struct Config {
     #[clap(long, env)]
     enable_quota_enforcement: bool,
 
+    /// [Quotas] Number of free organizations a user may belong to before they can no longer create one
+    #[clap(long, env, default_value = "2")]
+    quota_global_free_organizations_per_user_limit: quotas::QuotaValue,
+
     /// [Quotas] Default limit of members per organization (can be overriden by a plan)
     #[clap(long, env, default_value = "1")]
     quota_global_members_per_organization_limit: quotas::QuotaValue,
@@ -1306,6 +1310,8 @@ async fn main() -> anyhow::Result<()> {
 
         // Create an instance of QuotaLimits
         let quota_limits = quotas::QuotaLimits {
+            global_free_organizations_per_user_limit: config
+                .quota_global_free_organizations_per_user_limit,
             global_members_per_organization_limit: config
                 .quota_global_members_per_organization_limit,
             global_applications_per_organization_limit: config

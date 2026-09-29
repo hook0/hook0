@@ -185,6 +185,10 @@ class TooManyMembersPerOrganizationError(ProblemError):
     """The API reported `TooManyMembersPerOrganization`."""
 
 
+class TooManyOrganizationsPerUserError(ProblemError):
+    """The API reported `TooManyOrganizationsPerUser`."""
+
+
 class TooManySubscriptionsPerApplicationError(ProblemError):
     """The API reported `TooManySubscriptionsPerApplication`."""
 
@@ -244,6 +248,7 @@ PROBLEMS: dict[ProblemId, type[ProblemError]] = {
     ProblemId.TOO_MANY_EVENT_TYPES_PER_APPLICATION: TooManyEventTypesPerApplicationError,
     ProblemId.TOO_MANY_EVENTS_TODAY: TooManyEventsTodayError,
     ProblemId.TOO_MANY_MEMBERS_PER_ORGANIZATION: TooManyMembersPerOrganizationError,
+    ProblemId.TOO_MANY_ORGANIZATIONS_PER_USER: TooManyOrganizationsPerUserError,
     ProblemId.TOO_MANY_SUBSCRIPTIONS_PER_APPLICATION: TooManySubscriptionsPerApplicationError,
     ProblemId.UNAUTHORIZED_WORKERS: UnauthorizedWorkersError,
     ProblemId.USER_ALREADY_EXIST: UserAlreadyExistError,

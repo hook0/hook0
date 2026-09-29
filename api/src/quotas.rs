@@ -58,6 +58,7 @@ struct QueryResult {
 
 #[derive(Debug, Clone, Serialize, Apiv2Schema, Copy)]
 pub struct QuotaLimits {
+    pub global_free_organizations_per_user_limit: QuotaValue,
     pub global_members_per_organization_limit: QuotaValue,
     pub global_applications_per_organization_limit: QuotaValue,
     pub global_events_per_day_limit: QuotaValue,
@@ -422,6 +423,82 @@ impl Quotas {
         .await?
         .ok_or(Hook0Problem::NotFound)?;
         Ok(())
+    }
+
+    /// Serializes concurrent quota checks that target the same user.
+    ///
+    /// See [`Quotas::lock_organization`] for why `FOR NO KEY UPDATE` is used. This is
+    /// what the free-organizations-per-user check locks on, because the organization it is
+    /// about to create does not exist yet and so cannot be locked itself.
+    async fn lock_user(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        Self::set_lock_timeout(&mut *tx).await?;
+
+        query_scalar!(
+            "
+                SELECT user__id
+                FROM iam.user
+                WHERE user__id = $1
+                FOR NO KEY UPDATE
+            ",
+            user_id,
+        )
+        .fetch_optional(&mut **tx)
+        .await?
+        .ok_or(Hook0Problem::NotFound)?;
+        Ok(())
+    }
+
+    /// Rejects the call if the user already reached the number of *free* organizations
+    /// they are allowed to belong to.
+    ///
+    /// Only free organizations count against the cap: an organization that carries a
+    /// plan (`iam.organization.price__id IS NOT NULL`) is excluded, so applying a paid
+    /// plan never eats into the limit. Membership is read from `iam.user__organization`
+    /// rather than `iam.organization.created_by`, so the cap follows the organizations
+    /// a user actually has access to, not just the ones they happened to create.
+    ///
+    /// Same transactional contract as [`Quotas::enforce_applications_per_organization`]:
+    /// must be the first statement of the transaction that inserts the organization.
+    pub async fn enforce_free_organizations_per_user(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        Self::lock_user(&mut *tx, user_id).await?;
+
+        // Flat account-level cap on free organizations only: unlike the per-organization
+        // quotas it is not resolved against a plan, and a user reaching it is expected to
+        // ask support to lift it (see `Hook0Problem::TooManyOrganizationsPerUser`), which
+        // keeps the rule and the existing pricing schema untouched.
+        let limit = self.limits.global_free_organizations_per_user_limit;
+
+        // Count the free organizations the user belongs to: join membership to the
+        // organization and drop any that carry a plan (`price__id IS NOT NULL`).
+        let current = query_scalar!(
+            r#"
+                SELECT COUNT(uo.organization__id) AS "val!"
+                FROM iam.user__organization AS uo
+                INNER JOIN iam.organization AS o ON o.organization__id = uo.organization__id
+                WHERE uo.user__id = $1
+                AND o.price__id IS NULL
+            "#,
+            user_id,
+        )
+        .fetch_one(&mut **tx)
+        .await?;
+
+        if current >= i64::from(limit) {
+            Err(Hook0Problem::TooManyOrganizationsPerUser(limit))
+        } else {
+            Ok(())
+        }
     }
 
     /// Rejects the call if the organization already reached its applications limit.
