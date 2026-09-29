@@ -3,7 +3,6 @@ semver-checks:
   image: rust:$RUST_VERSION
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
-    GIT_DEPTH: "0"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
       changes:
@@ -19,13 +18,14 @@ semver-checks:
     # 0.50.0 reads v61, which is what rust 1.99 writes. Raising one without the other is a
     # job that cannot run at all.
     - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks@0.50.0
-    - git fetch origin master
   script:
-    - echo "Checking semver compliance against origin/master..."
+    # The baseline is the latest release on crates.io rather than master: once master carries an
+    # unreleased major, further breaking changes belong to that same major and must not fail here.
+    - echo "Checking semver compliance against the latest hook0-client release on crates.io..."
     # Nothing renames the failure. This used to answer every non-zero exit with "SDK has
     # breaking changes", so the day the tool refused to read the toolchain's rustdoc format
     # the job reported a break in the published surface that did not exist, and the reader
     # went looking for it in the client rather than in the pin above. What the tool finds is
     # what the tool says; what a release is held to is `required-bump`.
-    - cargo semver-checks --package hook0-client --baseline-rev origin/master
+    - cargo semver-checks --package hook0-client
   allow_failure: false
