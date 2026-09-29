@@ -391,7 +391,7 @@ struct Config {
     #[clap(long, env)]
     enable_quota_enforcement: bool,
 
-    /// [Quotas] Limit of free organizations a single user can belong to
+    /// [Quotas] Number of free organizations a user may belong to before they can no longer create one
     #[clap(long, env, default_value = "2")]
     quota_global_free_organizations_per_user_limit: quotas::QuotaValue,
 

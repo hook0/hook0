@@ -682,10 +682,10 @@ impl From<Hook0Problem> for ProblemDetails {
 
             // Quota errors
             Hook0Problem::TooManyOrganizationsPerUser(limit) => {
-                let detail = format!("Your account cannot create more than {limit} organizations. Please contact support if you need more.");
+               let detail = format!("Your account already belongs to {limit} free organizations, the most it can have to create another. Please contact support if you need more.");
                 ProblemDetails {
                     id: Hook0Problem::TooManyOrganizationsPerUser(limit),
-                    title: "Exceeded number of organizations that your account can create",
+                    title: "Exceeded number of free organizations your account can belong to",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
