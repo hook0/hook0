@@ -33,8 +33,11 @@ clients.zig.check:
   before_script:
     - apt-get update && apt-get install --yes --no-install-recommends ca-certificates curl xz-utils
     # Every step of the fetch is bounded: a mirror that accepts the connection and then stops
-    # sending would otherwise hold the job for its whole timeout.
+    # sending would otherwise hold the job for its whole timeout. `--retry` covers the other half:
+    # a stall that trips `--max-time` is a transient error, retried rather than reddening the
+    # pipeline on a network blip. The checksum below still gates integrity.
     - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300
+      --retry 3 --retry-delay 5 --retry-all-errors
       --output "$ZIG_TARBALL" "https://ziglang.org/download/$ZIG_VERSION/$ZIG_TARBALL"
     - echo "$ZIG_SHA256  $ZIG_TARBALL" | sha256sum --check --strict
     - mkdir -p /opt/zig && tar --extract --xz --file "$ZIG_TARBALL" --directory /opt/zig --strip-components 1

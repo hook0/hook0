@@ -96,10 +96,14 @@ documentation.examples:
       # Where the vendor publishes a digest, it is fetched beside the archive and checked here.
       # Where the vendor publishes none, the digest is pinned in this job's variables and says so.
       # Every fetch is bounded in time as well: a mirror that accepts the connection and then stops
-      # sending would otherwise hold the job open for its whole timeout.
+      # sending would otherwise hold the job open for its whole timeout. `--retry` covers the other
+      # half of that failure mode: a stall that trips `--max-time` is a transient error, so the
+      # fetch is retried rather than reddening the pipeline on a network blip. The `verify` step
+      # that follows every `fetch` still gates integrity, so a retry cannot smuggle a bad archive.
       fetch() {
         curl --fail --silent --show-error --location \
-          --connect-timeout 30 --max-time 900 --output "$2" "$1"
+          --connect-timeout 30 --max-time 900 --retry 3 --retry-delay 5 --retry-all-errors \
+          --output "$2" "$1"
       }
       verify() {
         case ${#2} in
@@ -121,7 +125,7 @@ documentation.examples:
     # what to fetch and what it should hash to. Not the `.sha256` next to the archive: that path
     # answers 200 with an HTML page rather than a digest, which is a checksum check that would
     # have verified nothing had the guard below not refused it.
-    - GO_RELEASE="$(curl -fsSL --connect-timeout 30 --max-time 120 'https://go.dev/dl/?mode=json' | python3 -c 'import json,sys; m = sys.argv[1]; builds = (f for r in json.load(sys.stdin) if r.get("stable") and r["version"].startswith("go" + m + ".") for f in r["files"] if (f.get("os"), f.get("arch"), f.get("kind")) == ("linux", "amd64", "archive")); print(next((f["filename"] + " " + f["sha256"] for f in builds), ""))' "$(minor "$GO_VERSION")")"
+    - GO_RELEASE="$(curl -fsSL --connect-timeout 30 --max-time 120 --retry 3 --retry-delay 5 --retry-all-errors 'https://go.dev/dl/?mode=json' | python3 -c 'import json,sys; m = sys.argv[1]; builds = (f for r in json.load(sys.stdin) if r.get("stable") and r["version"].startswith("go" + m + ".") for f in r["files"] if (f.get("os"), f.get("arch"), f.get("kind")) == ("linux", "amd64", "archive")); print(next((f["filename"] + " " + f["sha256"] for f in builds), ""))' "$(minor "$GO_VERSION")")"
     - test -n "$GO_RELEASE" || { echo "go.dev lists no linux-amd64 archive for Go $(minor "$GO_VERSION"), which is the release \$GO_VERSION names"; exit 1; }
     - fetch "https://go.dev/dl/$(echo "$GO_RELEASE" | cut -d' ' -f1)" /tmp/go.tar.gz
     - verify /tmp/go.tar.gz "$(echo "$GO_RELEASE" | cut -d' ' -f2)"
@@ -131,7 +135,7 @@ documentation.examples:
     # channel directory names the archive and its digest at once, so one fetch resolves both.
     # Node goes on PATH rather than being symlinked: `npm` resolves its own library through the
     # directory it sits in, and the examples run `npm install`.
-    - NODE_SUMS="$(curl -fsSL --connect-timeout 30 --max-time 120 "https://nodejs.org/dist/latest-v$(minor "$NODE_VERSION").x/SHASUMS256.txt")"
+    - NODE_SUMS="$(curl -fsSL --connect-timeout 30 --max-time 120 --retry 3 --retry-delay 5 --retry-all-errors "https://nodejs.org/dist/latest-v$(minor "$NODE_VERSION").x/SHASUMS256.txt")"
     - NODE_ARCHIVE="$(echo "$NODE_SUMS" | awk '$2 ~ /-linux-x64\.tar\.xz$/ { print $2; exit }')"
     - test -n "$NODE_ARCHIVE" || { echo "nodejs.org lists no linux-x64 build of Node $(minor "$NODE_VERSION")"; exit 1; }
     - fetch "https://nodejs.org/dist/latest-v$(minor "$NODE_VERSION").x/${NODE_ARCHIVE}" /tmp/node.tar.xz
@@ -141,7 +145,7 @@ documentation.examples:
     # Ruby. Debian ships 3.3 where `clients.ruby.check` runs 3.4, and Ruby publishes no binary
     # build, so this is the one toolchain compiled here rather than unpacked. `index.txt` is the
     # canonical list and carries the URL and the digest of every release on one line.
-    - RUBY_LINE="$(curl -fsSL --connect-timeout 30 --max-time 120 https://cache.ruby-lang.org/pub/ruby/index.txt | awk -v p="^ruby-$(minor "$RUBY_VERSION")\\\\." '$1 ~ p && $2 ~ /\.tar\.xz$/ { line = $0 } END { print line }')"
+    - RUBY_LINE="$(curl -fsSL --connect-timeout 30 --max-time 120 --retry 3 --retry-delay 5 --retry-all-errors https://cache.ruby-lang.org/pub/ruby/index.txt | awk -v p="^ruby-$(minor "$RUBY_VERSION")\\\\." '$1 ~ p && $2 ~ /\.tar\.xz$/ { line = $0 } END { print line }')"
     - test -n "$RUBY_LINE" || { echo "ruby-lang.org lists no release of Ruby $(minor "$RUBY_VERSION"), which is the release \$RUBY_VERSION names"; exit 1; }
     - fetch "$(echo "$RUBY_LINE" | cut -f2)" /tmp/ruby.tar.xz
     - verify /tmp/ruby.tar.xz "$(echo "$RUBY_LINE" | cut -f4)"
@@ -195,7 +199,7 @@ documentation.examples:
     # `dotnet-install.sh` is what Microsoft offers instead, and this does not use it: it verifies
     # nothing it downloads, which would leave the one toolchain here that most needs a digest as the
     # only one without one, behind 63 KB of shell run as root.
-    - DOTNET_RELEASE="$(curl -fsSL --connect-timeout 30 --max-time 180 "https://builds.dotnet.microsoft.com/dotnet/release-metadata/${DOTNET_VERSION}/releases.json")"
+    - DOTNET_RELEASE="$(curl -fsSL --connect-timeout 30 --max-time 180 --retry 3 --retry-delay 5 --retry-all-errors "https://builds.dotnet.microsoft.com/dotnet/release-metadata/${DOTNET_VERSION}/releases.json")"
     - DOTNET_URL="$(echo "$DOTNET_RELEASE" | python3 -c 'import json,sys; r=json.load(sys.stdin)["releases"][0]["sdk"]; print(next(f["url"] for f in r["files"] if f["name"].endswith("linux-x64.tar.gz")))')"
     - DOTNET_HASH="$(echo "$DOTNET_RELEASE" | python3 -c 'import json,sys; r=json.load(sys.stdin)["releases"][0]["sdk"]; print(next(f["hash"] for f in r["files"] if f["name"].endswith("linux-x64.tar.gz")))')"
     - fetch "$DOTNET_URL" /tmp/dotnet-sdk.tar.gz
