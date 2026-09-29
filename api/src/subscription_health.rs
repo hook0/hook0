@@ -197,7 +197,8 @@ pub async fn periodically_probe_subscription_health(
             }
         }
 
-        sleep(period).await;
+        // Schedule probes from their start, so that consecutive windows stay adjacent whatever the probe duration
+        sleep(period.saturating_sub(start.elapsed())).await;
     }
 }
 
