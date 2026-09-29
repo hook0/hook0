@@ -20,7 +20,7 @@ prost-wkt-types = "0.7.2"
 pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 serde = "1.0.229"
 serde_json = "1.0.151"
-thiserror = "2.0.20"
+thiserror = "2.0.21"
 uuid = "1.26.1"
 
 [build-dependencies]
