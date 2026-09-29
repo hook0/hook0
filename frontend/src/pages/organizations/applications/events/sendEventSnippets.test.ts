@@ -146,11 +146,11 @@ describe('renderSdkSnippets', () => {
 
   it('renders the install command and the verify example too', () => {
     const rendered = renderSdkSnippets(
-      anSdk({ install: 'go get github.com/hook0/hook0-go/v2 # __HOOK0_APPLICATION_ID__' }),
+      anSdk({ install: 'go get github.com/hook0/hook0-go/v3 # __HOOK0_APPLICATION_ID__' }),
       theForm()
     );
 
-    expect(rendered.install).toBe(`go get github.com/hook0/hook0-go/v2 # ${APPLICATION_ID}`);
+    expect(rendered.install).toBe(`go get github.com/hook0/hook0-go/v3 # ${APPLICATION_ID}`);
     expect(rendered.verify).toBe(
       'verify(signature, body, headers, env.HOOK0_SUBSCRIPTION_SECRET);'
     );

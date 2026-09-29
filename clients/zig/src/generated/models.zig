@@ -146,6 +146,7 @@ pub const ProblemId = struct {
     pub const auth_email_already_verified: []const u8 = "AuthEmailAlreadyVerified";
     pub const auth_failed_refresh: []const u8 = "AuthFailedRefresh";
     pub const auth_email_expired: []const u8 = "AuthEmailExpired";
+    pub const too_many_organizations_per_user: []const u8 = "TooManyOrganizationsPerUser";
     pub const too_many_members_per_organization: []const u8 = "TooManyMembersPerOrganization";
     pub const too_many_applications_per_organization: []const u8 = "TooManyApplicationsPerOrganization";
     pub const too_many_events_today: []const u8 = "TooManyEventsToday";
@@ -195,6 +196,7 @@ pub const ProblemId = struct {
         auth_email_already_verified,
         auth_failed_refresh,
         auth_email_expired,
+        too_many_organizations_per_user,
         too_many_members_per_organization,
         too_many_applications_per_organization,
         too_many_events_today,
@@ -1603,6 +1605,8 @@ pub const QuotasResponseLimits = struct {
     global_event_types_per_application_limit: i32,
     /// carries `global_events_per_day_limit`.
     global_events_per_day_limit: i32,
+    /// carries `global_free_organizations_per_user_limit`.
+    global_free_organizations_per_user_limit: i32,
     /// carries `global_members_per_organization_limit`.
     global_members_per_organization_limit: i32,
     /// carries `global_subscriptions_per_application_limit`.
@@ -1637,6 +1641,12 @@ pub const QuotasResponseLimits = struct {
                 allocator,
                 fields,
                 "global_events_per_day_limit",
+                runtime.integer32,
+            ),
+            .global_free_organizations_per_user_limit = try runtime.read(
+                allocator,
+                fields,
+                "global_free_organizations_per_user_limit",
                 runtime.integer32,
             ),
             .global_members_per_organization_limit = try runtime.read(
@@ -1683,6 +1693,12 @@ pub const QuotasResponseLimits = struct {
             allocator,
             "global_events_per_day_limit",
             self.global_events_per_day_limit,
+        );
+        try runtime.put(
+            &out,
+            allocator,
+            "global_free_organizations_per_user_limit",
+            self.global_free_organizations_per_user_limit,
         );
         try runtime.put(
             &out,

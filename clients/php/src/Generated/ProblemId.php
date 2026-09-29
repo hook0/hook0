@@ -46,6 +46,7 @@ enum ProblemId: string
     case AuthEmailAlreadyVerified = 'AuthEmailAlreadyVerified';
     case AuthFailedRefresh = 'AuthFailedRefresh';
     case AuthEmailExpired = 'AuthEmailExpired';
+    case TooManyOrganizationsPerUser = 'TooManyOrganizationsPerUser';
     case TooManyMembersPerOrganization = 'TooManyMembersPerOrganization';
     case TooManyApplicationsPerOrganization = 'TooManyApplicationsPerOrganization';
     case TooManyEventsToday = 'TooManyEventsToday';

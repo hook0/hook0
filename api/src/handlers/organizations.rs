@@ -189,6 +189,14 @@ pub async fn create(
 
     let mut tx = state.db.begin().await?;
 
+    // Must be the first statement of this transaction: it locks the user row and counts
+    // the free organizations they belong to under that lock, so the insert below has to
+    // run in the same transaction for the count to stay true. See `Quotas::enforce_*`.
+    state
+        .quotas
+        .enforce_free_organizations_per_user(&mut tx, &token.user_id)
+        .await?;
+
     let organization_id = Uuid::new_v4();
     query!(
         "
@@ -834,6 +842,7 @@ mod quota_race_tests {
     use futures_util::future::join_all;
     use sqlx::PgPool;
     use sqlx::postgres::PgPoolOptions;
+    use uuid::Uuid;
 
     const CONCURRENT_CALLERS: usize = 8;
     /// The organization already holds the member who created it, so this leaves
@@ -872,6 +881,7 @@ mod quota_race_tests {
         state.quotas = Quotas::new(
             true,
             QuotaLimits {
+                global_free_organizations_per_user_limit: QuotaValue::MAX,
                 global_members_per_organization_limit: MEMBERS_ALLOWED,
                 global_applications_per_organization_limit: QuotaValue::MAX,
                 global_events_per_day_limit: QuotaValue::MAX,
@@ -932,6 +942,183 @@ mod quota_race_tests {
             accepted,
             MEMBERS_ALLOWED as usize - 1,
             "more callers were told their invitation went through than the plan allows"
+        );
+    }
+
+    /// The free-organizations-per-user limit already spends one slot on an organization
+    /// the user belongs to, so this leaves room for exactly one of the concurrent
+    /// creations below.
+    const ORGS_ALLOWED: QuotaValue = 2;
+
+    /// The free-organizations-per-user limit, held against creations arriving together.
+    #[sqlx::test]
+    async fn concurrent_creations_cannot_take_a_user_past_their_organization_limit(pool: PgPool) {
+        let options = (*pool.connect_options()).clone();
+        let pool = PgPoolOptions::new()
+            .max_connections(CONCURRENT_CALLERS as u32 + 2)
+            .connect_with(options)
+            .await
+            .expect("open a wider pool on the test database");
+
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        // One organization already exists to the user's name, so a single further
+        // creation is all the limit still permits.
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let mut state = test_state(pool.clone(), private_key.clone(), None).await;
+        state.quotas = Quotas::new(
+            true,
+            QuotaLimits {
+                global_free_organizations_per_user_limit: ORGS_ALLOWED,
+                global_members_per_organization_limit: QuotaValue::MAX,
+                global_applications_per_organization_limit: QuotaValue::MAX,
+                global_events_per_day_limit: QuotaValue::MAX,
+                global_days_of_events_retention_limit: QuotaValue::MAX,
+                global_subscriptions_per_application_limit: QuotaValue::MAX,
+                global_event_types_per_application_limit: QuotaValue::MAX,
+            },
+        );
+
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/organizations")
+                        .wrap(biscuit_auth)
+                        .route("", web::post().to(super::create)),
+                ),
+            ),
+        )
+        .await;
+
+        let app_ref = &app;
+        let calls = (0..CONCURRENT_CALLERS).map(|i| {
+            let request = test::TestRequest::post()
+                .uri("/api/v1/organizations")
+                .insert_header(("Authorization", format!("Bearer {user_token}")))
+                .set_json(serde_json::json!({"name": format!("race-{i}")}))
+                .to_request();
+            test::call_service(app_ref, request)
+        });
+
+        let accepted = join_all(calls)
+            .await
+            .iter()
+            .filter(|response| response.status().is_success())
+            .count();
+
+        let stored: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM iam.organization WHERE created_by = $1")
+                .bind(user)
+                .fetch_one(&pool)
+                .await
+                .expect("count the organizations the user ended up creating");
+
+        assert_eq!(
+            stored,
+            i64::from(ORGS_ALLOWED),
+            "the user is left having created more organizations than the limit allows"
+        );
+        assert_eq!(
+            accepted,
+            ORGS_ALLOWED as usize - 1,
+            "more callers were told their organization was created than the limit allows"
+        );
+    }
+
+    /// Give an organization a paid plan so it stops counting as a free organization.
+    async fn attach_plan(pool: &PgPool, org: Uuid) {
+        let price_id = sqlx::query_scalar::<_, Uuid>(
+            r#"
+                WITH new_plan AS (
+                    INSERT INTO pricing.plan (name, label)
+                    VALUES ($1, 'Paid')
+                    RETURNING plan__id
+                )
+                INSERT INTO pricing.price (plan__id, amount, time_basis)
+                SELECT plan__id, 10, 'month' FROM new_plan
+                RETURNING price__id
+            "#,
+        )
+        .bind(format!("plan-{org}"))
+        .fetch_one(pool)
+        .await
+        .expect("seed plan and price");
+
+        sqlx::query("UPDATE iam.organization SET price__id = $1 WHERE organization__id = $2")
+            .bind(price_id)
+            .bind(org)
+            .execute(pool)
+            .await
+            .expect("attach plan to org");
+    }
+
+    /// The cap counts the *free* organizations a user belongs to — not the ones they
+    /// created, and not the ones carrying a plan. So two free memberships already
+    /// exhaust a cap of two even when only one bears the user's `created_by` mark, and
+    /// putting a plan on one of them frees a slot again.
+    #[sqlx::test]
+    async fn organization_cap_counts_only_free_memberships(pool: PgPool) {
+        let quotas = Quotas::new(
+            true,
+            QuotaLimits {
+                global_free_organizations_per_user_limit: 2,
+                global_members_per_organization_limit: QuotaValue::MAX,
+                global_applications_per_organization_limit: QuotaValue::MAX,
+                global_events_per_day_limit: QuotaValue::MAX,
+                global_days_of_events_retention_limit: QuotaValue::MAX,
+                global_subscriptions_per_application_limit: QuotaValue::MAX,
+                global_event_types_per_application_limit: QuotaValue::MAX,
+            },
+        );
+
+        let user = seed_user(&pool).await;
+
+        // One organization the user created, and one they were merely added to (created
+        // by someone else): both free, both count.
+        let own = seed_org(&pool, user).await;
+        seed_membership(&pool, user, own, "editor").await;
+        let joined = seed_org(&pool, seed_user(&pool).await).await;
+        seed_membership(&pool, user, joined, "editor").await;
+
+        let mut tx = pool.begin().await.expect("open transaction");
+        let at_limit = quotas
+            .enforce_free_organizations_per_user(&mut tx, &user)
+            .await;
+        tx.rollback().await.ok();
+        assert!(
+            matches!(
+                at_limit,
+                Err(crate::problems::Hook0Problem::TooManyOrganizationsPerUser(
+                    _
+                ))
+            ),
+            "two free memberships must already exhaust a cap of two"
+        );
+
+        // Attach a plan to the joined organization: it drops out of the free count, so
+        // the user is back under the cap.
+        attach_plan(&pool, joined).await;
+
+        let mut tx = pool.begin().await.expect("open transaction");
+        let under_limit = quotas
+            .enforce_free_organizations_per_user(&mut tx, &user)
+            .await;
+        tx.rollback().await.ok();
+        assert!(
+            under_limit.is_ok(),
+            "a plan-bearing organization must not count against the free-organization cap"
         );
     }
 }

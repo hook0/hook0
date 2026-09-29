@@ -33,8 +33,11 @@ Metrics/ClassLength:
 Metrics/ModuleLength:
   Max: 250
 
+# A generated `from_json` reads one field per member the API declares, so its length tracks the
+# API's shape rather than a decision made here — the same reason the parameter and class counts
+# above are relaxed. The cap stays low enough to still catch a hand-written method that sprawls.
 Metrics/MethodLength:
-  Max: 30
+  Max: 40
 
 Metrics/AbcSize:
   Max: 40

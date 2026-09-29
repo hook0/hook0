@@ -165,6 +165,7 @@ module Hook0
       AUTH_EMAIL_ALREADY_VERIFIED = "AuthEmailAlreadyVerified"
       AUTH_FAILED_REFRESH = "AuthFailedRefresh"
       AUTH_EMAIL_EXPIRED = "AuthEmailExpired"
+      TOO_MANY_ORGANIZATIONS_PER_USER = "TooManyOrganizationsPerUser"
       TOO_MANY_MEMBERS_PER_ORGANIZATION = "TooManyMembersPerOrganization"
       TOO_MANY_APPLICATIONS_PER_ORGANIZATION = "TooManyApplicationsPerOrganization"
       TOO_MANY_EVENTS_TODAY = "TooManyEventsToday"
@@ -214,6 +215,7 @@ module Hook0
         AUTH_EMAIL_ALREADY_VERIFIED,
         AUTH_FAILED_REFRESH,
         AUTH_EMAIL_EXPIRED,
+        TOO_MANY_ORGANIZATIONS_PER_USER,
         TOO_MANY_MEMBERS_PER_ORGANIZATION,
         TOO_MANY_APPLICATIONS_PER_ORGANIZATION,
         TOO_MANY_EVENTS_TODAY,
@@ -2103,6 +2105,7 @@ module Hook0
                   :global_days_of_events_retention_limit,
                   :global_event_types_per_application_limit,
                   :global_events_per_day_limit,
+                  :global_free_organizations_per_user_limit,
                   :global_members_per_organization_limit,
                   :global_subscriptions_per_application_limit
 
@@ -2111,6 +2114,7 @@ module Hook0
       # @param global_days_of_events_retention_limit [Integer] carries `global_days_of_events_retention_limit`.
       # @param global_event_types_per_application_limit [Integer] carries `global_event_types_per_application_limit`.
       # @param global_events_per_day_limit [Integer] carries `global_events_per_day_limit`.
+      # @param global_free_organizations_per_user_limit [Integer] carries `global_free_organizations_per_user_limit`.
       # @param global_members_per_organization_limit [Integer] carries `global_members_per_organization_limit`.
       # @param global_subscriptions_per_application_limit [Integer] carries
       #   `global_subscriptions_per_application_limit`.
@@ -2119,6 +2123,7 @@ module Hook0
         global_days_of_events_retention_limit:,
         global_event_types_per_application_limit:,
         global_events_per_day_limit:,
+        global_free_organizations_per_user_limit:,
         global_members_per_organization_limit:,
         global_subscriptions_per_application_limit:
       )
@@ -2126,6 +2131,7 @@ module Hook0
         @global_days_of_events_retention_limit = global_days_of_events_retention_limit
         @global_event_types_per_application_limit = global_event_types_per_application_limit
         @global_events_per_day_limit = global_events_per_day_limit
+        @global_free_organizations_per_user_limit = global_free_organizations_per_user_limit
         @global_members_per_organization_limit = global_members_per_organization_limit
         @global_subscriptions_per_application_limit = global_subscriptions_per_application_limit
         freeze
@@ -2154,6 +2160,11 @@ module Hook0
             Runtime::INTEGER
           ),
           global_events_per_day_limit: Runtime.read(fields, "global_events_per_day_limit", Runtime::INTEGER),
+          global_free_organizations_per_user_limit: Runtime.read(
+            fields,
+            "global_free_organizations_per_user_limit",
+            Runtime::INTEGER
+          ),
           global_members_per_organization_limit: Runtime.read(
             fields,
             "global_members_per_organization_limit",
@@ -2176,6 +2187,7 @@ module Hook0
         out["global_days_of_events_retention_limit"] = @global_days_of_events_retention_limit
         out["global_event_types_per_application_limit"] = @global_event_types_per_application_limit
         out["global_events_per_day_limit"] = @global_events_per_day_limit
+        out["global_free_organizations_per_user_limit"] = @global_free_organizations_per_user_limit
         out["global_members_per_organization_limit"] = @global_members_per_organization_limit
         out["global_subscriptions_per_application_limit"] = @global_subscriptions_per_application_limit
         out

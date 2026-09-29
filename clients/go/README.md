@@ -11,7 +11,7 @@
 <br/>
 <br/>
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/hook0/hook0-go/v2.svg)](https://pkg.go.dev/github.com/hook0/hook0-go/v2)
+[![Go Reference](https://pkg.go.dev/badge/github.com/hook0/hook0-go/v3.svg)](https://pkg.go.dev/github.com/hook0/hook0-go/v3)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 </div>
@@ -45,11 +45,11 @@ nothing else in, and the CI job fails the day that stops being true.
 ### 1. Install
 
 ```bash
-go get github.com/hook0/hook0-go/v2
+go get github.com/hook0/hook0-go/v3
 ```
 
 The package is `hook0` while the module path ends in `go`, so import it under its own name if your
-tooling does not fill that in: `import hook0 "github.com/hook0/hook0-go/v2"`. Go 1.25.13 or later,
+tooling does not fill that in: `import hook0 "github.com/hook0/hook0-go/v3"`. Go 1.25.13 or later,
 which is the floor `go.mod` declares.
 
 ### 2. Send an event
@@ -61,7 +61,7 @@ import (
 	"context"
 	"log"
 
-	hook0 "github.com/hook0/hook0-go/v2"
+	hook0 "github.com/hook0/hook0-go/v3"
 )
 
 func main() {

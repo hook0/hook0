@@ -173,6 +173,9 @@ var ErrTooManyEventsToday error = problemSentinel(ProblemIdTooManyEventsToday)
 // ErrTooManyMembersPerOrganization is the `TooManyMembersPerOrganization` the API reports.
 var ErrTooManyMembersPerOrganization error = problemSentinel(ProblemIdTooManyMembersPerOrganization)
 
+// ErrTooManyOrganizationsPerUser is the `TooManyOrganizationsPerUser` the API reports.
+var ErrTooManyOrganizationsPerUser error = problemSentinel(ProblemIdTooManyOrganizationsPerUser)
+
 // ErrTooManySubscriptionsPerApplication is the `TooManySubscriptionsPerApplication` the API reports.
 var ErrTooManySubscriptionsPerApplication error = problemSentinel(ProblemIdTooManySubscriptionsPerApplication)
 

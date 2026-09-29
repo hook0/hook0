@@ -41,7 +41,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'JavaScript',
     packageName: 'hook0-client',
     registry: 'npm',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'npm install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -69,7 +69,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Python',
     packageName: 'hook0-client',
     registry: 'PyPI',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'pip install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -97,9 +97,9 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Java',
     packageName: 'com.hook0:hook0-client',
     registry: 'Maven Central',
-    version: '2.0.3',
+    version: '3.0.0',
     install:
-      '<dependency>\n  <groupId>com.hook0</groupId>\n  <artifactId>hook0-client</artifactId>\n  <version>2.0.3</version>\n</dependency>',
+      '<dependency>\n  <groupId>com.hook0</groupId>\n  <artifactId>hook0-client</artifactId>\n  <version>3.0.0</version>\n</dependency>',
     publishedToRegistry: true,
     send: {
       body: 'import com.hook0.client.Event;\nimport com.hook0.client.Hook0Client;\nimport java.util.LinkedHashMap;\nimport java.util.Map;\nimport java.util.UUID;\n\nclass SendAnEvent {\n  public static void main(String[] args) {\n    // `Hook0Client` is `AutoCloseable`, and one of them is meant to live as long as the application\n    // rather than as long as a send.\n    try (Hook0Client client =\n        new Hook0Client("__HOOK0_API_URL__", "__HOOK0_APPLICATION_ID__", "__HOOK0_TOKEN__")) {\n      // What Hook0 routes the event by. A map filled a line at a time, which puts no ceiling on how\n      // many labels an event carries and sends the last value given for a repeated key, the way the\n      // other ten clients do.\n      Map<String, String> labels = new LinkedHashMap<>();\n      labels.put("__HOOK0_LABEL_KEY__", "__HOOK0_LABEL_VALUE__");\n      UUID sent =\n          client.sendEvent(\n              Event.of("__HOOK0_EVENT_TYPE__", "__HOOK0_PAYLOAD__", "application/json", labels));\n      System.out.println("ingested as " + sent);\n    }\n  }\n}',
@@ -126,7 +126,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'C#',
     packageName: 'Hook0.Client',
     registry: 'NuGet',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'dotnet add package Hook0.Client',
     publishedToRegistry: true,
     send: {
@@ -154,7 +154,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'PHP',
     packageName: 'hook0/client',
     registry: 'Packagist',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'composer require hook0/client',
     publishedToRegistry: true,
     send: {
@@ -181,18 +181,18 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
   {
     target: 'go',
     displayName: 'Go',
-    packageName: 'github.com/hook0/hook0-go/v2',
+    packageName: 'github.com/hook0/hook0-go/v3',
     registry: 'Go modules',
-    version: '2.0.3',
-    install: 'go get github.com/hook0/hook0-go/v2',
+    version: '3.0.0',
+    install: 'go get github.com/hook0/hook0-go/v3',
     publishedToRegistry: true,
     send: {
-      body: 'package main\n\nimport (\n\t"context"\n\t"log"\n\n\thook0 "github.com/hook0/hook0-go/v2"\n)\n\nfunc main() {\n\tclient := hook0.NewClient(\n\t\t"__HOOK0_API_URL__",\n\t\t"__HOOK0_APPLICATION_ID__",\n\t\t"__HOOK0_TOKEN__",\n\t\thook0.DefaultOptions(),\n\t)\n\n\tlabels := map[string]string{}\n\tlabels["__HOOK0_LABEL_KEY__"] = "__HOOK0_LABEL_VALUE__"\n\n\teventId, err := client.SendEvent(context.Background(), hook0.Event{\n\t\tEventType:          "__HOOK0_EVENT_TYPE__",\n\t\tPayload:            "__HOOK0_PAYLOAD__",\n\t\tPayloadContentType: "application/json",\n\t\tLabels:             labels,\n\t})\n\tif err != nil {\n\t\tlog.Fatalf("event not sent: %v", err)\n\t}\n\n\tlog.Printf("ingested as %s", eventId)\n}',
+      body: 'package main\n\nimport (\n\t"context"\n\t"log"\n\n\thook0 "github.com/hook0/hook0-go/v3"\n)\n\nfunc main() {\n\tclient := hook0.NewClient(\n\t\t"__HOOK0_API_URL__",\n\t\t"__HOOK0_APPLICATION_ID__",\n\t\t"__HOOK0_TOKEN__",\n\t\thook0.DefaultOptions(),\n\t)\n\n\tlabels := map[string]string{}\n\tlabels["__HOOK0_LABEL_KEY__"] = "__HOOK0_LABEL_VALUE__"\n\n\teventId, err := client.SendEvent(context.Background(), hook0.Event{\n\t\tEventType:          "__HOOK0_EVENT_TYPE__",\n\t\tPayload:            "__HOOK0_PAYLOAD__",\n\t\tPayloadContentType: "application/json",\n\t\tLabels:             labels,\n\t})\n\tif err != nil {\n\t\tlog.Fatalf("event not sent: %v", err)\n\t}\n\n\tlog.Printf("ingested as %s", eventId)\n}',
       label: '\tlabels["__HOOK0_LABEL_KEY__"] = "__HOOK0_LABEL_VALUE__"',
       labelSeparator: '\n',
     },
     verify: {
-      body: 'import (\n\t"io"\n\t"net/http"\n\t"os"\n\t"time"\n\n\thook0 "github.com/hook0/hook0-go/v2"\n)\n\n// Verify against the *raw* body: one that has been parsed and serialised again no longer hashes to\n// what was signed, which is why the bytes are read here rather than left to a decoder. The tolerance\n// is bilateral, so a delivery dated too far ahead is refused exactly like one dated too far behind.\nfunc handleWebhook(w http.ResponseWriter, r *http.Request) {\n\tbody, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1024*1024))\n\tif err != nil {\n\t\tw.WriteHeader(http.StatusBadRequest)\n\t\treturn\n\t}\n\n\t// The secret of the subscription being verified, which the dashboard links to rather than\n\t// prints. A variable nobody exported and one exported empty are the same defect and are\n\t// answered together: an empty secret hashes every genuine delivery to the wrong code, so the\n\t// handler would answer every one of them the way it answers a forgery and nothing would say\n\t// why. Told apart from a forgery here instead.\n\tsecret := os.Getenv("HOOK0_SUBSCRIPTION_SECRET")\n\tif secret == "" {\n\t\thttp.Error(w, "HOOK0_SUBSCRIPTION_SECRET is not set", http.StatusInternalServerError)\n\t\treturn\n\t}\n\n\terr = hook0.VerifyWebhookSignature(\n\t\tr.Header.Get("X-Hook0-Signature"),\n\t\tbody,\n\t\tr.Header,\n\t\tsecret,\n\t\t5*time.Minute,\n\t)\n\tif err != nil {\n\t\tw.WriteHeader(http.StatusBadRequest)\n\t\treturn\n\t}\n\n\t// act on the delivery\n\tw.WriteHeader(http.StatusOK)\n}',
+      body: 'import (\n\t"io"\n\t"net/http"\n\t"os"\n\t"time"\n\n\thook0 "github.com/hook0/hook0-go/v3"\n)\n\n// Verify against the *raw* body: one that has been parsed and serialised again no longer hashes to\n// what was signed, which is why the bytes are read here rather than left to a decoder. The tolerance\n// is bilateral, so a delivery dated too far ahead is refused exactly like one dated too far behind.\nfunc handleWebhook(w http.ResponseWriter, r *http.Request) {\n\tbody, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1024*1024))\n\tif err != nil {\n\t\tw.WriteHeader(http.StatusBadRequest)\n\t\treturn\n\t}\n\n\t// The secret of the subscription being verified, which the dashboard links to rather than\n\t// prints. A variable nobody exported and one exported empty are the same defect and are\n\t// answered together: an empty secret hashes every genuine delivery to the wrong code, so the\n\t// handler would answer every one of them the way it answers a forgery and nothing would say\n\t// why. Told apart from a forgery here instead.\n\tsecret := os.Getenv("HOOK0_SUBSCRIPTION_SECRET")\n\tif secret == "" {\n\t\thttp.Error(w, "HOOK0_SUBSCRIPTION_SECRET is not set", http.StatusInternalServerError)\n\t\treturn\n\t}\n\n\terr = hook0.VerifyWebhookSignature(\n\t\tr.Header.Get("X-Hook0-Signature"),\n\t\tbody,\n\t\tr.Header,\n\t\tsecret,\n\t\t5*time.Minute,\n\t)\n\tif err != nil {\n\t\tw.WriteHeader(http.StatusBadRequest)\n\t\treturn\n\t}\n\n\t// act on the delivery\n\tw.WriteHeader(http.StatusOK)\n}',
     },
     stringLiteral: {
       open: '"',
@@ -211,7 +211,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Rust',
     packageName: 'hook0-client',
     registry: 'crates.io',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'cargo add hook0-client\ncargo add tokio --features macros,rt-multi-thread',
     publishedToRegistry: true,
     send: {
@@ -240,9 +240,9 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Kotlin',
     packageName: 'com.hook0:hook0-client-kotlin',
     registry: 'Maven Central',
-    version: '2.0.3',
+    version: '3.0.0',
     install:
-      '<dependency>\n  <groupId>com.hook0</groupId>\n  <artifactId>hook0-client-kotlin</artifactId>\n  <version>2.0.3</version>\n</dependency>',
+      '<dependency>\n  <groupId>com.hook0</groupId>\n  <artifactId>hook0-client-kotlin</artifactId>\n  <version>3.0.0</version>\n</dependency>',
     publishedToRegistry: true,
     send: {
       body: 'import com.hook0.kotlin.Event\nimport com.hook0.kotlin.Hook0Client\nimport java.util.UUID\n\nfun main() {\n  // `Hook0Client` is `AutoCloseable`, and one of them is meant to live as long as the application\n  // rather than as long as a send.\n  Hook0Client("__HOOK0_API_URL__", "__HOOK0_APPLICATION_ID__", "__HOOK0_TOKEN__").use { client ->\n    val sent: UUID = client.sendEvent(\n      Event(\n        eventType = "__HOOK0_EVENT_TYPE__",\n        payload = "__HOOK0_PAYLOAD__",\n        payloadContentType = "application/json",\n        labels = mapOf(\n          "__HOOK0_LABEL_KEY__" to "__HOOK0_LABEL_VALUE__"\n        )\n      )\n    )\n    println("ingested as $sent")\n  }\n}',
@@ -270,7 +270,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Lua',
     packageName: 'hook0-client',
     registry: 'LuaRocks',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'luarocks install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -298,7 +298,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Ruby',
     packageName: 'hook0-client',
     registry: 'RubyGems',
-    version: '2.0.3',
+    version: '3.0.0',
     install: 'gem install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -327,9 +327,9 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Zig',
     packageName: 'hook0_client',
     registry: 'a tagged archive',
-    version: '2.0.3',
+    version: '3.0.0',
     install:
-      'zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v2.0.3.tar.gz\nconst hook0 = b.dependency("hook0", .{ .target = target, .optimize = optimize });\nexe.root_module.addImport("hook0", hook0.module("hook0"));',
+      'zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v3.0.0.tar.gz\nconst hook0 = b.dependency("hook0", .{ .target = target, .optimize = optimize });\nexe.root_module.addImport("hook0", hook0.module("hook0"));',
     publishedToRegistry: true,
     send: {
       body: 'const std = @import("std");\nconst hook0 = @import("hook0");\n\npub fn send(io: std.Io, allocator: std.mem.Allocator) !void {\n    var client: hook0.Client = .init(\n        io,\n        "__HOOK0_API_URL__",\n        "__HOOK0_APPLICATION_ID__",\n        "__HOOK0_TOKEN__",\n        .{},\n    );\n\n    // The answer owns the arena the identifier points into, so one `deinit` frees the identifier,\n    // the body that was sent and everything read back.\n    const sent = try client.sendEvent(allocator, .{\n        .event_type = "__HOOK0_EVENT_TYPE__",\n        .payload = "__HOOK0_PAYLOAD__",\n        .payload_content_type = "application/json",\n        .labels = &.{\n            .{ .key = "__HOOK0_LABEL_KEY__", .value = "__HOOK0_LABEL_VALUE__" }\n        },\n    });\n    defer sent.deinit();\n\n    std.log.info("ingested as {s}", .{sent.value});\n}',

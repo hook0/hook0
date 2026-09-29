@@ -148,6 +148,9 @@ module Hook0
     # The API reported `TooManyMembersPerOrganization`.
     class TooManyMembersPerOrganizationError < ProblemError; end
 
+    # The API reported `TooManyOrganizationsPerUser`.
+    class TooManyOrganizationsPerUserError < ProblemError; end
+
     # The API reported `TooManySubscriptionsPerApplication`.
     class TooManySubscriptionsPerApplicationError < ProblemError; end
 
@@ -204,6 +207,7 @@ module Hook0
       ProblemId::TOO_MANY_EVENT_TYPES_PER_APPLICATION => TooManyEventTypesPerApplicationError,
       ProblemId::TOO_MANY_EVENTS_TODAY => TooManyEventsTodayError,
       ProblemId::TOO_MANY_MEMBERS_PER_ORGANIZATION => TooManyMembersPerOrganizationError,
+      ProblemId::TOO_MANY_ORGANIZATIONS_PER_USER => TooManyOrganizationsPerUserError,
       ProblemId::TOO_MANY_SUBSCRIPTIONS_PER_APPLICATION => TooManySubscriptionsPerApplicationError,
       ProblemId::UNAUTHORIZED_WORKERS => UnauthorizedWorkersError,
       ProblemId::USER_ALREADY_EXIST => UserAlreadyExistError,

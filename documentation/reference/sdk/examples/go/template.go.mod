@@ -6,6 +6,6 @@ module hook0.example/documentation
 
 go 1.25.13
 
-require github.com/hook0/hook0-go/v2 v2.0.0
+require github.com/hook0/hook0-go/v3 v3.0.0
 
-replace github.com/hook0/hook0-go/v2 => {{client}}
+replace github.com/hook0/hook0-go/v3 => {{client}}

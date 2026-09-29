@@ -312,6 +312,13 @@ public sealed class TooManyEventsTodayException(int status, Problem? problem, st
 public sealed class TooManyMembersPerOrganizationException(int status, Problem? problem, string detail)
     : ProblemException(status, problem, detail);
 
+/// <summary>The API reported <c>TooManyOrganizationsPerUser</c>.</summary>
+/// <param name="status">What the API answered under.</param>
+/// <param name="problem">The document it answered, when this client could read one.</param>
+/// <param name="detail">What to say about the failure.</param>
+public sealed class TooManyOrganizationsPerUserException(int status, Problem? problem, string detail)
+    : ProblemException(status, problem, detail);
+
 /// <summary>The API reported <c>TooManySubscriptionsPerApplication</c>.</summary>
 /// <param name="status">What the API answered under.</param>
 /// <param name="problem">The document it answered, when this client could read one.</param>
@@ -461,6 +468,8 @@ public static class Problems
                 new TooManyEventsTodayException(status, problem, Runtime.Reported(status, problem)),
             ProblemId.TooManyMembersPerOrganization =>
                 new TooManyMembersPerOrganizationException(status, problem, Runtime.Reported(status, problem)),
+            ProblemId.TooManyOrganizationsPerUser =>
+                new TooManyOrganizationsPerUserException(status, problem, Runtime.Reported(status, problem)),
             ProblemId.TooManySubscriptionsPerApplication =>
                 new TooManySubscriptionsPerApplicationException(status, problem, Runtime.Reported(status, problem)),
             ProblemId.UnauthorizedWorkers =>

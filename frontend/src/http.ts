@@ -127,7 +127,14 @@ export default {
 /** Branded string type for UUID identifiers. */
 export type UUID = string;
 
-export type Problem = definitions['Problem'];
+/** Ids the frontend makes up for failures that never came back from the API as a problem. */
+type ClientProblemId = 'TimeoutExceeded' | 'unknown' | 'InvalidToken';
+
+export type Problem = Omit<definitions['Problem'], 'id' | 'type'> & {
+  id: definitions['Problem']['id'] | ClientProblemId;
+  // Only the API has a documentation page to point at
+  type?: definitions['Problem']['type'];
+};
 
 export function handleError(err: AxiosError<AxiosResponse<Problem>>): Problem {
   // convert timeouts axios's error to Problem

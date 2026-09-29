@@ -302,6 +302,12 @@
       "reason": "the link has run out of time, and time does not run backwards between two attempts"
     },
     {
+      "problem": "TooManyOrganizationsPerUser",
+      "status": 429,
+      "retryable": false,
+      "reason": "an account-level quota that clears only when support lifts it, never inside the seconds a send is given"
+    },
+    {
       "problem": "TooManyMembersPerOrganization",
       "status": 429,
       "retryable": false,

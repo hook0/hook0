@@ -52,6 +52,7 @@ public sealed class ProblemException extends Hook0Exception
         TooManyEventTypesPerApplicationException,
         TooManyEventsTodayException,
         TooManyMembersPerOrganizationException,
+        TooManyOrganizationsPerUserException,
         TooManySubscriptionsPerApplicationException,
         UnauthorizedWorkersException,
         UserAlreadyExistException,

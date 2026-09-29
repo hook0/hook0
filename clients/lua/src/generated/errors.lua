@@ -158,6 +158,9 @@ Generated.TooManyEventsTodayError = Errors.kind("TooManyEventsTodayError", Gener
 --- The API reported `TooManyMembersPerOrganization`.
 Generated.TooManyMembersPerOrganizationError = Errors.kind("TooManyMembersPerOrganizationError", Generated.ProblemError)
 
+--- The API reported `TooManyOrganizationsPerUser`.
+Generated.TooManyOrganizationsPerUserError = Errors.kind("TooManyOrganizationsPerUserError", Generated.ProblemError)
+
 --- The API reported `TooManySubscriptionsPerApplication`.
 Generated.TooManySubscriptionsPerApplicationError = Errors.kind(
   "TooManySubscriptionsPerApplicationError",
@@ -217,6 +220,7 @@ Generated.PROBLEMS = {
   [Models.ProblemId.TOO_MANY_EVENT_TYPES_PER_APPLICATION] = Generated.TooManyEventTypesPerApplicationError,
   [Models.ProblemId.TOO_MANY_EVENTS_TODAY] = Generated.TooManyEventsTodayError,
   [Models.ProblemId.TOO_MANY_MEMBERS_PER_ORGANIZATION] = Generated.TooManyMembersPerOrganizationError,
+  [Models.ProblemId.TOO_MANY_ORGANIZATIONS_PER_USER] = Generated.TooManyOrganizationsPerUserError,
   [Models.ProblemId.TOO_MANY_SUBSCRIPTIONS_PER_APPLICATION] = Generated.TooManySubscriptionsPerApplicationError,
   [Models.ProblemId.UNAUTHORIZED_WORKERS] = Generated.UnauthorizedWorkersError,
   [Models.ProblemId.USER_ALREADY_EXIST] = Generated.UserAlreadyExistError,

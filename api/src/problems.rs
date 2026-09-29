@@ -92,6 +92,7 @@ pub enum Hook0Problem {
     AuthEmailExpired,
 
     // Quota errors
+    TooManyOrganizationsPerUser(QuotaValue),
     TooManyMembersPerOrganization(QuotaValue),
     TooManyApplicationsPerOrganization(QuotaValue),
     TooManyEventsToday(QuotaValue),
@@ -237,6 +238,7 @@ impl Hook0Problem {
             Self::AuthEmailExpired => "AuthEmailExpired",
 
             // Quota errors
+            Self::TooManyOrganizationsPerUser(_) => "TooManyOrganizationsPerUser",
             Self::TooManyMembersPerOrganization(_) => "TooManyMembersPerOrganization",
             Self::TooManyApplicationsPerOrganization(_) => "TooManyApplicationsPerOrganization",
             Self::TooManyEventsToday(_) => "TooManyEventsToday",
@@ -679,6 +681,16 @@ impl From<Hook0Problem> for ProblemDetails {
             },
 
             // Quota errors
+            Hook0Problem::TooManyOrganizationsPerUser(limit) => {
+               let detail = format!("Your account already belongs to {limit} free organizations, the most it can have to create another. Please contact support if you need more.");
+                ProblemDetails {
+                    id: Hook0Problem::TooManyOrganizationsPerUser(limit),
+                    title: "Exceeded number of free organizations your account can belong to",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
             Hook0Problem::TooManyMembersPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} users. You might want to upgrade to a better plan.");
                 ProblemDetails {
@@ -920,6 +932,9 @@ mod tests {
                 }
                 Hook0Problem::EventInvalidJsonPayload(_) => {
                     Hook0Problem::EventInvalidJsonPayload(text)
+                }
+                Hook0Problem::TooManyOrganizationsPerUser(_) => {
+                    Hook0Problem::TooManyOrganizationsPerUser(quota)
                 }
                 Hook0Problem::TooManyMembersPerOrganization(_) => {
                     Hook0Problem::TooManyMembersPerOrganization(quota)

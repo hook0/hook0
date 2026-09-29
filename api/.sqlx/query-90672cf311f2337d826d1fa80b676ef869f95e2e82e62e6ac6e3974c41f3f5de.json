@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT user__id\n                FROM iam.user\n                WHERE user__id = $1\n                FOR NO KEY UPDATE\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user__id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "user__id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "90672cf311f2337d826d1fa80b676ef869f95e2e82e62e6ac6e3974c41f3f5de"
+}

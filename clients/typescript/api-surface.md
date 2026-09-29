@@ -513,7 +513,7 @@ status: number
 ## type generated.ProblemId
 
 ```ts
-"OrganizationNameMissing" | "UserAlreadyExist" | "RegistrationDisabled" | "PasswordTooShort" | "PasswordTooLong" | "PasswordSimilarToEmail" | "PasswordSimilarToName" | "PasswordTooCommon" | "PasswordNotDiverseEnough" | "OrganizationIsNotEmpty" | "InvitedUserDoesNotExist" | "InvitedUserAlreadyInOrganization" | "ApplicationNameMissing" | "InvalidRole" | "EventTypeAlreadyExist" | "EventTypeDoesNotExist" | "UnauthorizedWorkers" | "EventAlreadyIngested" | "EventInvalidPayloadContentType" | "EventInvalidBase64Payload" | "EventInvalidJsonPayload" | "LabelsAmbiguity" | "InvalidDateRange" | "AuthNoAuthorizationHeader" | "AuthInvalidAuthorizationHeader" | "AuthApplicationSecretLookupError" | "AuthInvalidApplicationSecret" | "AuthBiscuitLookupError" | "AuthInvalidBiscuit" | "AuthFailedLogin" | "AuthEmailNotVerified" | "AuthEmailAlreadyVerified" | "AuthFailedRefresh" | "AuthEmailExpired" | "TooManyMembersPerOrganization" | "TooManyApplicationsPerOrganization" | "TooManyEventsToday" | "TooManySubscriptionsPerApplication" | "TooManyEventTypesPerApplication" | "JsonPayload" | "Validation" | "NotFound" | "InternalServerError" | "Forbidden" | "RateLimited" | "ServiceUnavailable"
+"OrganizationNameMissing" | "UserAlreadyExist" | "RegistrationDisabled" | "PasswordTooShort" | "PasswordTooLong" | "PasswordSimilarToEmail" | "PasswordSimilarToName" | "PasswordTooCommon" | "PasswordNotDiverseEnough" | "OrganizationIsNotEmpty" | "InvitedUserDoesNotExist" | "InvitedUserAlreadyInOrganization" | "ApplicationNameMissing" | "InvalidRole" | "EventTypeAlreadyExist" | "EventTypeDoesNotExist" | "UnauthorizedWorkers" | "EventAlreadyIngested" | "EventInvalidPayloadContentType" | "EventInvalidBase64Payload" | "EventInvalidJsonPayload" | "LabelsAmbiguity" | "InvalidDateRange" | "AuthNoAuthorizationHeader" | "AuthInvalidAuthorizationHeader" | "AuthApplicationSecretLookupError" | "AuthInvalidApplicationSecret" | "AuthBiscuitLookupError" | "AuthInvalidBiscuit" | "AuthFailedLogin" | "AuthEmailNotVerified" | "AuthEmailAlreadyVerified" | "AuthFailedRefresh" | "AuthEmailExpired" | "TooManyOrganizationsPerUser" | "TooManyMembersPerOrganization" | "TooManyApplicationsPerOrganization" | "TooManyEventsToday" | "TooManySubscriptionsPerApplication" | "TooManyEventTypesPerApplication" | "JsonPayload" | "Validation" | "NotFound" | "InternalServerError" | "Forbidden" | "RateLimited" | "ServiceUnavailable"
 ```
 
 ## class generated.QuotasApi
@@ -537,6 +537,7 @@ global_applications_per_organization_limit: number
 global_days_of_events_retention_limit: number
 global_event_types_per_application_limit: number
 global_events_per_day_limit: number
+global_free_organizations_per_user_limit: number
 global_members_per_organization_limit: number
 global_subscriptions_per_application_limit: number
 ```
