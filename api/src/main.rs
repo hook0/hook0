@@ -759,7 +759,7 @@ struct Config {
     #[clap(long, env, value_parser = parse_ratio, default_value = "0.3")]
     subscription_health_max_failure_ratio: f64,
 
-    /// [Subscription Health] Duration a subscription must have been recovering (and healthy at each probe) before going back to healthy, regardless of traffic (at least 1s)
+    /// [Subscription Health] Duration a subscription must have been recovering (without any probe finding it unhealthy) before going back to healthy, regardless of traffic (at least 1s)
     #[clap(long, env, value_parser = parse_duration_of_at_least_1s, default_value = "1h")]
     subscription_health_recovering_max_duration: Duration,
 

@@ -129,7 +129,7 @@ stateDiagram-v2
     recovering --> healthy : healthy for long enough
 ```
 
-A recovering subscription goes back to healthy after 1 hour (`SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION`), or earlier, after 10 minutes (`SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION`), if at least 10 attempts (`SUBSCRIPTION_HEALTH_RECOVERING_MIN_ATTEMPTS`) completed since it started recovering. It has to be healthy at every check in the meantime.
+A recovering subscription goes back to healthy after 1 hour (`SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION`), or earlier, after 10 minutes (`SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION`), if at least 10 attempts (`SUBSCRIPTION_HEALTH_RECOVERING_MIN_ATTEMPTS`) completed since it started recovering. It goes back to degraded if any check in the meantime finds it unhealthy.
 
 ### Effects on deliveries
 
