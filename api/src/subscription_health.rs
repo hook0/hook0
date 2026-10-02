@@ -218,8 +218,8 @@ pub async fn probe_subscription_health(
 
             let mut tx = db.begin().await?;
             query(AssertSqlSafe(format!(
-                "SET LOCAL statement_timeout = '{}s'",
-                timeout.as_secs()
+                "SET LOCAL statement_timeout = '{}ms'",
+                timeout.as_millis()
             )))
             .execute(&mut *tx)
             .await?;
