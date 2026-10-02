@@ -169,12 +169,12 @@ fn strip_google_fonts(root: &Path) -> R<()> {
             return;
         }
         let path = root.join(rel);
-        let Ok(s) = fs::read_to_string(&path) else { return };
+        let Ok(s) = fs::read_to_string(&path) else {
+            return;
+        };
         let cleaned = strip_google_fonts_in_html(&s);
-        if cleaned != s {
-            if fs::write(&path, cleaned).is_ok() {
-                stripped += 1;
-            }
+        if cleaned != s && fs::write(&path, cleaned).is_ok() {
+            stripped += 1;
         }
     })?;
     if stripped > 0 {
@@ -192,30 +192,31 @@ fn strip_google_fonts_in_html(html: &str) -> String {
     while i < html.len() {
         let rest_bytes = &html.as_bytes()[i..];
         // (a) @import …; → drop whole stmt if it points at Google Fonts
-        if rest_bytes.starts_with(b"@import") {
-            if let Some(semi_rel) = rest_bytes.iter().position(|&b| b == b';') {
-                let stmt = &html[i..=i + semi_rel];
-                if stmt.contains("fonts.googleapis.com") || stmt.contains("fonts.gstatic.com") {
-                    i += semi_rel + 1;
-                    continue;
-                }
+        if rest_bytes.starts_with(b"@import")
+            && let Some(semi_rel) = rest_bytes.iter().position(|&b| b == b';')
+        {
+            let stmt = &html[i..=i + semi_rel];
+            if stmt.contains("fonts.googleapis.com") || stmt.contains("fonts.gstatic.com") {
+                i += semi_rel + 1;
+                continue;
             }
         }
         // (b) <link …> → drop tag (case-insensitive on `link`)
         if rest_bytes.len() >= 5
             && rest_bytes[0] == b'<'
             && rest_bytes[1..5].eq_ignore_ascii_case(b"link")
+            && let Some(gt_rel) = rest_bytes.iter().position(|&b| b == b'>')
         {
-            if let Some(gt_rel) = rest_bytes.iter().position(|&b| b == b'>') {
-                let tag = &html[i..=i + gt_rel];
-                if tag.contains("fonts.googleapis.com") || tag.contains("fonts.gstatic.com") {
-                    i += gt_rel + 1;
-                    continue;
-                }
+            let tag = &html[i..=i + gt_rel];
+            if tag.contains("fonts.googleapis.com") || tag.contains("fonts.gstatic.com") {
+                i += gt_rel + 1;
+                continue;
             }
         }
         // Otherwise copy the current UTF-8 char as-is.
-        let Some(ch) = html[i..].chars().next() else { break };
+        let Some(ch) = html[i..].chars().next() else {
+            break;
+        };
         out.push(ch);
         i += ch.len_utf8();
     }
@@ -405,10 +406,10 @@ fn has_sitemap_exclude(html: &str) -> bool {
         if !line.starts_with("meta ") && !line.starts_with("meta\t") {
             continue;
         }
-        if line.contains("name=\"sitemap\"") || line.contains("name=sitemap") {
-            if line.contains("exclude") {
-                return true;
-            }
+        if (line.contains("name=\"sitemap\"") || line.contains("name=sitemap"))
+            && line.contains("exclude")
+        {
+            return true;
         }
     }
     false
@@ -566,10 +567,10 @@ fn dedupe_origin_files(static_root: &Path, locale_dist: &Path) -> R<()> {
     walk_files(static_root, &mut |rel| {
         let target = locale_dist.join(rel);
         let _ = fs::remove_file(&target);
-        if let Some(parent) = rel.parent() {
-            if parent.as_os_str().len() > 0 {
-                dirs.push(locale_dist.join(parent));
-            }
+        if let Some(parent) = rel.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            dirs.push(locale_dist.join(parent));
         }
     })?;
     // Try to remove now-empty directories, deepest first.
@@ -590,10 +591,10 @@ fn walk_files_inner(base: &Path, dir: &Path, on_file: &mut dyn FnMut(&Path)) -> 
         let p = e.map_err(|e| e.to_string())?.path();
         if p.is_dir() {
             walk_files_inner(base, &p, on_file)?;
-        } else if p.is_file() {
-            if let Ok(rel) = p.strip_prefix(base) {
-                on_file(rel);
-            }
+        } else if p.is_file()
+            && let Ok(rel) = p.strip_prefix(base)
+        {
+            on_file(rel);
         }
     }
     Ok(())
@@ -603,10 +604,11 @@ fn discover_templates(src: &Path) -> R<Vec<String>> {
     let mut t: Vec<String> = Vec::new();
     for e in fs::read_dir(src).map_err(|e| e.to_string())? {
         let p: PathBuf = e.map_err(|e| e.to_string())?.path();
-        if p.is_file() && p.extension().and_then(|x| x.to_str()) == Some("ejs") {
-            if let Some(stem) = p.file_stem().and_then(|x| x.to_str()) {
-                t.push(stem.to_string());
-            }
+        if p.is_file()
+            && p.extension().and_then(|x| x.to_str()) == Some("ejs")
+            && let Some(stem) = p.file_stem().and_then(|x| x.to_str())
+        {
+            t.push(stem.to_string());
         }
     }
     t.sort();
@@ -672,7 +674,10 @@ fn parcel_build(
         .map_err(|e| format!("parcel ({lang}): {e}"))?;
 
     let status = loop {
-        match child.try_wait().map_err(|e| format!("parcel ({lang}): {e}"))? {
+        match child
+            .try_wait()
+            .map_err(|e| format!("parcel ({lang}): {e}"))?
+        {
             Some(status) => break status,
             None if started.elapsed() >= deadline => {
                 let _ = child.kill();

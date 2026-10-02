@@ -1,6 +1,5 @@
 use actix_web::rt::time::sleep;
 use anyhow::anyhow;
-use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use clap::crate_version;
 use hook0_client::{Hook0Client, Hook0ClientError};
@@ -68,12 +67,7 @@ pub fn initialize(
     }
 }
 
-#[async_recursion]
-pub async fn upsert_event_types(
-    hook0_client: &Hook0Client,
-    event_types: &[&str],
-    retries: u16,
-) -> () {
+pub async fn upsert_event_types(hook0_client: &Hook0Client, event_types: &[&str], retries: u16) {
     fn log_error(e: anyhow::Error) {
         error!("Could not upsert event types, Hook0 client might not work: {e}")
     }
@@ -98,7 +92,7 @@ pub async fn upsert_event_types(
                         PERIOD_BETWEEN_EVENT_TYPES_UPSERTS_TRIES.as_secs()
                     );
                     sleep(PERIOD_BETWEEN_EVENT_TYPES_UPSERTS_TRIES).await;
-                    upsert_event_types(hook0_client, event_types, retries - 1).await
+                    Box::pin(upsert_event_types(hook0_client, event_types, retries - 1)).await
                 } else {
                     log_error(anyhow!("Too many retries"));
                 }

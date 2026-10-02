@@ -25,7 +25,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{exit, Command};
+use std::process::{Command, exit};
 
 const SITE_URL_DEFAULT: &str = "https://www.hook0.com";
 
@@ -115,13 +115,14 @@ fn main() {
             };
 
             // R2 (universal): canonical, if present, must be a real https URL.
-            if let Some(c) = extract_canonical(&html) {
-                if !c.starts_with("https://") && !c.starts_with("http://") {
-                    failures.push(format!(
-                        "R2: {} canonical = {c} (not a real URL — Parcel bundle hash?)",
-                        p.display()
-                    ));
-                }
+            if let Some(c) = extract_canonical(&html)
+                && !c.starts_with("https://")
+                && !c.starts_with("http://")
+            {
+                failures.push(format!(
+                    "R2: {} canonical = {c} (not a real URL — Parcel bundle hash?)",
+                    p.display()
+                ));
             }
 
             // R3 (universal): a FAQPage JSON-LD must declare an inLanguage
@@ -164,8 +165,10 @@ fn main() {
                     "BLEED (converted): {} canonical = {c} (expected {expected})",
                     p.display()
                 )),
-                None => failures
-                    .push(format!("MISSING: {} has no <link rel=canonical>", p.display())),
+                None => failures.push(format!(
+                    "MISSING: {} has no <link rel=canonical>",
+                    p.display()
+                )),
             }
             match extract_html_lang(&html) {
                 Some(l) if &l == lang => {}
@@ -319,22 +322,16 @@ fn main() {
                     if other_lang == lang {
                         continue;
                     }
-                    let needle = format!(
-                        "hreflang=\"{other_lang}\" href=\"{other_url}\""
-                    );
+                    let needle = format!("hreflang=\"{other_lang}\" href=\"{other_url}\"");
                     if !sitemap.contains(&needle) {
                         failures.push(format!(
                             "SITEMAP: hreflang reciprocity broken for {en_slug}: missing {other_lang}→{other_url}"
                         ));
                     }
                 }
-                let x_default = format!(
-                    "hreflang=\"x-default\" href=\"{site_url}/\""
-                );
+                let x_default = format!("hreflang=\"x-default\" href=\"{site_url}/\"");
                 if !sitemap.contains(&x_default) {
-                    failures.push(format!(
-                        "SITEMAP: x-default missing (page {en_slug})"
-                    ));
+                    failures.push(format!("SITEMAP: x-default missing (page {en_slug})"));
                 }
             }
         }
@@ -393,19 +390,13 @@ fn extract_faqpage_block(html: &str) -> Option<String> {
     let mut cursor = 0;
     while let Some(pos) = lower[cursor..].find("<script") {
         let abs = cursor + pos;
-        let tag_end = match html[abs..].find('>') {
-            Some(p) => abs + p + 1,
-            None => return None,
-        };
+        let tag_end = abs + html[abs..].find('>')? + 1;
         let tag = &lower[abs..tag_end];
         if !tag.contains("application/ld+json") {
             cursor = tag_end;
             continue;
         }
-        let close = match lower[tag_end..].find("</script>") {
-            Some(p) => tag_end + p,
-            None => return None,
-        };
+        let close = tag_end + lower[tag_end..].find("</script>")?;
         let body = &html[tag_end..close];
         if body.contains("\"@type\":\"FAQPage\"") || body.contains("\"@type\": \"FAQPage\"") {
             return Some(body.to_string());
@@ -514,7 +505,9 @@ fn expected_url(site: &str, dir: &str, stem: &str) -> String {
 // forms: rel="canonical" / rel=canonical.
 fn extract_canonical(html: &str) -> Option<String> {
     let lower = html.to_lowercase();
-    let i = lower.find("rel=\"canonical\"").or_else(|| lower.find("rel=canonical"))?;
+    let i = lower
+        .find("rel=\"canonical\"")
+        .or_else(|| lower.find("rel=canonical"))?;
     // Look ahead for the href= within the same tag (next 200 chars max).
     let win = &html[i..i.saturating_add(200).min(html.len())];
     extract_attr(win, "href")
