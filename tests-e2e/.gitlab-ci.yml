@@ -4,7 +4,7 @@
 
 e2e-playwright.test:
   stage: test
-  image: mcr.microsoft.com/playwright:v1.59.1-noble
+  image: mcr.microsoft.com/playwright:v1.63.0-noble
   needs:
     - job: api-integration-tests.build
       artifacts: true
@@ -142,7 +142,7 @@ e2e-playwright.test:
 # renders (regression guard for the shared website-data `process.env` leak).
 documentation-e2e-playwright.test:
   stage: test
-  image: mcr.microsoft.com/playwright:v1.59.1-noble
+  image: mcr.microsoft.com/playwright:v1.63.0-noble
   needs:
     - job: documentation.build
       artifacts: true
