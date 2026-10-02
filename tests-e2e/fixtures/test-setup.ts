@@ -4,6 +4,26 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "./email-verification";
 /** Shared UUID pattern for extracting IDs from URLs. */
 export const UUID_PATTERN = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 
+/**
+ * Timeouts for the setup these fixtures run before every test, sized for CI
+ * rather than a developer's laptop.
+ *
+ * In CI the Playwright config pins `workers: 1` and the whole suite drives a
+ * single API, one Postgres and one Mailpit (see playwright.config.ts). A
+ * register → verify → login → create chain therefore queues behind every other
+ * test's traffic on that one backend, so a round-trip that finishes in well
+ * under a second locally can legitimately sit for several seconds under that
+ * contention. Because this code runs in *every* test's setup, a wait tuned for
+ * a warm laptop turns ordinary CI load into the odd timeout — and a test that
+ * fails then passes on retry is scored "flaky", which fails the whole job
+ * (failOnFlakyTests, on purpose). These values give the backend-bound waits the
+ * headroom single-worker CI actually needs. They do not hide a hang: a call
+ * that never answers still fails, just later.
+ */
+const BACKEND_ROUNDTRIP_TIMEOUT = 30_000;
+/** A UI element that renders client-side once its data has already arrived. */
+const UI_RENDER_TIMEOUT = 15_000;
+
 export interface TestEnv {
   email: string;
   password: string;
@@ -46,11 +66,15 @@ async function loginAsNewUser(
 
   // Login via UI
   await page.goto("/login");
-  await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-test="login-form"]')).toBeVisible({
+    timeout: UI_RENDER_TIMEOUT,
+  });
   await page.locator('[data-test="login-email-input"]').fill(email);
   await page.locator('[data-test="login-password-input"]').fill(password);
   await page.locator('[data-test="login-submit-button"]').click();
-  await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
+    timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+  });
 
   return { email, password, organizationId: organizationId!, timestamp };
 }
@@ -66,13 +90,15 @@ async function loginAndCreateApp(
   const env = await loginAsNewUser(page, request, testId);
 
   await page.goto(`/organizations/${env.organizationId}/applications/new`);
-  await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+    timeout: UI_RENDER_TIMEOUT,
+  });
   await page.locator('[data-test="application-name-input"]').fill(`App ${env.timestamp}`);
 
   const createAppResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-    { timeout: 15000 }
+    { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
   );
   await page.locator('[data-test="application-submit-button"]').click();
   const appResponse = await createAppResponse;
@@ -81,7 +107,7 @@ async function loginAndCreateApp(
   // Extract application ID from URL after redirect
   const uuidPattern =
     /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-  await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
+  await expect(page).toHaveURL(uuidPattern, { timeout: BACKEND_ROUNDTRIP_TIMEOUT });
   const match = page.url().match(uuidPattern);
   expect(match).toBeTruthy();
   const applicationId = match![1];
@@ -103,7 +129,9 @@ async function loginAndCreateAppWithEventType(
   await page.goto(
     `/organizations/${env.organizationId}/applications/${env.applicationId}/event_types/new`
   );
-  await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({
+    timeout: UI_RENDER_TIMEOUT,
+  });
   await page.locator('[data-test="event-type-service-input"]').fill(eventType.service);
   await page.locator('[data-test="event-type-resource-input"]').fill(eventType.resource);
   await page.locator('[data-test="event-type-verb-input"]').fill(eventType.verb);
@@ -111,12 +139,12 @@ async function loginAndCreateAppWithEventType(
   const createETResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/event_types") && response.request().method() === "POST",
-    { timeout: 15000 }
+    { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
   );
   await page.locator('[data-test="event-type-submit-button"]').click();
   const etResponse = await createETResponse;
   expect(etResponse.status()).toBeLessThan(400);
-  await expect(page).toHaveURL(/\/event_types$/, { timeout: 10000 });
+  await expect(page).toHaveURL(/\/event_types$/, { timeout: BACKEND_ROUNDTRIP_TIMEOUT });
 
   const eventTypeName = `${eventType.service}.${eventType.resource}.${eventType.verb}`;
   return { ...env, eventTypeName };
@@ -209,7 +237,7 @@ async function submitWithLabels(
 
   const submitted = page.waitForResponse(
     (response) => form.matches(response.url()) && response.request().method() === "POST",
-    { timeout: 15000 }
+    { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
   );
   await page.locator(`[data-test="${form.button}"]`).click();
   const response = await submitted;
