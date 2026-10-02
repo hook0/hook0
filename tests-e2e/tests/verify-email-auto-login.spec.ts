@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getVerificationTokenFromMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import { fromItsOwnAddress, BACKEND_ROUNDTRIP_TIMEOUT } from "../fixtures/test-setup";
 
 /**
  * Auto-login-after-email-verification E2E guard.
@@ -43,7 +43,7 @@ test.describe("Email verification auto-login", () => {
     // Auto-login lands the user straight on the wizard/dashboard, NOT the login
     // form and NOT the verify-email "Back to login" error card.
     await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
     await expect(page.locator('[data-test="verify-email-error"]')).toHaveCount(0);
     await expect(page.locator('[data-test="login-form"]')).toHaveCount(0);
@@ -51,7 +51,7 @@ test.describe("Email verification auto-login", () => {
     // Prove the session actually authenticates protected navigation: reloading
     // the protected landing stays put instead of bouncing to /login.
     await page.reload();
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
+    await expect(page).not.toHaveURL(/\/login/, { timeout: BACKEND_ROUNDTRIP_TIMEOUT });
   });
 
   test("drops the token from the address bar so it is never observed as a URL", async ({
@@ -75,7 +75,9 @@ test.describe("Email verification auto-login", () => {
 
     const token = await getVerificationTokenFromMailpit(request, email);
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
-    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, {
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
 
     // Neither the page the user landed on nor any entry left behind in session
     // history may still carry it.
@@ -108,13 +110,17 @@ test.describe("Email verification auto-login", () => {
 
     // First use consumes the link and signs the user in.
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
-    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, {
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
 
     // Before dropping the session, prove the page is even reachable while
     // signed in: a guard that bounces an authenticated visitor Home would leave
     // the link unconsumed and show them nothing at all.
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
-    await expect(page.locator('[data-test="verify-email-error"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="verify-email-error"]')).toBeVisible({
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
 
     // Drop the session so the replay is judged on the link alone, exactly as it
     // would be for someone else opening a forwarded email.
@@ -127,7 +133,9 @@ test.describe("Email verification auto-login", () => {
     // Replay the very same link: the page must refuse it and must not land on
     // an authenticated area.
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
-    await expect(page.locator('[data-test="verify-email-error"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="verify-email-error"]')).toBeVisible({
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
     await expect(page).not.toHaveURL(/\/tutorial|\/organizations|\/dashboard/);
 
     // And the API itself refuses to mint a second session for that token, which

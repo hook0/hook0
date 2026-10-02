@@ -20,9 +20,9 @@ export const UUID_PATTERN = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
  * headroom single-worker CI actually needs. They do not hide a hang: a call
  * that never answers still fails, just later.
  */
-const BACKEND_ROUNDTRIP_TIMEOUT = 30_000;
+export const BACKEND_ROUNDTRIP_TIMEOUT = 30_000;
 /** A UI element that renders client-side once its data has already arrived. */
-const UI_RENDER_TIMEOUT = 15_000;
+export const UI_RENDER_TIMEOUT = 15_000;
 
 export interface TestEnv {
   email: string;
