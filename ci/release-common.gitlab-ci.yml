@@ -18,6 +18,17 @@
   # as non-fast-forward (which is exactly what happened on 2026-05-09 when six
   # patch jobs were triggered together).
   resource_group: release-master-push
+  # Override the root `default: retry:`. This job is NOT idempotent — it bumps a
+  # version file, commits, and pushes to master — so it must never auto-retry
+  # once its script has started running. `stuck_or_timeout_failure` is exactly
+  # that case (timed out mid-run): a retry after a partial push would bump and
+  # push a second time. `runner_system_failure` is kept because it means the pod
+  # never started and the script never ran, so a re-attempt has no side effect —
+  # which is the scheduling-saturation symptom this retry pattern exists for.
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
   variables:
     GIT_DEPTH: "0"
     GIT_LFS_SKIP_SMUDGE: "1"
