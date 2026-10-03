@@ -96,30 +96,50 @@ version exists; removal depends on biscuit-auth and paperclip upstreams
 migrating off it. Tracked.
 """
 
-# image-size 2.0.2 is the latest published version (dist-tags.latest), and both
-# advisories carry no fixed version — there is nothing to bump to. Re-evaluate
-# on the ignoreUntil date, or as soon as image-size ships a release.
+# The two image-size entries that stood here (GHSA-5p2g-fcmc-qvqq,
+# GHSA-w3rx-r6r6-pgpr) are gone: image-size was bumped 2.0.2 -> 2.0.4 in
+# documentation/package-lock.json, past the 2.0.3 fix line of both advisories, so
+# neither matches a package in the tree anymore. The scanner surfaced them as
+# unused ignores and the lockfile confirmed the removal — same procedure as the
+# RUSTSEC-2026-0253 note below.
+
+# Both npm entries below are build-time transitive deps with no fixed version
+# published (latest = the flagged version), so there is nothing to bump to.
+# Re-evaluate on the ignoreUntil date, or as soon as a fixed release ships.
 
 [[IgnoredVulns]]
-id = "GHSA-5p2g-fcmc-qvqq"
-ignoreUntil = "2026-11-30T00:00:00Z"
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = "2027-01-31T00:00:00Z"
 reason = """
-image-size 2.0.2: denial of service through infinite loops in the JXL and HEIF
-parsers. Pulled transitively by @docusaurus/mdx-loader, which measures the
-images committed in documentation/ at build time. The parser never sees input
-we do not control, and it runs in CI, not at runtime — a hang would fail the
-docs build, not affect a user. No fixed version exists: 2.0.2 is the latest
-release upstream.
+braces 3.0.3: stack-exhaustion denial of service through deeply nested brace
+patterns — the recursive AST walkers lack a depth guard, so a pattern under the
+character limit can overflow the call stack and terminate the Node process.
+Availability only (CVSS C:N/I:N/A:H).
+
+Pulled transitively and build-time only, in documentation/, frontend/ and
+website/: through micromatch (@docusaurus/utils, fast-glob,
+http-proxy-middleware) and chokidar (@docusaurus/core, webpack-dev-server). It
+expands glob patterns from our own build config and file paths, in CI and the
+dev server — never attacker-controlled input, never at runtime. A stack overflow
+would fail a build, not affect a user. No fixed version exists: 3.0.3 is the
+latest release upstream.
 """
 
 [[IgnoredVulns]]
-id = "GHSA-w3rx-r6r6-pgpr"
-ignoreUntil = "2026-11-30T00:00:00Z"
+id = "GHSA-ch52-4w7c-c8xp"
+ignoreUntil = "2027-01-31T00:00:00Z"
 reason = """
-image-size 2.0.2: denial of service through an infinite loop in the ICNS
-parser. Same exposure as GHSA-5p2g-fcmc-qvqq — @docusaurus/mdx-loader parsing
-our own documentation images at build time, in CI, with no fixed version
-available upstream.
+http-cache-semantics 4.2.0: a client max-stale directive can surface a
+cross-user cached response, leaking another user's Set-Cookie from a shared
+cache. The vulnerability is defined against a shared, multi-user HTTP cache.
+
+Pulled only through @docusaurus/core -> update-notifier -> latest-version ->
+package-json -> got -> cacheable-request in documentation/: docusaurus's
+single-user "a new version is available" check, caching npm registry metadata on
+the build machine at build time. There is no shared cache and no second user to
+leak a response to, so the cross-user disclosure the advisory describes cannot
+occur here. Build-time only, not runtime. No fixed version exists: 4.2.0 is the
+latest release upstream.
 """
 
 [[IgnoredVulns]]
