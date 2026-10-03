@@ -510,6 +510,7 @@ pub enum DeliveryOutcome {
     Http5xx,
     ConnectionError,
     InvalidTarget,
+    Internal,
     Other,
 }
 
@@ -523,6 +524,7 @@ impl DeliveryOutcome {
             DeliveryOutcome::Http5xx => "http_5xx",
             DeliveryOutcome::ConnectionError => "connection_error",
             DeliveryOutcome::InvalidTarget => "invalid_target",
+            DeliveryOutcome::Internal => "internal",
             DeliveryOutcome::Other => "other",
         }
     }
@@ -559,6 +561,32 @@ pub fn report_given_up(reason: GiveUpReason) {
     DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", <&'static str>::from(reason))]);
 }
 
+static PAUSED_REQUEST_ATTEMPTS_RELEASED: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("paused_request_attempts.released")
+        .with_description(
+            "Count of paused request attempts released, by effective subscription health",
+        )
+        .build()
+});
+
+pub fn report_paused_request_attempts_released(health: &'static str, amount: u64) {
+    PAUSED_REQUEST_ATTEMPTS_RELEASED.add(amount, &[KeyValue::new("health", health)]);
+}
+
+static PAUSED_REQUEST_ATTEMPTS_SUBSCRIPTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("paused_request_attempts.subscriptions")
+        .with_description(
+            "Number of subscriptions of this worker that have paused request attempts",
+        )
+        .build()
+});
+
+pub fn report_subscriptions_with_paused_request_attempts(amount: u64) {
+    PAUSED_REQUEST_ATTEMPTS_SUBSCRIPTIONS.record(amount, &[]);
+}
+
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
 /// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the matching
 /// class; every remaining case is spelled out by name rather than caught by a wildcard,
@@ -580,6 +608,7 @@ pub fn classify_outcome(response: &Response) -> DeliveryOutcome {
         Some(ResponseError::Dns) => DeliveryOutcome::Dns,
         Some(ResponseError::Connection) => DeliveryOutcome::ConnectionError,
         Some(ResponseError::InvalidTarget) => DeliveryOutcome::InvalidTarget,
+        Some(ResponseError::Internal) => DeliveryOutcome::Internal,
         // `Http` only reaches this point with a status outside 4xx/5xx, and `None`
         // only with a failure that `is_success()` already ruled out; neither is a
         // transport fault, and neither is frequent enough to deserve its own label.
@@ -597,7 +626,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     /// The complete, closed set of labels the `outcome` attribute may ever take.
-    const OUTCOME_LABELS: [&str; 8] = [
+    const OUTCOME_LABELS: [&str; 9] = [
         "success",
         "timeout",
         "dns",
@@ -605,6 +634,7 @@ mod tests {
         "http_5xx",
         "connection_error",
         "invalid_target",
+        "internal",
         "other",
     ];
 
@@ -619,7 +649,7 @@ mod tests {
     }
 
     fn error_variant(sel: u8) -> Option<ResponseError> {
-        match sel % 8 {
+        match sel % 9 {
             0 => None,
             1 => Some(ResponseError::Unknown),
             2 => Some(ResponseError::InvalidHeader),
@@ -627,6 +657,7 @@ mod tests {
             4 => Some(ResponseError::Dns),
             5 => Some(ResponseError::Connection),
             6 => Some(ResponseError::Timeout),
+            7 => Some(ResponseError::Internal),
             _ => Some(ResponseError::Http),
         }
     }
@@ -694,6 +725,7 @@ mod tests {
             (ResponseError::Dns, DeliveryOutcome::Dns),
             (ResponseError::Connection, DeliveryOutcome::ConnectionError),
             (ResponseError::InvalidTarget, DeliveryOutcome::InvalidTarget),
+            (ResponseError::Internal, DeliveryOutcome::Internal),
             (ResponseError::InvalidHeader, DeliveryOutcome::Other),
             (ResponseError::Unknown, DeliveryOutcome::Other),
             // An HTTP failure carrying a status outside 4xx/5xx, e.g. a 1xx or 3xx.
@@ -719,6 +751,7 @@ mod tests {
             DeliveryOutcome::Http5xx,
             DeliveryOutcome::ConnectionError,
             DeliveryOutcome::InvalidTarget,
+            DeliveryOutcome::Internal,
             DeliveryOutcome::Other,
         ]
         .iter()
@@ -727,7 +760,7 @@ mod tests {
         let expected: BTreeSet<&str> = OUTCOME_LABELS.into_iter().collect();
         assert_eq!(labels, expected);
         // Each variant maps to a distinct label (no collisions).
-        assert_eq!(labels.len(), 8);
+        assert_eq!(labels.len(), 9);
     }
 
     #[test]

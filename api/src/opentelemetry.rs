@@ -101,6 +101,7 @@ pub fn init(
             .with_view(authorizer_duration_view)
             .with_view(ingestion_duration_view)
             .with_view(ingestion_phase_duration_view)
+            .with_view(subscription_health_probe_duration_view)
             .with_resource(resource.clone())
             .build();
         global::set_meter_provider(metrics_provider.clone());
@@ -395,6 +396,59 @@ fn health_check_duration_view(instrument: &Instrument) -> Option<Stream> {
     } else {
         None
     }
+}
+
+static SUBSCRIPTION_HEALTH_TRANSITIONS: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("subscription_health.transitions")
+        .with_description(
+            "Count of subscription health state changes, labelled by previous and new state",
+        )
+        .build()
+});
+
+pub fn report_subscription_health_transition(from: &'static str, to: &'static str) {
+    SUBSCRIPTION_HEALTH_TRANSITIONS.add(1, &[KeyValue::new("from", from), KeyValue::new("to", to)]);
+}
+
+static SUBSCRIPTION_HEALTH_PROBE_DURATION: LazyLock<Histogram<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_histogram("subscription_health.probe.duration")
+        .with_unit("s")
+        .with_description("Duration of a subscription health probe")
+        .build()
+});
+
+pub fn report_subscription_health_probe_duration(duration: Duration) {
+    SUBSCRIPTION_HEALTH_PROBE_DURATION.record(duration.as_secs_f64(), &[]);
+}
+
+// Same range as /health probes: from milliseconds on a small instance to tens of seconds on a busy one.
+fn subscription_health_probe_duration_view(instrument: &Instrument) -> Option<Stream> {
+    if instrument.name() == "subscription_health.probe.duration" {
+        Stream::builder()
+            .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                boundaries: HEALTH_CHECK_DURATION_BOUNDARIES.to_vec(),
+                record_min_max: true,
+            })
+            .build()
+            .ok()
+    } else {
+        None
+    }
+}
+
+static SUBSCRIPTION_HEALTH_PROBE_SUBSCRIPTIONS: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("subscription_health.probe.subscriptions")
+        .with_description(
+            "Count of subscriptions classified by subscription health probes, labelled by verdict (healthy/unhealthy/unknown)",
+        )
+        .build()
+});
+
+pub fn report_subscription_health_probe_subscriptions(verdict: &'static str, amount: u64) {
+    SUBSCRIPTION_HEALTH_PROBE_SUBSCRIPTIONS.add(amount, &[KeyValue::new("verdict", verdict)]);
 }
 
 static AUTHORIZER_DURATION: LazyLock<Histogram<f64>> = LazyLock::new(|| {

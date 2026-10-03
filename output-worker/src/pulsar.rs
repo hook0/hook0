@@ -33,7 +33,7 @@ use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    RetryPolicy, SlotRole, compute_next_retry,
+    RetryPolicy, SlotRole, compute_next_retry, fetch_event_payload,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -59,7 +59,7 @@ const DRAIN_TIMEOUT_MARGIN: Duration = Duration::from_secs(5);
 ///
 /// Note that this only bounds handing the message over to the client; the returned future
 /// resolves when the broker acknowledges it, and must be bounded separately by the caller.
-async fn enqueue(
+pub(crate) async fn enqueue(
     producer: &Mutex<Producer<TokioExecutor>>,
     request_attempt: RequestAttempt,
     event_time: DateTime<Utc>,
@@ -92,7 +92,7 @@ async fn enqueue(
 }
 
 /// Wait for the Pulsar broker to acknowledge a message that was previously enqueued.
-async fn await_receipt(
+pub(crate) async fn await_receipt(
     send_future: SendFuture,
     receipt_timeout: Duration,
     request_attempt_id: Uuid,
@@ -230,7 +230,10 @@ pub async fn load_waiting_request_attempts_from_db(
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
                 INNER JOIN event.application AS a ON a.application__id = s.application__id
                 LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
-                WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
+                WHERE
+                    NOT ra.paused
+                    AND ra.succeeded_at IS NULL
+                    AND ra.failed_at IS NULL
                     AND a.deleted_at IS NULL
                     AND s.is_enabled
                     AND s.deleted_at IS NULL
@@ -268,43 +271,15 @@ pub async fn load_waiting_request_attempts_from_db(
             for ra in rows {
                 let payload = if let Some(p) = ra.payload {
                     Some(p)
-                } else if let Some(os) = &object_storage {
-                    let key = format!(
-                        "{}/event/{}/{}",
-                        ra.application_id,
-                        ra.event_received_at.naive_utc().date(),
-                        ra.event_id
-                    );
-                    match os
-                        .client
-                        .get_object()
-                        .bucket(&os.bucket)
-                        .key(&key)
-                        .send()
-                        .await
-                    {
-                        Ok(obj) => match obj.body.collect().await {
-                            Ok(ab) => Some(ab.to_vec()),
-                            Err(e) => {
-                                log_object_storage_error_with_context!(
-                                    "S3 GET OBJECT body collect failed",
-                                    error_chain = format!("{e}"),
-                                    object_key = &key,
-                                );
-                                None
-                            }
-                        },
-                        Err(e) => {
-                            log_object_storage_error_with_context!(
-                                "S3 GET OBJECT failed",
-                                error_chain = DisplayErrorContext(&e).to_string(),
-                                object_key = &key,
-                            );
-                            None
-                        }
-                    }
                 } else {
-                    None
+                    fetch_event_payload(
+                        object_storage,
+                        ra.application_id,
+                        ra.event_received_at,
+                        ra.event_id,
+                    )
+                    .await
+                    .ok()
                 };
 
                 if let Some(p) = payload {
@@ -710,6 +685,7 @@ enum RequestAttemptStatus {
         delay_until: DateTime<Utc>,
         lead: TimeDelta,
     },
+    Paused,
     AlreadyDone,
     Cancelled,
     NotForThisWorker,
@@ -769,6 +745,7 @@ async fn handle_message(
                     not_done: bool,
                     delay_until: Option<DateTime<Utc>>,
                     for_this_worker: bool,
+                    paused: bool,
                 }
                 let fetch_start = std::time::Instant::now();
                 let request_attempt_status = match query_as!(
@@ -778,6 +755,7 @@ async fn handle_message(
                             (s.is_enabled AND s.deleted_at IS NULL AND a.deleted_at IS NULL) AS "not_cancelled!",
                             (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
                             ra.delay_until,
+                            ra.paused,
                             (
                                 EXISTS (
                                     SELECT 1
@@ -815,6 +793,14 @@ async fn handle_message(
                         not_cancelled: true,
                         not_done: true,
                         for_this_worker: true,
+                        paused: true,
+                        ..
+                    }) => RequestAttemptStatus::Paused,
+                    Some(RawRequestAttemptStatus {
+                        not_cancelled: true,
+                        not_done: true,
+                        for_this_worker: true,
+                        paused: false,
                         delay_until: Some(d),
                     }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
                         delay_until: d,
@@ -824,6 +810,7 @@ async fn handle_message(
                         not_cancelled: true,
                         not_done: true,
                         for_this_worker: true,
+                        paused: false,
                         delay_until,
                     }) => RequestAttemptStatus::Ready { delay_until },
                     Some(RawRequestAttemptStatus {
@@ -1134,6 +1121,21 @@ async fn handle_message(
                             request_attempt_id,
                         )
                         .await?;
+                        ack_tx
+                            .send(AckMessage {
+                                msg_id: msg.message_id().clone(),
+                                permit: Some(permit),
+                                is_ok: true,
+                                is_lp,
+                            })
+                            .await?;
+
+                        Ok(())
+                    }
+                    // Paused request attempts are not sent to Pulsar; the paused request attempts release task will send it again when it is unpaused
+                    RequestAttemptStatus::Paused => {
+                        stats.record_not_ready();
+                        debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt is paused");
                         ack_tx
                             .send(AckMessage {
                                 msg_id: msg.message_id().clone(),

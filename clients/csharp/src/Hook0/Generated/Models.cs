@@ -360,6 +360,9 @@ public static class RequestAttemptStatusType
     /// <summary>The API answers <c>pending</c>.</summary>
     public const string Pending = "pending";
 
+    /// <summary>The API answers <c>paused</c>.</summary>
+    public const string Paused = "paused";
+
     /// <summary>The API answers <c>in_progress</c>.</summary>
     public const string InProgress = "in_progress";
 
@@ -369,7 +372,7 @@ public static class RequestAttemptStatusType
     /// <summary>The API answers <c>failed</c>.</summary>
     public const string Failed = "failed";
 
-    private static readonly string[] Declared = ["waiting", "pending", "in_progress", "successful", "failed"];
+    private static readonly string[] Declared = ["waiting", "pending", "paused", "in_progress", "successful", "failed"];
 
     /// <summary>Every value the API declares for this list.</summary>
     public static IReadOnlyList<string> Values => Declared;
@@ -1061,8 +1064,8 @@ public sealed record RequestAttempt
 
     /// <summary>
     /// Carries <c>status</c>: Status of a request attempt. The 'type' field indicates the status variant. - waiting:
-    /// {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed -
-    /// in_progre
+    /// {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - paused:
+    /// {
     /// </summary>
     [JsonPropertyName("status")]
     public required RequestAttemptStatus Status { get; init; }
@@ -1118,7 +1121,8 @@ public sealed record RequestAttemptEvent
 public sealed record RequestAttemptStatus
 {
     /// <summary>
-    /// Carries <c>type</c>: Status type discriminator. One of: waiting, pending, in_progress, successful, failed
+    /// Carries <c>type</c>: Status type discriminator. One of: waiting, pending, paused, in_progress, successful,
+    /// failed
     /// </summary>
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -1136,7 +1140,7 @@ public sealed record RequestAttemptStatus
     public long? FullProcessingMs { get; init; }
 
     /// <summary>
-    /// Carries <c>since</c>: Timestamp when the status started (present in waiting, pending, in_progress)
+    /// Carries <c>since</c>: Timestamp when the status started (present in waiting, pending, paused, in_progress)
     /// </summary>
     [JsonPropertyName("since")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

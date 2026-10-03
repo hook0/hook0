@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        WITH latest AS (\n                            SELECT DISTINCT ON (subscription__id) subscription__id, status, created_at\n                            FROM webhook.subscription_health\n                            ORDER BY subscription__id, created_at DESC, subscription_health__id DESC\n                        ), recovering AS (\n                            SELECT subscription__id, created_at AS since\n                            FROM latest\n                            WHERE status = 'recovering'\n                                AND created_at <= statement_timestamp() - $2::interval\n                                AND created_at > statement_timestamp() - $3::interval\n                        ), completed AS (\n                            SELECT ra.subscription__id, r.response_error__name, COALESCE(ra.succeeded_at, ra.failed_at) AS completed_at\n                            FROM webhook.response AS r\n                            INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id\n                            WHERE r.response__id BETWEEN\n                                    (SELECT uuidv7(LEAST(-$1::interval, (SELECT MIN(since) FROM recovering) - statement_timestamp())))\n                                AND (SELECT uuidv7())\n                                AND (r.response_error__name IS NULL OR r.response_error__name <> ALL($4::text[]))\n                        )\n                        SELECT\n                            c.subscription__id AS \"subscription_id!\",\n                            s.application__id AS application_id,\n                            l.status AS \"status?\",\n                            l.created_at AS \"since?\",\n                            statement_timestamp() AS \"now!\",\n                            COUNT(*) FILTER (WHERE c.completed_at >= statement_timestamp() - $1::interval) AS \"total!\",\n                            COUNT(*) FILTER (WHERE c.completed_at >= statement_timestamp() - $1::interval AND c.response_error__name IS NOT NULL) AS \"failures!\",\n                            COUNT(*) FILTER (WHERE c.completed_at >= rec.since) AS \"completed_since_recovering!\"\n                        FROM completed AS c\n                        INNER JOIN webhook.subscription AS s ON s.subscription__id = c.subscription__id AND s.is_enabled AND s.deleted_at IS NULL\n                        INNER JOIN event.application AS a ON a.application__id = s.application__id AND a.deleted_at IS NULL\n                        LEFT JOIN latest AS l ON l.subscription__id = c.subscription__id\n                        LEFT JOIN recovering AS rec ON rec.subscription__id = c.subscription__id\n                        GROUP BY c.subscription__id, s.application__id, l.status, l.created_at\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webhook.request_attempt",
+            "name": "subscription__id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "application_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webhook.subscription",
+            "name": "application__id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webhook.subscription_health",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "since?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "webhook.subscription_health",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "now!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "failures!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "completed_since_recovering!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Interval",
+        "Interval",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0fbd33221fa2c3bcda49b6b11cccefd108fcdad62b8bb2c7fd1f42343f6bdf3e"
+}

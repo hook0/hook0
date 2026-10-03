@@ -50,6 +50,7 @@ function generateMarkdown(envVars) {
     'Quotas',
     'Housekeeping',
     'Reactivation',
+    'Subscription Health',
     'Monitoring',
     'Hook0 Client',
     'Object Storage',
@@ -137,7 +138,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`OTLP_LOGS_ENDPOINT\` | Optional OTLP endpoint that will receive logs | - |  |
 | \`OTLP_AUTHORIZATION\` 🔒 | Optional value for OTLP \`Authorization\` header (for example: \`Bearer mytoken\`) | - |  |
 | \`DATABASE_URL\` 🔒 | Database URL (with credentials) | - | ✓ |
-| \`MAX_DB_CONNECTIONS\` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT) | \`5\` |  |
+| \`MAX_DB_CONNECTIONS\` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT); the worker also opens up to 2 connections for housekeeping | \`5\` |  |
 | \`PULSAR_BINARY_URL\` | Pulsar binary URL | - |  |
 | \`PULSAR_TOKEN\` 🔒 | Pulsar token | - |  |
 | \`PULSAR_TENANT\` | Pulsar tenant | - |  |
@@ -182,6 +183,12 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`PULSAR_SEND_RECEIPT_TIMEOUT\` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | \`10s\` |  |
 | \`THROUGHPUT_LOG_INTERVAL\` | Interval between periodic throughput log lines (set to "0s" to disable) | \`60s\` |  |
 | \`SLOT_METRICS_INTERVAL\` | Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers) | \`15s\` |  |
+| \`DEGRADED_SUBSCRIPTION_MIN_RETRY_DELAY\` | Minimum delay before retrying a request attempt whose subscription is degraded or recovering (the effective delay is \`max(this, normal retry delay including Retry-After)\`) | \`1h\` |  |
+| \`PAUSED_REQUEST_ATTEMPTS_RELEASE_PERIOD\` | Duration to wait between two passes releasing paused request attempts; each pass's release phase is also bounded by this duration (must be at least 1s) | \`30s\` |  |
+| \`PAUSED_REQUEST_ATTEMPTS_RELEASE_WINDOW\` | Duration of the sliding window over which recently processed request attempts are counted when releasing paused ones; the per-minute targets are scaled to this window (must be at least 1s) | \`1m\` |  |
+| \`PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_DEGRADED\` | Target number of request attempts per minute (processed + waiting) for a degraded subscription that has paused request attempts | \`50\` |  |
+| \`PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_RECOVERING\` | Target number of request attempts per minute (processed + waiting) for a recovering subscription that has paused request attempts | \`500\` |  |
+| \`PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_HEALTHY\` | Target number of request attempts per minute (processed + waiting) for a healthy subscription that still has paused request attempts left over from a previous degraded period | \`5000\` |  |
 
 `;
 

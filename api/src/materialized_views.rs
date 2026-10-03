@@ -38,8 +38,8 @@ async fn refresh_materialized_views(db: &PgPool, timeout: Duration) -> Result<()
 
             let mut tx = db.begin().await?;
             query(AssertSqlSafe(format!(
-                "SET LOCAL statement_timeout = '{}s'",
-                timeout.as_secs()
+                "SET LOCAL statement_timeout = '{}ms'",
+                timeout.as_millis()
             )))
             .execute(&mut *tx)
             .await?;

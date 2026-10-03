@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE webhook.request_attempt\n            SET paused = false, delay_until = statement_timestamp()\n            WHERE request_attempt__id IN (\n                SELECT request_attempt__id\n                FROM webhook.request_attempt\n                WHERE subscription__id = $1 AND paused AND succeeded_at IS NULL AND failed_at IS NULL\n                    AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                ORDER BY created_at ASC\n                LIMIT $2\n                FOR UPDATE SKIP LOCKED\n            )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b656206b6cc971463094b93da16f152f8a67e973b6809c57985adc8abb8cf34d"
+}

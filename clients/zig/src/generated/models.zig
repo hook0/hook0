@@ -221,12 +221,13 @@ pub const ProblemId = struct {
 pub const RequestAttemptStatusType = struct {
     pub const waiting: []const u8 = "waiting";
     pub const pending: []const u8 = "pending";
+    pub const paused: []const u8 = "paused";
     pub const in_progress: []const u8 = "in_progress";
     pub const successful: []const u8 = "successful";
     pub const failed: []const u8 = "failed";
 
     /// Every value the API declares for this list.
-    pub const values = [_][]const u8{ waiting, pending, in_progress, successful, failed };
+    pub const values = [_][]const u8{ waiting, pending, paused, in_progress, successful, failed };
 
     /// Whether the API declares that value.
     pub fn member(value: []const u8) bool {
@@ -1757,7 +1758,7 @@ pub const RequestAttempt = struct {
     retry_count: i32,
     /// carries `status`: Status of a request attempt. The 'type' field indicates the status
     /// variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type,
-    /// since} - Ready to be processed - in_progre
+    /// since} - Ready to be processed - paused: {
     status: models.RequestAttemptStatus,
     /// carries `subscription`.
     subscription: models.RequestAttemptSubscription,
@@ -1879,14 +1880,14 @@ pub const RequestAttemptEvent = struct {
 /// The `RequestAttemptStatus` the API declares.
 pub const RequestAttemptStatus = struct {
     /// carries `type`, one of `models.RequestAttemptStatusType.values`: Status type discriminator.
-    /// One of: waiting, pending, in_progress, successful, failed
+    /// One of: waiting, pending, paused, in_progress, successful, failed
     type: []const u8,
     /// carries `at`: Timestamp when completed (present in successful, failed)
     at: ?[]const u8,
     /// carries `full_processing_ms`: Total processing time in milliseconds (present in successful,
     /// failed)
     full_processing_ms: ?i64,
-    /// carries `since`: Timestamp when the status started (present in waiting, pending,
+    /// carries `since`: Timestamp when the status started (present in waiting, pending, paused,
     /// in_progress)
     since: ?[]const u8,
     /// carries `until`: Timestamp until which waiting (only present in waiting status)

@@ -22,7 +22,7 @@ final class RequestAttempt
      * @param int $retryCount carries `retry_count`.
      * @param RequestAttemptStatus $status carries `status`: Status of a request attempt. The 'type' field indicates the
      *   status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} -
-     *   Ready to be processed - in_progre
+     *   Ready to be processed - paused: {
      * @param RequestAttemptSubscription $subscription carries `subscription`.
      * @param \DateTimeImmutable|null $delayUntil carries `delay_until`.
      * @param \DateTimeImmutable|null $failedAt carries `failed_at`.

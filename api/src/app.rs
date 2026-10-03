@@ -610,11 +610,37 @@ pub(crate) mod test_support {
         let body = test::read_body(response).await;
         serde_json::from_slice(&body).expect("the served OpenAPI document is valid JSON")
     }
+
+    /// Keys of a path item that describe an operation rather than the path.
+    pub(crate) const HTTP_METHODS: [&str; 8] = [
+        "get", "put", "post", "delete", "options", "head", "patch", "trace",
+    ];
+
+    /// Every operation of a served document, named by method and path.
+    ///
+    /// An entry of a path item keyed by an HTTP method is an operation. One without a responses
+    /// object is a malformed contract rather than something to skip, so it fails here, and with it
+    /// every check built on this list.
+    pub(crate) fn operations(document: &serde_json::Value) -> Vec<(String, &serde_json::Value)> {
+        let mut operations = Vec::new();
+        for (path, item) in document["paths"].as_object().into_iter().flatten() {
+            for (method, operation) in item.as_object().into_iter().flatten() {
+                if HTTP_METHODS.contains(&method.as_str()) {
+                    assert!(
+                        operation["responses"].is_object(),
+                        "`{method} {path}` declares no responses object"
+                    );
+                    operations.push((format!("{method} {path}"), operation));
+                }
+            }
+        }
+        operations
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::test_support::openapi_spec;
+    use super::test_support::{HTTP_METHODS, openapi_spec, operations};
 
     use serde_json::Value;
     use std::collections::{BTreeMap, BTreeSet};
@@ -629,11 +655,6 @@ mod tests {
     /// Everything else is the control plane the dashboard drives, and it stays
     /// out: nobody generates a client for it.
     const RETAINED_TAGS: [&str; 2] = ["sdk", "mcp"];
-
-    /// Keys of a path item that describe an operation rather than the path.
-    const HTTP_METHODS: [&str; 8] = [
-        "get", "put", "post", "delete", "options", "head", "patch", "trace",
-    ];
 
     /// Prefix of a reference to a schema of the document.
     const SCHEMA_REFERENCE_PREFIX: &str = "#/components/schemas/";
@@ -693,6 +714,14 @@ mod tests {
         );
 
         println!("OpenAPI document served with {} paths", paths.len());
+    }
+
+    /// An operation that declares no responses is a malformed contract; skipping it would let it
+    /// through every check that walks the operations of the document.
+    #[test]
+    #[should_panic(expected = "declares no responses object")]
+    fn an_operation_without_responses_is_rejected() {
+        operations(&serde_json::json!({ "paths": { "/x": { "get": {} } } }));
     }
 
     /// Everything downstream — generated SDKs, the MCP tool definitions, the

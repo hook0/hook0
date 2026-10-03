@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import { CheckCircle2, XCircle, Clock, Loader, CircleDashed } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Clock, Loader, CircleDashed, CirclePause } from 'lucide-vue-next';
 import { RequestAttemptStatusType } from './LogService';
 
 export type StatusVariant = 'success' | 'error' | 'warning' | 'info' | 'muted';
@@ -33,6 +33,13 @@ export const STATUS_CONFIG: Record<RequestAttemptStatusType, StatusConfig> = {
     tooltipKey: 'logs.tooltipPending',
     tooltipDateField: 'created_at',
     icon: CircleDashed,
+  },
+  [RequestAttemptStatusType.Paused]: {
+    labelKey: 'logs.statusPaused',
+    variant: 'muted',
+    tooltipKey: 'logs.tooltipPaused',
+    tooltipDateField: 'created_at',
+    icon: CirclePause,
   },
   [RequestAttemptStatusType.InProgress]: {
     labelKey: 'logs.statusRetrying',

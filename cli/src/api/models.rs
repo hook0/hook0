@@ -396,6 +396,9 @@ pub enum RequestAttemptStatus {
     Pending {
         since: DateTime<Utc>,
     },
+    Paused {
+        since: DateTime<Utc>,
+    },
     InProgress {
         since: DateTime<Utc>,
     },
@@ -422,6 +425,7 @@ impl RequestAttemptStatus {
         match self {
             Self::Waiting { .. } => "Waiting",
             Self::Pending { .. } => "Pending",
+            Self::Paused { .. } => "Paused",
             Self::InProgress { .. } => "In Progress",
             Self::Successful { .. } => "Successful",
             Self::Failed { .. } => "Failed",
@@ -604,6 +608,18 @@ mod tests {
         assert_eq!(status.display_name(), "Successful");
         assert!(status.is_successful());
         assert!(!status.is_failed());
+    }
+
+    #[test]
+    fn test_request_attempt_status_deserializes_api_values() {
+        let paused: RequestAttemptStatus =
+            serde_json::from_str(r#"{"type":"paused","since":"2026-01-01T00:00:00Z"}"#)
+                .expect("paused should deserialize");
+        assert_eq!(paused.display_name(), "Paused");
+        let in_progress: RequestAttemptStatus =
+            serde_json::from_str(r#"{"type":"in_progress","since":"2026-01-01T00:00:00Z"}"#)
+                .expect("in_progress should deserialize");
+        assert_eq!(in_progress.display_name(), "In Progress");
     }
 
     #[test]

@@ -48,13 +48,16 @@ pub struct SubscriptionSummary {
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum RequestAttemptStatus {
     Waiting {
         since: DateTime<Utc>,
         until: DateTime<Utc>,
     },
     Pending {
+        since: DateTime<Utc>,
+    },
+    Paused {
         since: DateTime<Utc>,
     },
     InProgress {
@@ -83,6 +86,7 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
         // Variants:
         // - waiting: {type: "waiting", since: DateTime, until: DateTime}
         // - pending: {type: "pending", since: DateTime}
+        // - paused: {type: "paused", since: DateTime}
         // - in_progress: {type: "in_progress", since: DateTime}
         // - successful: {type: "successful", at: DateTime, full_processing_ms: i64}
         // - failed: {type: "failed", at: DateTime, full_processing_ms: i64}
@@ -95,12 +99,13 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
             Box::new(DefaultSchemaRaw {
                 data_type: Some(DataType::String),
                 description: Some(
-                    "Status type discriminator. One of: waiting, pending, in_progress, successful, failed"
+                    "Status type discriminator. One of: waiting, pending, paused, in_progress, successful, failed"
                         .to_owned(),
                 ),
                 enum_: vec![
                     serde_json::Value::String("waiting".to_owned()),
                     serde_json::Value::String("pending".to_owned()),
+                    serde_json::Value::String("paused".to_owned()),
                     serde_json::Value::String("in_progress".to_owned()),
                     serde_json::Value::String("successful".to_owned()),
                     serde_json::Value::String("failed".to_owned()),
@@ -109,14 +114,14 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
             }),
         );
 
-        // since field (present in waiting, pending, in_progress)
+        // since field (present in waiting, pending, paused, in_progress)
         properties.insert(
             "since".to_owned(),
             Box::new(DefaultSchemaRaw {
                 data_type: Some(DataType::String),
                 format: Some(DataTypeFormat::DateTime),
                 description: Some(
-                    "Timestamp when the status started (present in waiting, pending, in_progress)"
+                    "Timestamp when the status started (present in waiting, pending, paused, in_progress)"
                         .to_owned(),
                 ),
                 ..Default::default()
@@ -173,6 +178,7 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
                 "Status of a request attempt. The 'type' field indicates the status variant. \
                  - waiting: {type, since, until} - Scheduled for future delivery \
                  - pending: {type, since} - Ready to be processed \
+                 - paused: {type, since} - Held back because the subscription's endpoint has recently been failing; released gradually \
                  - in_progress: {type, since} - Currently being delivered \
                  - successful: {type, at, full_processing_ms} - Delivered successfully \
                  - failed: {type, at, full_processing_ms} - Delivery failed"
@@ -193,6 +199,7 @@ impl RequestAttemptStatus {
         failed_at: &Option<DateTime<Utc>>,
         succeeded_at: &Option<DateTime<Utc>>,
         delay_until: &Option<DateTime<Utc>>,
+        paused: bool,
     ) -> Self {
         let start = match delay_until {
             Some(d) => max(created_at, d),
@@ -209,6 +216,7 @@ impl RequestAttemptStatus {
                 full_processing_ms: (*at - *start).num_milliseconds(),
             },
             (_, Some(since), None, None) => Self::InProgress { since: *since },
+            (_, None, None, None) if paused => Self::Paused { since: *created_at },
             (Some(until), None, None, None) if until > current_time => Self::Waiting {
                 since: *created_at,
                 until: *until,
@@ -262,6 +270,7 @@ pub async fn get(
         delay_until: Option<DateTime<Utc>>,
         response__id: Option<Uuid>,
         retry_count: i16,
+        paused: bool,
         event_type__name: String,
         http_response_status: Option<i16>,
     }
@@ -280,6 +289,7 @@ pub async fn get(
                 ra.delay_until,
                 ra.response__id,
                 ra.retry_count,
+                ra.paused,
                 s.description AS subscription__description,
                 e.event_type__name,
                 r.http_code AS http_response_status
@@ -324,6 +334,7 @@ pub async fn get(
                 &ra.failed_at,
                 &ra.succeeded_at,
                 &ra.delay_until,
+                ra.paused,
             ),
         })),
         None => Err(Hook0Problem::NotFound),
@@ -345,7 +356,7 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List request attempts",
-    description = "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
+    description = "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, paused, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
@@ -397,6 +408,7 @@ pub async fn list(
         delay_until: Option<DateTime<Utc>>,
         response__id: Option<Uuid>,
         retry_count: i16,
+        paused: bool,
         event_type__name: String,
         http_response_status: Option<i16>,
     }
@@ -414,6 +426,7 @@ pub async fn list(
                 ra.delay_until,
                 ra.response__id,
                 ra.retry_count,
+                ra.paused,
                 s.description AS subscription__description,
                 e.event_type__name,
                 r.http_code AS http_response_status
@@ -473,6 +486,7 @@ pub async fn list(
                 &ra.failed_at,
                 &ra.succeeded_at,
                 &ra.delay_until,
+                ra.paused,
             ),
         })
         .collect::<Vec<_>>();
@@ -548,14 +562,15 @@ mod tests {
         );
         assert_eq!(
             type_field.enum_.len(),
-            5,
-            "Should have 5 status type values"
+            6,
+            "Should have 6 status type values"
         );
 
         let type_values: Vec<&str> = type_field.enum_.iter().filter_map(|v| v.as_str()).collect();
 
         assert!(type_values.contains(&"waiting"), "Missing 'waiting' type");
         assert!(type_values.contains(&"pending"), "Missing 'pending' type");
+        assert!(type_values.contains(&"paused"), "Missing 'paused' type");
         assert!(
             type_values.contains(&"in_progress"),
             "Missing 'in_progress' type"
@@ -565,6 +580,72 @@ mod tests {
             "Missing 'successful' type"
         );
         assert!(type_values.contains(&"failed"), "Missing 'failed' type");
+    }
+
+    /// The schema is written by hand, so check that what the API really sends matches it
+    #[test]
+    fn request_attempt_status_serialization_matches_schema() {
+        let schema = RequestAttemptStatus::raw_schema();
+        let type_values: Vec<&str> = schema
+            .properties
+            .get("type")
+            .expect("Should have 'type' field")
+            .enum_
+            .iter()
+            .filter_map(|v| v.as_str())
+            .collect();
+
+        let now = Utc::now();
+        let later = now + chrono::TimeDelta::minutes(1);
+        let statuses = [
+            RequestAttemptStatus::Waiting {
+                since: now,
+                until: later,
+            },
+            RequestAttemptStatus::Pending { since: now },
+            RequestAttemptStatus::Paused { since: now },
+            RequestAttemptStatus::InProgress { since: now },
+            RequestAttemptStatus::Successful {
+                at: now,
+                full_processing_ms: 0,
+            },
+            RequestAttemptStatus::Failed {
+                at: now,
+                full_processing_ms: 0,
+            },
+        ];
+        let serialized: Vec<String> = statuses
+            .iter()
+            .map(|s| {
+                serde_json::to_value(s).unwrap()["type"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned()
+            })
+            .collect();
+        assert_eq!(serialized, type_values);
+    }
+
+    #[test]
+    fn paused_request_attempts_are_paused_until_picked() {
+        let now = Utc::now();
+        let created_at = now - chrono::TimeDelta::minutes(1);
+        assert!(matches!(
+            RequestAttemptStatus::compute(&now, &created_at, &None, &None, &None, &None, true),
+            RequestAttemptStatus::Paused { since } if since == created_at
+        ));
+        assert!(matches!(
+            RequestAttemptStatus::compute(&now, &created_at, &None, &None, &None, &None, false),
+            RequestAttemptStatus::Pending { .. }
+        ));
+        assert!(matches!(
+            RequestAttemptStatus::compute(&now, &created_at, &Some(now), &None, &None, &None, true),
+            RequestAttemptStatus::InProgress { .. }
+        ));
+        assert!(matches!(
+            RequestAttemptStatus::compute(&now, &created_at, &None, &Some(now), &None, &None, true),
+            RequestAttemptStatus::Failed { .. }
+        ));
     }
 
     #[test]

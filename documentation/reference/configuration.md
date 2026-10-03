@@ -172,6 +172,20 @@ own build.
 | `REACTIVATION_EMAILS_PERIOD` | Duration to wait between reactivation email passes (at least 1s) | `6h` |  |
 | `REACTIVATION_PLAY_URL` | URL of the Hook0 webhook tester used as the J+3 CTA (lift the "no public URL" blocker) | `https://play.hook0.com/` |  |
 
+### Subscription Health
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `SUBSCRIPTION_HEALTH_ENFORCE_ONLY_FOR` | A comma-separated list of application IDs whose subscriptions are affected by their health state when SUBSCRIPTION_HEALTH_PROBE_MODE is `enforce`; subscriptions of other applications behave as in `shadow` mode; if empty (default), all applications are affected; ignored in other modes | - |  |
+| `SUBSCRIPTION_HEALTH_MAX_FAILURE_RATIO` | Ratio of failed request attempts in the window above which a subscription is unhealthy; at or below it, the subscription is healthy (0.0 to 1.0) | `0.3` |  |
+| `SUBSCRIPTION_HEALTH_PROBE_MODE` | `off` (default): subscriptions are not classified, which puts no load on request attempts, and health states have no effect; `shadow`: health states are computed and written exactly as in `enforce`, but have no effect on deliveries; `enforce`: health states pause and slow down deliveries of unhealthy subscriptions (see SUBSCRIPTION_HEALTH_ENFORCE_ONLY_FOR). This is applied when the API starts | `off` |  |
+| `SUBSCRIPTION_HEALTH_PROBE_PERIOD` | Duration to wait between two subscription health probes (at least 1s) | `5m` |  |
+| `SUBSCRIPTION_HEALTH_PROBE_WINDOW` | Duration of the sliding window of completed request attempts used to classify a subscription (at least 1s and at least SUBSCRIPTION_HEALTH_PROBE_PERIOD) | `15m` |  |
+| `SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION` | Duration a subscription must have been recovering (without any probe finding it unhealthy) before going back to healthy, regardless of traffic (at least 1s) | `1h` |  |
+| `SUBSCRIPTION_HEALTH_RECOVERING_MIN_ATTEMPTS` | Minimum number of request attempts completed since entering recovering for a subscription to go back to healthy early (see SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION) | `10` |  |
+| `SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION` | Minimum duration a subscription must have been recovering before going back to healthy early, provided enough request attempts were completed since entering recovering (see SUBSCRIPTION_HEALTH_RECOVERING_MIN_ATTEMPTS; at least 1s and at most SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION) | `10m` |  |
+| `SUBSCRIPTION_HEALTH_UNHEALTHY_MIN_ATTEMPTS` | Minimum number of completed request attempts in the window before a subscription can be classified as unhealthy | `10` |  |
+
 ### Monitoring
 
 | Variable | Description | Default | Required |
@@ -271,7 +285,7 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `OTLP_LOGS_ENDPOINT` | Optional OTLP endpoint that will receive logs | - |  |
 | `OTLP_AUTHORIZATION` 🔒 | Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`) | - |  |
 | `DATABASE_URL` 🔒 | Database URL (with credentials) | - | ✓ |
-| `MAX_DB_CONNECTIONS` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT) | `5` |  |
+| `MAX_DB_CONNECTIONS` | Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT); the worker also opens up to 2 connections for housekeeping | `5` |  |
 | `PULSAR_BINARY_URL` | Pulsar binary URL | - |  |
 | `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
 | `PULSAR_TENANT` | Pulsar tenant | - |  |
@@ -316,6 +330,12 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `PULSAR_SEND_RECEIPT_TIMEOUT` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | `10s` |  |
 | `THROUGHPUT_LOG_INTERVAL` | Interval between periodic throughput log lines (set to "0s" to disable) | `60s` |  |
 | `SLOT_METRICS_INTERVAL` | Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers) | `15s` |  |
+| `DEGRADED_SUBSCRIPTION_MIN_RETRY_DELAY` | Minimum delay before retrying a request attempt whose subscription is degraded or recovering (the effective delay is `max(this, normal retry delay including Retry-After)`) | `1h` |  |
+| `PAUSED_REQUEST_ATTEMPTS_RELEASE_PERIOD` | Duration to wait between two passes releasing paused request attempts; each pass's release phase is also bounded by this duration (must be at least 1s) | `30s` |  |
+| `PAUSED_REQUEST_ATTEMPTS_RELEASE_WINDOW` | Duration of the sliding window over which recently processed request attempts are counted when releasing paused ones; the per-minute targets are scaled to this window (must be at least 1s) | `1m` |  |
+| `PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_DEGRADED` | Target number of request attempts per minute (processed + waiting) for a degraded subscription that has paused request attempts | `50` |  |
+| `PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_RECOVERING` | Target number of request attempts per minute (processed + waiting) for a recovering subscription that has paused request attempts | `500` |  |
+| `PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_HEALTHY` | Target number of request attempts per minute (processed + waiting) for a healthy subscription that still has paused request attempts left over from a previous degraded period | `5000` |  |
 
 ## Notes
 

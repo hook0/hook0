@@ -6,7 +6,7 @@ use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use biscuit_auth::{KeyPair, PrivateKey};
 use clap::builder::{BoolValueParser, TypedValueParser};
-use clap::{ArgGroup, Parser, crate_name, crate_version};
+use clap::{ArgGroup, CommandFactory, Parser, ValueEnum, crate_name, crate_version};
 use ipnetwork::IpNetwork;
 use lettre::Address;
 use pulsar::{
@@ -54,6 +54,7 @@ mod reactivation_emails;
 mod signup_attribution_cleanup;
 mod signup_channel;
 mod soft_deleted_applications_cleanup;
+mod subscription_health;
 mod unverified_users_cleanup;
 mod validators;
 
@@ -512,7 +513,7 @@ struct Config {
     enable_reactivation_emails: bool,
 
     /// [Reactivation] Duration to wait between reactivation email passes (at least 1s)
-    #[clap(long, env, value_parser = parse_reactivation_period, default_value = "6h")]
+    #[clap(long, env, value_parser = parse_duration_of_at_least_1s, default_value = "6h")]
     reactivation_emails_period: Duration,
 
     /// [Reactivation] Upper bound on how many recipients a single pass processes per step (bounds work per pass)
@@ -733,14 +734,86 @@ struct Config {
     /// lazily). Runs regardless of Google Ads / Matomo configuration.
     #[clap(long, env, default_value = "3600")]
     signup_attribution_cleanup_period_in_s: u64,
+
+    /// [Subscription Health] `off` (default): subscriptions are not classified, which puts no load on request attempts, and health states have no effect; `shadow`: health states are computed and written exactly as in `enforce`, but have no effect on deliveries; `enforce`: health states pause and slow down deliveries of unhealthy subscriptions (see SUBSCRIPTION_HEALTH_ENFORCE_ONLY_FOR). This is applied when the API starts
+    #[clap(long, env, default_value = "off")]
+    subscription_health_probe_mode: SubscriptionHealthProbeMode,
+
+    /// [Subscription Health] A comma-separated list of application IDs whose subscriptions are affected by their health state when SUBSCRIPTION_HEALTH_PROBE_MODE is `enforce`; subscriptions of other applications behave as in `shadow` mode; if empty (default), all applications are affected; ignored in other modes
+    #[clap(long, env, use_value_delimiter = true)]
+    subscription_health_enforce_only_for: Vec<Uuid>,
+
+    /// [Subscription Health] Duration to wait between two subscription health probes (at least 1s)
+    #[clap(long, env, value_parser = parse_duration_of_at_least_1s, default_value = "5m")]
+    subscription_health_probe_period: Duration,
+
+    /// [Subscription Health] Duration of the sliding window of completed request attempts used to classify a subscription (at least 1s and at least SUBSCRIPTION_HEALTH_PROBE_PERIOD)
+    #[clap(long, env, value_parser = parse_duration_of_at_least_1s, default_value = "15m")]
+    subscription_health_probe_window: Duration,
+
+    /// [Subscription Health] Minimum number of completed request attempts in the window before a subscription can be classified as unhealthy
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 10)]
+    subscription_health_unhealthy_min_attempts: u32,
+
+    /// [Subscription Health] Ratio of failed request attempts in the window above which a subscription is unhealthy; at or below it, the subscription is healthy (0.0 to 1.0)
+    #[clap(long, env, value_parser = parse_ratio, default_value = "0.3")]
+    subscription_health_max_failure_ratio: f64,
+
+    /// [Subscription Health] Duration a subscription must have been recovering (without any probe finding it unhealthy) before going back to healthy, regardless of traffic (at least 1s)
+    #[clap(long, env, value_parser = parse_duration_of_at_least_1s, default_value = "1h")]
+    subscription_health_recovering_max_duration: Duration,
+
+    /// [Subscription Health] Minimum duration a subscription must have been recovering before going back to healthy early, provided enough request attempts were completed since entering recovering (see SUBSCRIPTION_HEALTH_RECOVERING_MIN_ATTEMPTS; at least 1s and at most SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION)
+    #[clap(long, env, value_parser = parse_duration_of_at_least_1s, default_value = "10m")]
+    subscription_health_recovering_min_duration: Duration,
+
+    /// [Subscription Health] Minimum number of request attempts completed since entering recovering for a subscription to go back to healthy early (see SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION)
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 10)]
+    subscription_health_recovering_min_attempts: u32,
 }
 
-/// Parse the delay between reactivation passes, refusing values that would turn
-/// the job into a tight loop. A zero period makes every pass re-acquire the
-/// housekeeping semaphore immediately, starving the other background jobs that
-/// share it; the floor is deliberately low (1s) so test environments can still
-/// drive several passes inside a run.
-fn parse_reactivation_period(input: &str) -> Result<Duration, String> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum SubscriptionHealthProbeMode {
+    #[value(alias = "false")]
+    Off,
+    Shadow,
+    #[value(alias = "true")]
+    Enforce,
+}
+
+/// Parse a ratio, refusing anything outside `[0.0, 1.0]`.
+fn parse_ratio(input: &str) -> Result<f64, String> {
+    let ratio: f64 = input
+        .parse()
+        .map_err(|e: std::num::ParseFloatError| e.to_string())?;
+    if !(0.0..=1.0).contains(&ratio) {
+        return Err("must be between 0.0 and 1.0".to_owned());
+    }
+    Ok(ratio)
+}
+
+/// Check the subscription health settings that depend on each other
+fn validate_subscription_health_config(
+    probe_period: Duration,
+    probe_window: Duration,
+    recovering_min_duration: Duration,
+    recovering_max_duration: Duration,
+) -> Result<(), String> {
+    if recovering_min_duration > recovering_max_duration {
+        Err("SUBSCRIPTION_HEALTH_RECOVERING_MIN_DURATION must not be greater than SUBSCRIPTION_HEALTH_RECOVERING_MAX_DURATION".to_owned())
+    } else if probe_window < probe_period {
+        Err("SUBSCRIPTION_HEALTH_PROBE_WINDOW must not be shorter than SUBSCRIPTION_HEALTH_PROBE_PERIOD, otherwise some completed request attempts would never be seen by a probe".to_owned())
+    } else {
+        Ok(())
+    }
+}
+
+/// Parse a period between two passes of a background job, refusing values that
+/// would turn the job into a tight loop. A zero period makes every pass start
+/// again immediately (for jobs sharing the housekeeping semaphore, this starves
+/// the other background jobs); the floor is deliberately low (1s) so test
+/// environments can still drive several passes inside a run.
+fn parse_duration_of_at_least_1s(input: &str) -> Result<Duration, String> {
     let period = humantime::parse_duration(input).map_err(|e| e.to_string())?;
     if period < Duration::from_secs(1) {
         return Err("must be at least 1s".to_owned());
@@ -973,6 +1046,16 @@ impl std::fmt::Debug for PulsarConfig {
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
+    if let Err(e) = validate_subscription_health_config(
+        config.subscription_health_probe_period,
+        config.subscription_health_probe_window,
+        config.subscription_health_recovering_min_duration,
+        config.subscription_health_recovering_max_duration,
+    ) {
+        Config::command()
+            .error(clap::error::ErrorKind::ValueValidation, e)
+            .exit();
+    }
 
     // Build Google Ads client up-front (None when any required field is
     // missing — server-side conversion upload then silently disabled).
@@ -1021,6 +1104,14 @@ async fn main() -> anyhow::Result<()> {
         )?;
 
         trace!("Starting {APP_TITLE}");
+
+        if config.subscription_health_probe_mode != SubscriptionHealthProbeMode::Enforce
+            && !config.subscription_health_enforce_only_for.is_empty()
+        {
+            warn!(
+                "SUBSCRIPTION_HEALTH_ENFORCE_ONLY_FOR is ignored because SUBSCRIPTION_HEALTH_PROBE_MODE is not `enforce`"
+            );
+        }
 
         // Prepare trusted reverse proxies CIDRs
         let reverse_proxy_cidrs = if config.reverse_proxy_ips.is_empty() {
@@ -1141,6 +1232,20 @@ async fn main() -> anyhow::Result<()> {
         )
         .execute(&housekeeping_pool)
         .await;
+
+        // Share subscription health settings with output workers
+        let subscription_health_enforced =
+            config.subscription_health_probe_mode == SubscriptionHealthProbeMode::Enforce;
+        subscription_health::share_enforcement_settings(
+            &housekeeping_pool,
+            subscription_health_enforced,
+            if subscription_health_enforced {
+                &config.subscription_health_enforce_only_for
+            } else {
+                &[]
+            },
+        )
+        .await?;
 
         // Create Pulsar client
         let pulsar_config = if let (
@@ -1536,6 +1641,30 @@ async fn main() -> anyhow::Result<()> {
             );
         }
 
+        // Spawn task to probe subscription health
+        // No housekeeping semaphore here because a long cleanup must not delay probes; concurrent probes from several API instances are prevented by an advisory lock
+        if config.subscription_health_probe_mode != SubscriptionHealthProbeMode::Off {
+            let probe_db = housekeeping_pool.clone();
+            let probe_params = subscription_health::ProbeParams {
+                window: config.subscription_health_probe_window,
+                unhealthy_min_attempts: config.subscription_health_unhealthy_min_attempts,
+                max_failure_ratio: config.subscription_health_max_failure_ratio,
+                recovering_max_duration: config.subscription_health_recovering_max_duration,
+                recovering_min_duration: config.subscription_health_recovering_min_duration,
+                recovering_min_attempts: config.subscription_health_recovering_min_attempts,
+            };
+            actix_web::rt::spawn(async move {
+                subscription_health::periodically_probe_subscription_health(
+                    &probe_db,
+                    config.subscription_health_probe_period,
+                    probe_params,
+                )
+                .await;
+            });
+        } else {
+            info!("Subscription health probe is disabled (SUBSCRIPTION_HEALTH_PROBE_MODE = off)");
+        }
+
         // Spawn task to clean up object storage
         // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
         if let Some(os) = &object_storage_config
@@ -1703,24 +1832,59 @@ async fn main() -> anyhow::Result<()> {
 mod tests {
     use super::*;
 
-    /// A zero (or sub-second) reactivation period would make every pass
-    /// re-acquire the housekeeping semaphore immediately, starving the other
-    /// background jobs that share it. The floor is low enough that test
+    /// A zero (or sub-second) period would make every pass start again
+    /// immediately (and re-acquire the housekeeping semaphore, starving the other
+    /// background jobs that share it). The floor is low enough that test
     /// environments can still drive several passes inside a run.
     #[test]
-    fn reactivation_period_refuses_a_tight_loop() {
-        assert!(parse_reactivation_period("0s").is_err());
-        assert!(parse_reactivation_period("999ms").is_err());
+    fn periods_refuse_a_tight_loop() {
+        assert!(parse_duration_of_at_least_1s("0s").is_err());
+        assert!(parse_duration_of_at_least_1s("999ms").is_err());
         assert_eq!(
-            parse_reactivation_period("1s"),
+            parse_duration_of_at_least_1s("1s"),
             Ok(Duration::from_secs(1)),
             "the floor itself is accepted, so short periods stay usable in tests"
         );
         assert_eq!(
-            parse_reactivation_period("6h"),
+            parse_duration_of_at_least_1s("6h"),
             Ok(Duration::from_secs(6 * 60 * 60))
         );
-        assert!(parse_reactivation_period("not-a-duration").is_err());
+        assert!(parse_duration_of_at_least_1s("not-a-duration").is_err());
+    }
+
+    #[test]
+    fn ratio_must_be_between_0_and_1() {
+        assert_eq!(parse_ratio("0"), Ok(0.0));
+        assert_eq!(parse_ratio("0.3"), Ok(0.3));
+        assert_eq!(parse_ratio("1"), Ok(1.0));
+        assert!(parse_ratio("-0.1").is_err());
+        assert!(parse_ratio("1.1").is_err());
+        assert!(parse_ratio("NaN").is_err());
+        assert!(parse_ratio("not-a-ratio").is_err());
+    }
+
+    #[test]
+    fn subscription_health_config_refuses_inconsistent_durations() {
+        let minutes = |m: u64| Duration::from_secs(m * 60);
+        assert!(
+            validate_subscription_health_config(minutes(5), minutes(15), minutes(10), minutes(60))
+                .is_ok()
+        );
+        assert!(
+            validate_subscription_health_config(minutes(5), minutes(5), minutes(60), minutes(60))
+                .is_ok(),
+            "equal values are accepted"
+        );
+        assert!(
+            validate_subscription_health_config(minutes(5), minutes(15), minutes(61), minutes(60))
+                .is_err(),
+            "recovering min duration greater than max duration"
+        );
+        assert!(
+            validate_subscription_health_config(minutes(5), minutes(4), minutes(10), minutes(60))
+                .is_err(),
+            "probe window shorter than probe period"
+        );
     }
 
     /// The Matomo tracker stays dark over cleartext http: the token_auth secret

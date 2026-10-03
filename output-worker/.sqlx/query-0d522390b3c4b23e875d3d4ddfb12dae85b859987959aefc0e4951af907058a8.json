@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    WITH processed AS (\n                        SELECT ra.subscription__id, count(*) AS n\n                        FROM webhook.response AS r\n                        INNER JOIN webhook.request_attempt AS ra ON ra.response__id = r.response__id\n                        WHERE r.response__id BETWEEN (SELECT uuidv7(-$2::interval)) AND (SELECT uuidv7())\n                            AND ra.subscription__id = ANY($1)\n                            AND COALESCE(ra.succeeded_at, ra.failed_at) >= statement_timestamp() - $2::interval\n                        GROUP BY ra.subscription__id\n                    ), waiting AS (\n                        SELECT subscription__id, count(*) AS n\n                        FROM webhook.request_attempt\n                        WHERE subscription__id = ANY($1)\n                            AND NOT paused AND succeeded_at IS NULL AND failed_at IS NULL\n                            AND (delay_until IS NULL OR delay_until <= statement_timestamp())\n                        GROUP BY subscription__id\n                    )\n                    SELECT\n                        s.subscription__id AS \"subscription_id!\",\n                        COALESCE(p.n, 0) AS \"processed!\",\n                        COALESCE(w.n, 0) AS \"waiting!\"\n                    FROM unnest($1::uuid[]) AS s(subscription__id)\n                    LEFT JOIN processed AS p ON p.subscription__id = s.subscription__id\n                    LEFT JOIN waiting AS w ON w.subscription__id = s.subscription__id\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "processed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "waiting!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0d522390b3c4b23e875d3d4ddfb12dae85b859987959aefc0e4951af907058a8"
+}

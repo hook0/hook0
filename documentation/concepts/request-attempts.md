@@ -25,8 +25,11 @@ flowchart TD
     E["FAILED"]:::customer
     F["WAITING<br/>(Backoff delay)"]:::customer
     G["Retry cycle"]:::processing
+    P["PAUSED<br/>(Subscription degraded)"]:::customer
 
     A --> B --> C
+    A -- "subscription degraded or recovering" --> P
+    P -- "released gradually" --> B
     C --> D
     C -- "fail, retries remaining" --> F
     C -- "fail, retries exhausted" --> E
@@ -40,17 +43,19 @@ flowchart TD
     click A "/concepts/events" "Events"
     click E "/explanation/webhook-retry-logic" "Retry Logic"
     click F "/explanation/webhook-retry-logic" "Backoff Delay"
+    click P "/explanation/webhook-retry-logic#subscription-health" "Subscription Health"
 ```
 
 ## Status states
 
-Request attempts go through these states:
+Request attempts go through these states (the API value of `status.type` is given in parentheses):
 
-- Pending: queued, waiting to be picked up for delivery
-- In progress: currently being delivered to the endpoint
-- Waiting: delivery failed, waiting for retry (backoff delay)
-- Successful: webhook delivered and endpoint returned 2xx
-- Failed: all retry attempts exhausted or permanently failed
+- Pending (`pending`): queued, waiting to be picked up for delivery
+- Paused (`paused`): held back because most recent deliveries to the subscription's endpoint failed; released gradually (see [Subscription health](/explanation/webhook-retry-logic#subscription-health))
+- In progress (`in_progress`): currently being delivered to the endpoint
+- Waiting (`waiting`): delivery failed, waiting for retry (backoff delay)
+- Successful (`successful`): webhook delivered and endpoint returned 2xx
+- Failed (`failed`): all retry attempts exhausted or permanently failed
 
 ## Retry behavior
 
@@ -70,6 +75,8 @@ When a delivery fails, Hook0 schedules retries with increasing backoff delays:
 A small random amount is added on top of each delay -- never subtracted, so a retry never fires earlier than its base delay -- so that deliveries that failed together do not retry together. See [Why delays are not exact](/explanation/webhook-retry-logic#why-delays-are-not-exact).
 
 Retries are bounded by both `MAX_RETRIES` and `MAX_RETRY_WINDOW` (whichever limit is reached first) at the Output Worker level. After all retries are exhausted, the attempt is marked as permanently failed.
+
+While a subscription is degraded or recovering, each retry waits at least 1 hour (see [Subscription health](/explanation/webhook-retry-logic#subscription-health)).
 
 Transient failures won't cause data loss, and struggling endpoints won't get hammered.
 

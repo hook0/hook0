@@ -185,6 +185,8 @@ const (
 	RequestAttemptStatusTypeWaiting RequestAttemptStatusType = "waiting"
 	// RequestAttemptStatusTypePending is the `pending` the API answers with.
 	RequestAttemptStatusTypePending RequestAttemptStatusType = "pending"
+	// RequestAttemptStatusTypePaused is the `paused` the API answers with.
+	RequestAttemptStatusTypePaused RequestAttemptStatusType = "paused"
 	// RequestAttemptStatusTypeInProgress is the `in_progress` the API answers with.
 	RequestAttemptStatusTypeInProgress RequestAttemptStatusType = "in_progress"
 	// RequestAttemptStatusTypeSuccessful is the `successful` the API answers with.
@@ -585,7 +587,7 @@ type RequestAttempt struct {
 	ResponseId *UUID `json:"response_id,omitempty"`
 	// RetryCount carries `retry_count`.
 	RetryCount int32 `json:"retry_count"`
-	// Status carries `status`: Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - in_progre
+	// Status carries `status`: Status of a request attempt. The 'type' field indicates the status variant. - waiting: {type, since, until} - Scheduled for future delivery - pending: {type, since} - Ready to be processed - paused: {
 	Status RequestAttemptStatus `json:"status"`
 	// Subscription carries `subscription`.
 	Subscription RequestAttemptSubscription `json:"subscription"`
@@ -607,9 +609,9 @@ type RequestAttemptStatus struct {
 	At *time.Time `json:"at,omitempty"`
 	// FullProcessingMs carries `full_processing_ms`: Total processing time in milliseconds (present in successful, failed)
 	FullProcessingMs *int64 `json:"full_processing_ms,omitempty"`
-	// Since carries `since`: Timestamp when the status started (present in waiting, pending, in_progress)
+	// Since carries `since`: Timestamp when the status started (present in waiting, pending, paused, in_progress)
 	Since *time.Time `json:"since,omitempty"`
-	// Type carries `type`: Status type discriminator. One of: waiting, pending, in_progress, successful, failed
+	// Type carries `type`: Status type discriminator. One of: waiting, pending, paused, in_progress, successful, failed
 	Type RequestAttemptStatusType `json:"type"`
 	// Until carries `until`: Timestamp until which waiting (only present in waiting status)
 	Until *time.Time `json:"until,omitempty"`

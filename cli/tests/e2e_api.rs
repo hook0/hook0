@@ -840,10 +840,12 @@ fn test_subscription_create_with_options() {
 
     // Create with multiple events, headers, disabled
     let events_csv = format!("{},{}", et1, et2);
-    cli(cfg.path())
+    let output = cli(cfg.path())
         .args([
             "--profile",
             &prof,
+            "--output",
+            "json",
             "subscription",
             "create",
             "-e",
@@ -860,8 +862,12 @@ fn test_subscription_create_with_options() {
             "-d",
             "Multi-event disabled sub",
         ])
-        .assert()
-        .success();
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "subscription create failed");
+    let created: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("subscription create JSON should be valid");
+    let sub_id = created["subscription_id"].as_str().unwrap().to_string();
 
     // Verify it's disabled
     let output = cli(cfg.path())
@@ -877,17 +883,21 @@ fn test_subscription_create_with_options() {
         .output()
         .unwrap();
     let subs: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
-    assert!(!subs.is_empty(), "should have 1 disabled subscription");
+    // Other tests share the application, so only look for (and later delete) our own subscription
+    assert!(
+        subs.iter()
+            .any(|s| s["subscription_id"].as_str() == Some(&sub_id)),
+        "created subscription should appear in the disabled list"
+    );
 
     // Cleanup
-    let sub_id = subs[0]["subscription_id"].as_str().unwrap();
     let _ = cli(cfg.path())
         .args([
             "--profile",
             &prof,
             "subscription",
             "delete",
-            sub_id,
+            &sub_id,
             "--yes",
         ])
         .output();

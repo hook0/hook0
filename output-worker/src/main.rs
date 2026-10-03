@@ -1,6 +1,7 @@
 mod dns;
 mod monitoring;
 mod opentelemetry;
+mod paused_release;
 mod pg;
 mod pulsar;
 mod standard_webhooks;
@@ -13,6 +14,8 @@ use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
+use aws_sdk_s3::error::DisplayErrorContext;
+use aws_sdk_s3::operation::get_object::GetObjectError;
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
 use hickory_resolver::config::LookupIpStrategy;
@@ -40,6 +43,7 @@ use crate::opentelemetry::{GiveUpReason, report_given_up};
 use crate::pulsar::LoadMode;
 use crate::work::*;
 use hook0_protobuf::RequestAttempt;
+use hook0_sentry_integration::log_object_storage_error_with_context;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum SignatureVersion {
@@ -118,7 +122,7 @@ struct Config {
     #[clap(long, env, hide_env_values = true)]
     database_url: String,
 
-    /// Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT)
+    /// Maximum number of connections to database (for a worker with pg queue type, it should be equal to CONCURRENT); the worker also opens up to 2 connections for housekeeping
     #[clap(long, env, default_value = "5")]
     max_db_connections: u32,
 
@@ -303,6 +307,40 @@ struct Config {
     /// Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     slot_metrics_interval: Duration,
+
+    /// Minimum delay before retrying a request attempt whose subscription is degraded or recovering (the effective delay is `max(this, normal retry delay including Retry-After)`)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
+    degraded_subscription_min_retry_delay: Duration,
+
+    /// Duration to wait between two passes releasing paused request attempts; each pass's release phase is also bounded by this duration (must be at least 1s)
+    #[clap(long, env, value_parser = parse_min_duration, default_value = "30s")]
+    paused_request_attempts_release_period: Duration,
+
+    /// Duration of the sliding window over which recently processed request attempts are counted when releasing paused ones; the per-minute targets are scaled to this window (must be at least 1s)
+    #[clap(long, env, value_parser = parse_min_duration, default_value = "1m")]
+    paused_request_attempts_release_window: Duration,
+
+    /// Target number of request attempts per minute (processed + waiting) for a degraded subscription that has paused request attempts
+    #[clap(long, env, default_value_t = 50)]
+    paused_request_attempts_release_target_degraded: u32,
+
+    /// Target number of request attempts per minute (processed + waiting) for a recovering subscription that has paused request attempts
+    #[clap(long, env, default_value_t = 500)]
+    paused_request_attempts_release_target_recovering: u32,
+
+    /// Target number of request attempts per minute (processed + waiting) for a healthy subscription that still has paused request attempts left over from a previous degraded period
+    #[clap(long, env, default_value_t = 5000)]
+    paused_request_attempts_release_target_healthy: u32,
+}
+
+/// Parse a duration, refusing anything shorter than 1 second.
+fn parse_min_duration(input: &str) -> Result<Duration, String> {
+    let duration = humantime::parse_duration(input).map_err(|e| e.to_string())?;
+    if duration < Duration::from_secs(1) {
+        Err("must be at least 1s".to_owned())
+    } else {
+        Ok(duration)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -502,6 +540,17 @@ async fn main() -> anyhow::Result<()> {
                 .application_name(&format!("{}-{worker_version}-{worker_name}", crate_name!(),)),
         )
         .await?;
+
+    // Create a DB connection pool for housekeeping tasks, so that busy work units cannot starve them
+    let housekeeping_pool = PgPoolOptions::new()
+        .max_connections(2)
+        .connect_with(
+            PgConnectOptions::from_str(&config.database_url)?.application_name(&format!(
+                "{}-{worker_version}-{worker_name}-housekeeping",
+                crate_name!(),
+            )),
+        )
+        .await?;
     info!("Connected to database");
 
     rustls::crypto::aws_lc_rs::default_provider()
@@ -681,6 +730,12 @@ async fn main() -> anyhow::Result<()> {
         )
     }
 
+    if config.paused_request_attempts_release_target_healthy == 0 {
+        warn!(
+            "PAUSED_REQUEST_ATTEMPTS_RELEASE_TARGET_HEALTHY is 0: paused request attempts of healthy subscriptions (including all of them when subscription health is not enforced) will never be released"
+        )
+    }
+
     info!("Upserting response error names");
     let mut tx = pool.begin().await?;
     for error_name in ResponseError::VARIANTS {
@@ -787,6 +842,19 @@ async fn main() -> anyhow::Result<()> {
     } else {
         None
     };
+
+    // This task releases paused request attempts of the subscriptions of this worker (a Pulsar worker needs an ID to know its topic)
+    if pulsar_config.is_none() || worker.scope.worker_id().is_some() {
+        let cfg = config.to_owned();
+        let p = housekeeping_pool.clone();
+        let w = worker.to_owned();
+        let os = object_storage_config.clone();
+        let pu = pulsar_config.clone();
+        let tt = task_tracker.clone();
+        tasks.spawn(async move {
+            paused_release::run_paused_release(&cfg, &p, &w, &os, &pu, &tt).await;
+        });
+    }
 
     // This task is the main control tasks around webhooks sending
     let task_tracker_main = task_tracker.clone();
@@ -1006,6 +1074,7 @@ pub struct RetryPolicy {
     max_retries: u8,
     jitter_ratio: f64,
     jitter_max_spread: Duration,
+    degraded_min_retry_delay: Duration,
 }
 
 impl RetryPolicy {
@@ -1030,6 +1099,11 @@ impl RetryPolicy {
             max_retries: config.max_retries,
             jitter_ratio: config.retry_jitter_ratio,
             jitter_max_spread: config.retry_jitter_max_spread,
+            // Truncated to whole microseconds for the same reason as in `next_delay`
+            degraded_min_retry_delay: Duration::new(
+                config.degraded_subscription_min_retry_delay.as_secs(),
+                config.degraded_subscription_min_retry_delay.subsec_micros() * 1000,
+            ),
         })
     }
 
@@ -1120,6 +1194,22 @@ impl RetryPolicy {
             .map(|delay| delay.max(hint))
     }
 
+    /// The retry delay once the subscription's health is taken into account: a degraded or
+    /// recovering subscription never gets its next attempt sooner than `degraded_min_retry_delay`.
+    /// Like `Retry-After`, this only ever pushes an attempt further away and never changes how
+    /// many retries it gets.
+    fn next_delay_for_health(
+        &self,
+        next_delay: Option<Duration>,
+        throttled: bool,
+    ) -> Option<Duration> {
+        if throttled {
+            next_delay.map(|delay| delay.max(self.degraded_min_retry_delay))
+        } else {
+            next_delay
+        }
+    }
+
     /// Worst-case number of retries and cumulative delay that fit in `max_retry_window`.
     ///
     /// Each step is charged its maximum jitter so the result is an upper bound on the retry
@@ -1193,27 +1283,31 @@ async fn compute_next_retry(
                 warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
+            // `throttled` is true when the subscription is degraded or recovering and subscription health is enforced for its application
             let sub = query!(
-                "
-                    SELECT true AS whatever
+                r#"
+                    SELECT webhook.effective_subscription_health(s.subscription__id, s.application__id) <> 'healthy' AS "throttled!"
                     FROM webhook.subscription AS s
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
                     WHERE s.subscription__id = $1
                         AND s.deleted_at IS NULL
                         AND s.is_enabled
                         AND a.deleted_at IS NULL
-                ",
+                "#,
                 attempt.subscription_id
             )
             .fetch_optional(conn)
             .await?;
 
-            if sub.is_some() {
-                let next_delay = policy.next_delay_honouring(
-                    attempt.retry_count,
-                    rand::random::<f64>(),
-                    response,
-                    Utc::now(),
+            if let Some(sub) = sub {
+                let next_delay = policy.next_delay_for_health(
+                    policy.next_delay_honouring(
+                        attempt.retry_count,
+                        rand::random::<f64>(),
+                        response,
+                        Utc::now(),
+                    ),
+                    sub.throttled,
                 );
                 if next_delay.is_none() {
                     report_given_up(GiveUpReason::RetriesExhausted);
@@ -1228,6 +1322,106 @@ async fn compute_next_retry(
     }
 }
 
+/// Why an event's payload could not be fetched from object storage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MissingPayload {
+    /// The payload object does not exist (S3 NoSuchKey): the request attempt can never be delivered.
+    Gone,
+    /// The read failed or object storage is not configured: this may be fixed later.
+    Unavailable,
+}
+
+/// Fetch the payload of an event that is not stored in the database from object storage.
+async fn fetch_event_payload(
+    object_storage: &Option<ObjectStorageConfig>,
+    application_id: Uuid,
+    event_received_at: DateTime<Utc>,
+    event_id: Uuid,
+) -> Result<Vec<u8>, MissingPayload> {
+    if let Some(os) = object_storage {
+        let key = format!(
+            "{application_id}/event/{}/{event_id}",
+            event_received_at.naive_utc().date(),
+        );
+        match os
+            .client
+            .get_object()
+            .bucket(&os.bucket)
+            .key(&key)
+            .send()
+            .await
+        {
+            Ok(obj) => match obj.body.collect().await {
+                Ok(ab) => Ok(ab.to_vec()),
+                Err(e) => {
+                    log_object_storage_error_with_context!(
+                        "S3 GET OBJECT body collect failed",
+                        error_chain = format!("{e}"),
+                        object_key = &key,
+                    );
+                    Err(MissingPayload::Unavailable)
+                }
+            },
+            Err(e) if matches!(e.as_service_error(), Some(GetObjectError::NoSuchKey(_))) => {
+                log_object_storage_error_with_context!(
+                    "S3 GET OBJECT failed: payload object is missing",
+                    error_chain = DisplayErrorContext(&e).to_string(),
+                    object_key = &key,
+                );
+                Err(MissingPayload::Gone)
+            }
+            Err(e) => {
+                log_object_storage_error_with_context!(
+                    "S3 GET OBJECT failed",
+                    error_chain = DisplayErrorContext(&e).to_string(),
+                    object_key = &key,
+                );
+                Err(MissingPayload::Unavailable)
+            }
+        }
+    } else {
+        // Object storage is not configured but the payload is not in the DB either. Treat as
+        // recoverable (an operator can fix the config and restart) rather than dropping the event.
+        Err(MissingPayload::Unavailable)
+    }
+}
+
+/// Fail a request attempt whose payload object is gone for good.
+///
+/// A synthetic `E_INTERNAL` response is recorded so the abandoned attempt keeps the usual response
+/// association (and does not count against the subscription's health). No retry is created and
+/// retry_count is untouched.
+async fn give_up_on_missing_payload(
+    conn: &mut PgConnection,
+    request_attempt_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    let response_id = query!(
+        "
+            INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING response__id
+        ",
+        Some(ResponseError::Internal.to_string()),
+        None::<i16>,
+        None::<serde_json::Value>,
+        None::<Vec<u8>>,
+        0_i32,
+    )
+    .fetch_one(&mut *conn)
+    .await?
+    .response__id;
+
+    query!(
+        "UPDATE webhook.request_attempt SET response__id = $1, failed_at = statement_timestamp() WHERE request_attempt__id = $2",
+        response_id,
+        request_attempt_id,
+    )
+    .execute(&mut *conn)
+    .await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1240,6 +1434,7 @@ mod tests {
             max_retries,
             jitter_ratio: 0.0,
             jitter_max_spread: Duration::ZERO,
+            degraded_min_retry_delay: Duration::from_hours(1),
         }
     }
 
@@ -1249,6 +1444,7 @@ mod tests {
             max_retries,
             jitter_ratio: 0.1,
             jitter_max_spread: Duration::from_secs(15 * 60),
+            degraded_min_retry_delay: Duration::from_hours(1),
         }
     }
 
@@ -1297,6 +1493,7 @@ mod tests {
                 max_retries: 30,
                 jitter_ratio: ratio,
                 jitter_max_spread: Duration::from_secs(15 * 60),
+                degraded_min_retry_delay: Duration::from_hours(1),
             };
             assert_eq!(
                 policy.jitter_spread(base),
@@ -1312,6 +1509,7 @@ mod tests {
             max_retries: 30,
             jitter_ratio: 0.1,
             jitter_max_spread: Duration::ZERO,
+            degraded_min_retry_delay: Duration::from_hours(1),
         };
         assert_eq!(policy.jitter_spread(Duration::from_secs(3)), Duration::ZERO);
         assert_eq!(
@@ -1357,6 +1555,7 @@ mod tests {
             max_retries: 30,
             jitter_ratio: 0.1,
             jitter_max_spread: Duration::from_secs(1),
+            degraded_min_retry_delay: Duration::from_hours(1),
         };
         assert!(policy.jitter_max_spread < RetryPolicy::JITTER_MIN_SPREAD);
         assert_eq!(
@@ -1372,6 +1571,7 @@ mod tests {
             max_retries: 30,
             jitter_ratio: f64::MAX,
             jitter_max_spread: Duration::from_secs(15 * 60),
+            degraded_min_retry_delay: Duration::from_hours(1),
         };
         let base = Duration::from_hours(10);
 
@@ -1678,6 +1878,7 @@ mod tests {
                 max_retries: 24,
                 jitter_ratio,
                 jitter_max_spread: Duration::from_secs(15 * 60),
+                degraded_min_retry_delay: Duration::from_hours(1),
             };
             let answer = response(status, Some(&hint_secs.to_string()));
 
@@ -1701,5 +1902,37 @@ mod tests {
                 );
             }
         }
+
+        /// A degraded or recovering subscription waits at least the configured minimum, never
+        /// less than it would have waited anyway, and gets exactly as many retries as before.
+        #[test]
+        fn degraded_subscriptions_wait_at_least_the_minimum(
+            retry_count in 0i16..40,
+            factor in 0.0f64..=1.0,
+            min_secs in 0u64..100_000,
+        ) {
+            let policy = RetryPolicy {
+                degraded_min_retry_delay: Duration::from_secs(min_secs),
+                ..default_jitter(24)
+            };
+
+            let normal = policy.next_delay(retry_count, factor);
+            prop_assert_eq!(policy.next_delay_for_health(normal, false), normal);
+
+            let throttled = policy.next_delay_for_health(normal, true);
+            prop_assert_eq!(throttled.is_some(), normal.is_some());
+            if let (Some(normal), Some(throttled)) = (normal, throttled) {
+                prop_assert_eq!(throttled, normal.max(Duration::from_secs(min_secs)));
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_min_duration() {
+        assert_eq!(parse_min_duration("1s"), Ok(Duration::from_secs(1)));
+        assert_eq!(parse_min_duration("30s"), Ok(Duration::from_secs(30)));
+        assert!(parse_min_duration("0s").is_err());
+        assert!(parse_min_duration("999ms").is_err());
+        assert!(parse_min_duration("soon").is_err());
     }
 }

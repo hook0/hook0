@@ -14,6 +14,7 @@ enum RequestAttemptStatusType: string
 {
     case Waiting = 'waiting';
     case Pending = 'pending';
+    case Paused = 'paused';
     case InProgress = 'in_progress';
     case Successful = 'successful';
     case Failed = 'failed';

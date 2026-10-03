@@ -245,6 +245,7 @@ ORDER BY error_count DESC;
 - `E_HTTP`: Non-2xx HTTP response
 - `E_INVALID_TARGET`: Invalid URL or configuration
 - `E_INVALID_HEADER`: A required header value could not be constructed
+- `E_INTERNAL`: A failure on Hook0's side (for example, the event's payload could not be found); it does not count against the subscription's health
 - `E_UNKNOWN`: An unexpected error occurred
 
 ### 5. Delivery Latency
@@ -393,6 +394,7 @@ The `response_error_name` field categorizes the failure:
 - **`E_HTTP`**: Non-2xx response (check response body for details)
 - **`E_INVALID_TARGET`**: Malformed URL, a hostname that does not exist (NXDOMAIN), or a forbidden IP address
 - **`E_INVALID_HEADER`**: A required header value could not be constructed (not retried)
+- **`E_INTERNAL`**: A failure on Hook0's side that says nothing about the target (for example, the event's payload could not be found); it does not count against the subscription's health
 - **`E_UNKNOWN`**: An unexpected error occurred
 
 ### Step 4: Review Event Payload

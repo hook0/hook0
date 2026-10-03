@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        INSERT INTO infrastructure.state (key, value_timestamptz)\n                        VALUES ('last_probe_subscription_health', statement_timestamp())\n                        ON CONFLICT (key) DO UPDATE\n                            SET value_timestamptz = EXCLUDED.value_timestamptz\n                            WHERE state.value_timestamptz IS NULL\n                                OR state.value_timestamptz < EXCLUDED.value_timestamptz\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "7ab8f8c965703245b2e35977d96371aeec54510b29ff01e7468f48deb50b1bf7"
+}

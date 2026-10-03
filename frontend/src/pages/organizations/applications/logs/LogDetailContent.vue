@@ -32,10 +32,14 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 const route = useRoute();
 
-// "Sent" = HTTP request dispatched; Waiting (retry queue) and Pending (not yet picked) have not made a network call
+// "Sent" = HTTP request dispatched; Waiting (retry queue), Pending (not yet picked) and Paused (held back) have not made a network call
 const isSent = computed(() => {
   const type = props.attempt.status.type;
-  return type !== RequestAttemptStatusType.Waiting && type !== RequestAttemptStatusType.Pending;
+  return (
+    type !== RequestAttemptStatusType.Waiting &&
+    type !== RequestAttemptStatusType.Pending &&
+    type !== RequestAttemptStatusType.Paused
+  );
 });
 
 const eventIdRef = computed(() => props.attempt.event_id);

@@ -11,13 +11,14 @@ import java.util.Map;
 /**
  * The `RequestAttemptStatus` the API declares.
  *
- * @param type carries `type`: Status type discriminator. One of: waiting, pending, in_progress, successful, failed
+ * @param type carries `type`: Status type discriminator. One of: waiting, pending, paused, in_progress, successful,
+ *     failed
  * @param at carries `at`, or nothing when the API answers none: Timestamp when completed (present in successful,
  *     failed)
  * @param fullProcessingMs carries `full_processing_ms`, or nothing when the API answers none: Total processing time in
  *     milliseconds (present in successful, failed)
  * @param since carries `since`, or nothing when the API answers none: Timestamp when the status started (present in
- *     waiting, pending, in_progress)
+ *     waiting, pending, paused, in_progress)
  * @param until carries `until`, or nothing when the API answers none: Timestamp until which waiting (only present in
  *     waiting status)
  */
