@@ -41,6 +41,10 @@ module.exports = {
         "a": "Im kostenlosen Developer-Tarif werden zusätzliche Events blockiert (HTTP 429). In den bezahlten Tarifen (Startup und Pro) werden zusätzliche Events <strong>niemals blockiert</strong>. Sie werden pro Event abgerechnet (0,003 € pro Event in Startup, 0,0001 € pro Event in Pro). Wir haben uns gegen die Unterbrechung entschieden, damit Kunden, die Produkte auf Hook0 bauen, keine Probleme bekommen."
       },
       {
+        "q": "Wie viele Organisationen kann ich im kostenlosen Tarif haben?",
+        "a": "Dein Konto kann zu höchstens 2 kostenlosen Organisationen gehören. Organisationen mit einem bezahlten Tarif zählen nicht zu diesem Limit. Wenn du eine davon auf einen bezahlten Tarif umstellst, wird ein Platz frei. Brauchst du mehr kostenlose Organisationen, wende dich an den Support, um das Limit anzuheben."
+      },
+      {
         "q": "Wie überwache ich meinen Verbrauch?",
         "a": "Das Organization-Dashboard in der Hook0-App zeigt deinen Event-Verbrauch für den aktuellen Tag und die vergangenen Tage. Für Abrechnungsdetails und die Rechnungs-Historie öffne dein Stripe-Billing-Portal."
       },
