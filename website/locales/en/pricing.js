@@ -42,6 +42,10 @@ module.exports = {
         "a": "On the free Developer plan, extra events are blocked (HTTP 429). On paid plans (Startup and Pro), extra events are <strong>never blocked</strong>; they are billed at a per-event rate (€0.003/event on Startup, €0.0001/event on Pro). We chose not to interrupt delivery to avoid causing issues to customers building products on top of Hook0."
       },
       {
+        "q": "How many organizations can I have on the free plan?",
+        "a": "Your account can belong to up to 2 free organizations. Organizations on a paid plan don't count toward that limit, so putting one on a paid plan frees a slot. If you need more free organizations, contact support to raise the cap."
+      },
+      {
         "q": "How can I monitor my usage?",
         "a": "The Organization Dashboard in the Hook0 app shows your event consumption for the current day and past days. For billing details and invoice history, check your Stripe billing portal."
       },

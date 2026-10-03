@@ -39,6 +39,10 @@ module.exports = {
         "a": "Sur l'offre Developer gratuite, les events supplémentaires sont bloqués (HTTP 429). Sur les offres payantes (Startup et Pro), les events supplémentaires <strong>ne sont jamais bloqués</strong>. Ils sont facturés à l'event (0,003 € par event sur Startup, 0,0001 € par event sur Pro). On a choisi de ne pas interrompre la livraison pour éviter de poser problème aux clients qui construisent des produits sur Hook0."
       },
       {
+        "q": "Combien d'organisations puis-je avoir sur l'offre gratuite ?",
+        "a": "Ton compte peut appartenir à 2 organisations gratuites au maximum. Les organisations sur une offre payante ne comptent pas dans cette limite, donc en passer une sur une offre payante libère une place. Si tu as besoin de plus d'organisations gratuites, contacte le support pour relever la limite."
+      },
+      {
         "q": "Comment je surveille ma consommation ?",
         "a": "Le tableau de bord Organisation dans l'app Hook0 affiche ta consommation d'events pour la journée en cours et les jours précédents. Pour le détail de facturation et l'historique des factures, va dans ton portail Stripe."
       },
