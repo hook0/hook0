@@ -26,7 +26,7 @@ hook0-mcp = { path = "{{client}}" }
 # `clients/mcp` declares, so an example serving over stdio resolves the same transport the binary
 # does.
 rmcp = { version = "=3.5.0", default-features = false, features = ["server", "transport-io"] }
-tokio = { version = "=1.53.1", features = ["full"] }
+tokio = { version = "=1.53.2", features = ["full"] }
 
 [profile.dev]
 # Every example is built, never run, so the information a debugger would read off it is spent for

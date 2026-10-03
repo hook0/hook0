@@ -44,10 +44,10 @@ sha2 = "0.11.0"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.21"
-tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "time", "signal"] }
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.19", features = ["rt"] }
 url = "2.5.8"
-uuid = { version = "1.26.1", features = ["v4", "v7"] }
+uuid = { version = "1.27.0", features = ["v4", "v7"] }
 
 [dev-dependencies]
 proptest = "1"
