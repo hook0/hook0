@@ -22,6 +22,21 @@ test.describe("Hook0Button Visual Regression", () => {
     await expect(page.locator('[data-test="component-showcase"]')).toBeVisible({
       timeout: 15000,
     });
+
+    // The design system self-hosts Inter and JetBrains Mono with
+    // `font-display: swap` (see assets/styles/tailwind.css): the first paint
+    // uses a fallback face, then the real face swaps in once its woff2 arrives
+    // and every glyph on the page reflows. A screenshot taken during that swap
+    // never holds still — which is exactly the "element is not stable" that
+    // toHaveScreenshot reports before it gives up. The swap is invisible
+    // locally where the fonts are already warm, but common on a loaded CI
+    // runner fetching them cold. Wait for the network to go idle and the font
+    // set to finish loading so the layout the screenshots capture is the final
+    // one, not a half-swapped frame.
+    await page.waitForLoadState("networkidle");
+    // Resolve to undefined: FontFaceSet is a live object Playwright cannot
+    // serialize back out of the page, so hand evaluate() a plain value.
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
   });
 
   test("all button variants are visible and correctly styled", async ({ page }) => {
@@ -296,10 +311,16 @@ test.describe("Hook0Button Visual Regression", () => {
   });
 
   test("full page screenshot of showcase", async ({ page }) => {
+    // Full-page capture of the whole showcase: the largest surface here, so
+    // Playwright scrolls and stitches it, and its stability sampling is the
+    // most sensitive to any last settling under CI load. Give that sampling
+    // room beyond the 5s default expect timeout — the baseline still has to
+    // match, so this adds patience, not leniency.
     await expect(page.locator('[data-test="component-showcase"]')).toHaveScreenshot(
       "button-showcase-full.png",
       {
         maxDiffPixels: 200,
+        timeout: 15000,
       }
     );
   });
