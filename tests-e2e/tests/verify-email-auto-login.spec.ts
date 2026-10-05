@@ -32,12 +32,11 @@ test.describe("Email verification auto-login", () => {
     expect(registerResponse.status()).toBeLessThan(400);
 
     // Pull the verification token from the email (Mailpit) WITHOUT consuming it,
-    // so the BROWSER is the one that verifies + auto-logs-in. These are the only
-    // tests in the suite that read the token out of the mailbox rather than
-    // through the CI database shortcut, so they alone wait on real SMTP ->
-    // Mailpit delivery. Give that wait the same single-worker-CI headroom the
-    // redirects use, so a slow delivery is waited out, not scored as a flaky
-    // "no verification email".
+    // so the BROWSER is the one that verifies + auto-logs-in. Reading the token
+    // out of the mailbox rather than through the CI database shortcut means this
+    // waits on real SMTP -> Mailpit delivery, so give it the same
+    // single-worker-CI headroom the redirects use: a slow delivery is then
+    // waited out, not scored as a flaky "no verification email".
     const token = await getVerificationTokenFromMailpit(request, email, BACKEND_ROUNDTRIP_TIMEOUT);
     expect(token.length).toBeGreaterThan(0);
 
