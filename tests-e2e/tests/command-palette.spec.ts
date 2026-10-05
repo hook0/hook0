@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import {
+  fromItsOwnAddress,
+  BACKEND_ROUNDTRIP_TIMEOUT,
+  UI_RENDER_TIMEOUT,
+} from "../fixtures/test-setup";
 
 /**
  * Command Palette E2E tests for Hook0.
@@ -50,25 +54,25 @@ test.describe("Command Palette", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Create an application (needed for command palette navigation items)
     await page.goto(`/organizations/${organizationId}/applications`);
     await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="applications-create-button"]').click();
 
     await expect(page.locator('[data-test="application-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="application-name-input"]').fill(`CmdPal App ${timestamp}`);
 
@@ -77,12 +81,12 @@ test.describe("Command Palette", () => {
     const createAppResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
     expect(appResponse.status()).toBeLessThan(400);
-    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
+    await expect(page).toHaveURL(uuidPattern, { timeout: BACKEND_ROUNDTRIP_TIMEOUT });
     const url = page.url();
     const match = url.match(uuidPattern);
     expect(match, "Failed to extract application ID from URL").toBeTruthy();
@@ -113,15 +117,15 @@ test.describe("Command Palette", () => {
       page
         .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
         .first()
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 1: Click the Search button in top nav
     const searchButton = page.locator('[data-test="search-button"]');
-    await expect(searchButton).toBeVisible({ timeout: 10000 });
+    await expect(searchButton).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await searchButton.click();
 
     // Step 2: Verify command palette overlay is visible
-    await expect(page.locator(overlaySelector)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(overlaySelector)).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 3: Verify command palette input is visible
     await expect(page.locator(inputSelector)).toBeVisible();
@@ -138,19 +142,19 @@ test.describe("Command Palette", () => {
       page
         .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
         .first()
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 1: Open command palette
     const searchButton = page.locator('[data-test="search-button"]');
-    await expect(searchButton).toBeVisible({ timeout: 10000 });
+    await expect(searchButton).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await searchButton.click();
-    await expect(page.locator(inputSelector)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(inputSelector)).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 2: Type "event" in the input
     await page.locator(inputSelector).fill("event");
 
     // Step 3: Verify at least one command palette item is visible
-    await expect(page.locator(itemSelector).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(itemSelector).first()).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
   });
 
   test("should navigate to result", async ({ page, request }) => {
@@ -164,22 +168,22 @@ test.describe("Command Palette", () => {
       page
         .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
         .first()
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 1: Open command palette and type "Event Types"
     const searchButton = page.locator('[data-test="search-button"]');
-    await expect(searchButton).toBeVisible({ timeout: 10000 });
+    await expect(searchButton).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await searchButton.click();
-    await expect(page.locator(inputSelector)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(inputSelector)).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await page.locator(inputSelector).fill("Event Types");
 
     // Step 2: Wait for results and click first one
     const firstResult = page.locator(itemSelector).first();
-    await expect(firstResult).toBeVisible({ timeout: 5000 });
+    await expect(firstResult).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await firstResult.click();
 
     // Step 3: Verify URL changed to an event types page
-    await expect(page).toHaveURL(/\/event_types/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/event_types/, { timeout: UI_RENDER_TIMEOUT });
   });
 
   test("should close palette with Escape", async ({ page, request }) => {
@@ -193,18 +197,18 @@ test.describe("Command Palette", () => {
       page
         .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
         .first()
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 1: Open command palette
     const searchButton = page.locator('[data-test="search-button"]');
-    await expect(searchButton).toBeVisible({ timeout: 10000 });
+    await expect(searchButton).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await searchButton.click();
-    await expect(page.locator(overlaySelector)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(overlaySelector)).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
 
     // Step 2: Press Escape
     await page.keyboard.press("Escape");
 
     // Step 3: Verify overlay is not visible
-    await expect(page.locator(overlaySelector)).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator(overlaySelector)).not.toBeVisible({ timeout: UI_RENDER_TIMEOUT });
   });
 });
