@@ -163,6 +163,7 @@ module.exports = {
   "related": {
     "h2": "Related",
     "links": [
+      { "label": "Sovereign Webhooks", "href": "./sovereign-webhooks" },
       { "label": "Self-Hosted Webhooks", "href": "./self-hosted-webhooks" },
       { "label": "Pricing", "href": "./pricing" },
       { "label": "Webhook Cost Comparison", "href": "./webhook-cost-comparison" },

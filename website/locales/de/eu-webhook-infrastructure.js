@@ -161,6 +161,7 @@ module.exports = {
   "related": {
     "h2": "Weiterführend",
     "links": [
+      { "label": "Souveräne Webhooks", "href": "/de/souveraene-webhooks" },
       { "label": "Selbst-gehostete Webhooks", "href": "/de/selbst-gehostete-webhooks" },
       { "label": "Preise", "href": "/de/preise" },
       { "label": "DSGVO-Unterauftragsverarbeiter", "href": "/de/dsgvo-unterauftragsverarbeiter" },

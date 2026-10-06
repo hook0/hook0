@@ -157,6 +157,7 @@ module.exports = {
   "related": {
     "h2": "Pour aller plus loin",
     "links": [
+      { "label": "Webhooks souverains", "href": "/fr/webhooks-souverains" },
       { "label": "Webhooks auto-hébergés", "href": "/fr/webhooks-auto-heberges" },
       { "label": "Tarifs", "href": "/fr/tarifs" },
       { "label": "Comparatif coût webhook", "href": "/fr/comparatif-cout-webhook" },

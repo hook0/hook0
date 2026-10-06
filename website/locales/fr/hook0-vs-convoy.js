@@ -82,6 +82,7 @@ module.exports = {
       { enSlug: 'self-hosted-webhooks', label: 'Webhooks auto-hébergés' },
       { enSlug: 'webhook-cost-comparison', label: 'Comparatif de coût webhook' },
       { enSlug: 'eu-webhook-infrastructure', label: 'Infrastructure webhook européenne' },
+      { enSlug: 'sovereign-webhooks', label: 'Webhooks souverains' },
     ],
   },
 };
