@@ -125,6 +125,17 @@ module.exports = {
     offerSelfHostedDescription: 'Open source (SSPL-1.0). À déployer sur ta propre infrastructure.',
   },
   includes: {
+    comparisonMethodology: {
+      eyebrow: 'Méthodologie',
+      h2: 'Comment nous avons comparé, et nos sources',
+      sourcesLabel: 'Sources',
+      consultedWord: 'consulté le',
+      archiveWord: 'copie archivée',
+      updatedWord: 'Dernière vérification',
+      nameSeparator: ', ',
+      disclaimerBefore: "Comparatif indépendant. Hook0 n'est ni affilié à, ni approuvé ou sponsorisé par ",
+      disclaimerAfter: ". Les noms de produits et les marques appartiennent à leurs propriétaires respectifs, et chaque chiffre concurrent renvoie à une source publique avec sa date de consultation.",
+    },
     howItWorks: {
       eyebrow: 'Comment ça marche',
       h2: 'Webhooks en production en 10 minutes',

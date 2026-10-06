@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Svix: Open-Source Webhook Platform Comparison',
   pageDescription: 'Compare Hook0 and Svix: open-source SSPL vs open-core, bootstrapped vs VC-funded, EU-hosted vs US, self-hostable on every plan. An honest side-by-side.',
-  pageModified: '2026-07-16',
+  pageModified: '2026-09-29',
   breadcrumb: 'Hook0 vs Svix',
   tldr: {
     h2: 'The Short Answer',
@@ -46,7 +46,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
-    lastReviewed: 'Last reviewed July 2026.',
+    lastReviewed: 'Last reviewed September 2026.',
     items: [
       { q: 'Which companies use Hook0?', a: 'Hook0 delivers webhooks in production for teams including Coinbase, GEODIS, WoodWing, Optery, and Eudonet. Coinbase is on the record about the partnership: "Thank you for all of your help, we appreciate your partnership." (Ian Mukherjee, Coinbase).' },
       { q: 'Is Hook0 open-source like Svix?', a: "Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans." },
@@ -63,6 +63,15 @@ module.exports = {
     prefix: 'Want more detail?',
     linkText: 'Read the feature-by-feature comparison in our docs',
     linkHref: 'https://documentation.hook0.com/comparisons/svix-vs-hook0',
+  },
+  comparisonSources: {
+    competitors: ['Svix'],
+    scope: 'This page compares the public plans, licenses and hosting of Hook0 and Svix for sending webhooks. Prices are each vendor\'s published figures; features reflect their public documentation.',
+    sources: [
+      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-09-29' },
+      { label: 'Svix source code and license on GitHub', url: 'https://github.com/svix/svix-webhooks', consulted: '2026-09-29' },
+    ],
+    updated: '2026-09-29',
   },
   related: {
     h2: 'Related',

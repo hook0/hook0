@@ -6,7 +6,7 @@
 module.exports = {
   pageTitle: 'Coût d\'un service webhook : Hook0 vs Svix vs Hookdeck vs Convoy',
   pageDescription: 'Ce que coûte un service webhook de 100k à 10M events/mois : Hook0 dès 59 €, Svix dès 490 $, Hookdeck Outpost 10 $/M, Convoy 0 ou 999 $. Prix publics, août 2026.',
-  pageModified: '2026-08-07',
+  pageModified: '2026-09-29',
   breadcrumb: 'Comparatif de coût webhook',
   track: 'fr-comparatif-cout-webhook',
   tldr: {
@@ -137,6 +137,16 @@ module.exports = {
         a: 'Hook0 l\'inclut sur tous les plans, tier gratuit compris : le plan de données tourne chez Clever Cloud en France, et Cloudflare (société américaine) sert de CDN, comme divulgué dans notre DPA. Hookdeck Outpost managé propose une région UE au même tarif de 10 $/M. Svix documente un DPA EEE dès Professional (490 $/mois) et liste l\'UE parmi ses régions de résidence des données. Convoy n\'a pas d\'option UE managée ; tu choisis ta région en auto-hébergeant. À noter : où résident les données et quel droit s\'impose à l\'éditeur sont deux questions distinctes. Hook0 est exploité par une société française, Svix est de droit américain et Hookdeck de droit canadien.',
       },
     ],
+  },
+  comparisonSources: {
+    competitors: ["Svix", "Hookdeck", "Convoy"],
+    scope: "Ces coûts s'appuient sur les prix publics des offres managées de chaque éditeur. Les devises sont celles publiées, sans conversion.",
+    sources: [
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-09-29" },
+      { label: "Tarifs Hookdeck", url: "https://hookdeck.com/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
+    ],
+    updated: "2026-09-29",
   },
   related: {
     h2: 'Sur le même sujet',

@@ -1,0 +1,56 @@
+<%
+// Comparison methodology + sources + non-affiliation notice.
+//
+// Why this block exists: every comparison/alternatives page names a competitor
+// and quotes its public pricing/license facts. Under French comparative-advertising
+// law the burden of proof is on the advertiser (art. L122-5 C. conso), so each
+// competitor figure needs a direct public source with a consultation date, and
+// the page must state it is an independent comparison, not affiliated with the
+// named brands (loyal referential use, no endorsement implied). Answer engines
+// also cite sourced, dated comparisons more readily than unsourced ones (GEO).
+//
+// Renders only when the locale supplies comparisonSources, so a page or locale
+// that has not filled it in skips the block cleanly (same pattern as _tldr).
+// Labels are shared (chrome.includes.comparisonMethodology); per-page data
+// (competitor names, scope, sources) lives in each page locale.
+//
+// Read from `locals.t`, not a bare `t`: an EJS include is compiled as its own
+// function and only receives the shared `locals`/`data` object, not the parent
+// page's `var t = locals.t`. A bare `t` here throws "t is not defined" at build.
+var t = locals.t;
+var m = t.comparisonSources;
+var ml = (t.includes && t.includes.comparisonMethodology) ? t.includes.comparisonMethodology : null;
+if (m && ml) {
+  var names = (m.competitors || []).join(ml.nameSeparator || ', ');
+}
+%>
+<% if (m && ml) { %>
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= ml.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= ml.h2 %></h2>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-8">
+            <p class="text-gray-400"><%= m.scope %></p>
+
+            <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mt-8 mb-4"><%= ml.sourcesLabel %></h3>
+            <ul class="space-y-3">
+                <% m.sources.forEach(function (s) { %>
+                <li class="text-gray-400">
+                    <a href="<%= s.url %>" target="_blank" rel="noopener nofollow" class="text-indigo-400 hover:text-indigo-300 underline"><%= s.label %></a>
+                    <span class="text-gray-500"> (<%= ml.consultedWord %> <%= s.consulted %><% if (s.archive) { %>, <a href="<%= s.archive %>" target="_blank" rel="noopener nofollow" class="underline hover:text-gray-300"><%= ml.archiveWord %></a><% } %>)</span>
+                </li>
+                <% }); %>
+            </ul>
+
+            <p class="text-sm text-gray-500 mt-8 pt-6 border-t border-white/10">
+                <%= ml.disclaimerBefore %><%= names %><%= ml.disclaimerAfter %>
+                <% if (m.updated) { %><br><%= ml.updatedWord %> <%= m.updated %>.<% } %>
+            </p>
+        </div>
+    </div>
+</section>
+<% } %>

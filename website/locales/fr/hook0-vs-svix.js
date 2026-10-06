@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Svix : plateformes webhook comparées | Hook0',
   pageDescription: 'Compare Hook0 et Svix : SSPL-1.0 vs open-core, bootstrappé vs VC, UE vs US, auto-hébergement sur tous les plans. Honnête.',
-  pageModified: '2026-07-16',
+  pageModified: '2026-09-29',
   breadcrumb: 'Hook0 vs Svix',
   tldr: {
     h2: 'En bref',
@@ -48,7 +48,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
-    lastReviewed: 'Dernière revue, juillet 2026.',
+    lastReviewed: 'Dernière revue, septembre 2026.',
     items: [
       { q: 'Quelles entreprises utilisent Hook0 ?', a: 'Hook0 délivre des webhooks en production pour des équipes comme Coinbase, GEODIS, WoodWing, Optery et Eudonet. Coinbase l\'a dit publiquement, au sujet du partenariat : "Thank you for all of your help, we appreciate your partnership." (Ian Mukherjee, Coinbase).' },
       { q: 'Hook0 est-il open source comme Svix ?', a: 'Le serveur Hook0 est publié sous SSPL-1.0 et les SDK clients sous MIT, sans palier enterprise propriétaire. SSPL est une licence copyleft à source disponible, tu peux lire, modifier et auto-héberger toute la plateforme librement. Le cœur de Svix est MIT, mais plusieurs fonctions enterprise sont fermées et réservées aux plans payants.' },
@@ -65,6 +65,15 @@ module.exports = {
     prefix: 'Tu veux plus de détails ?',
     linkText: 'Lis la comparaison fonctionnalité par fonctionnalité dans notre documentation',
     linkHref: 'https://documentation.hook0.com/comparisons/svix-vs-hook0',
+  },
+  comparisonSources: {
+    competitors: ["Svix"],
+    scope: "Cette page compare les offres publiques, les licences et l'hébergement de Hook0 et de Svix pour l'envoi de webhooks. Les prix sont ceux publiés par chaque éditeur, et les fonctionnalités reflètent leur documentation publique.",
+    sources: [
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-09-29" },
+      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-09-29" },
+    ],
+    updated: "2026-09-29",
   },
   related: {
     h2: 'Sur le même sujet',

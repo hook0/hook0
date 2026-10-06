@@ -1,11 +1,12 @@
 // Per-page strings for hook0-vs-convoy (EN base).
-// Facts refreshed 2026-07-08 against the Convoy competitor snapshot:
-// Convoy is ACTIVE (v26.6.2 on 2026-07-08), licensed Elastic License v2.0 (not MPL-2.0),
-// has a cloud offering (no public pricing, no managed EU residency), pricing $0 -> $999/month flat.
+// Facts refreshed 2026-09-29 against the Convoy competitor snapshot:
+// Convoy is ACTIVE (v26.8.0 on 2026-09-28, daily commits, ~2,875 stars), licensed
+// Elastic License v2.0 (not MPL-2.0), has a cloud offering (no public pricing, no
+// managed EU residency), pricing $0 -> $999/month flat.
 module.exports = {
   pageTitle: 'Hook0 vs Convoy: Webhook Platforms Compared (2026)',
   pageDescription: 'Compare Hook0 (Rust, SSPL-1.0, EU-hosted cloud from €59/month) and Convoy (Go, Elastic License v2.0, $0 to $999/month). Features, licensing and pricing side by side.',
-  pageModified: '2026-07-08',
+  pageModified: '2026-09-29',
   breadcrumb: 'Hook0 vs Convoy',
   tldr: {
     h2: 'The Short Answer',
@@ -44,7 +45,7 @@ module.exports = {
       { feature: 'SOC 2', hook0Html: 'Planned', convoyHtml: 'SOC 2 Type 1' },
       { feature: 'HMAC Signatures', hook0Html: 'Yes', convoyHtml: 'Yes' },
       { feature: 'Retry Logic', hook0Html: 'Configurable 2-phase (fast + slow, smart defaults)', convoyHtml: 'Configurable' },
-      { feature: 'Primary Repo', hook0Html: '<a href="https://github.com/hook0/hook0" class="underline">GitHub</a> + <a href="https://gitlab.com/hook0/hook0" class="underline">GitLab</a>', convoyHtml: '<a href="https://github.com/frain-dev/convoy" class="underline">GitHub</a> (~2.8k stars)' },
+      { feature: 'Primary Repo', hook0Html: '<a href="https://github.com/hook0/hook0" class="underline">GitHub</a> + <a href="https://gitlab.com/hook0/hook0" class="underline">GitLab</a>', convoyHtml: '<a href="https://github.com/frain-dev/convoy" class="underline">GitHub</a> (~2.9k stars)' },
       { feature: 'Funding', hook0Html: '100% Bootstrapped', convoyHtml: 'VC-backed (YC W22, Frain Technologies)' },
     ],
   },
@@ -56,9 +57,19 @@ module.exports = {
       { q: 'Does Convoy have a managed cloud?', a: "Yes. Convoy offers a cloud version (the trial gives 1 project and 100 events per day) but does not publish cloud pricing, and there is no managed EU data-residency option: choosing where your webhook data lives requires self-hosting. Hook0's managed cloud is EU-hosted from the free tier onward, with paid plans at €59 and €190 per month." },
       { q: 'How do Hook0 and Convoy compare on pricing?', a: "For self-hosting, both are free. For paid features, Convoy goes straight from the free Community tier to Premium at $999/month flat, with nothing in between. Hook0 Cloud has a free tier, then Startup at €59/month and Pro at €190/month. If a flat all-inclusive bill fits your team, Convoy's Premium is predictable; if you want to start small and scale, Hook0 covers the middle of the market Convoy skips." },
       { q: 'How do Hook0 and Convoy compare on performance?', a: 'Hook0 is written in Rust, so there are no garbage collection pauses. That means more predictable latency and lower memory usage under load. Convoy is written in Go, which performs well but does have GC overhead. Infrastructure-wise, both need PostgreSQL, but Convoy also requires Redis.' },
-      { q: 'What does Convoy do better than Hook0?', a: 'Convoy handles both inbound and outbound webhooks in one product, while Hook0 focuses on outbound delivery. Convoy also has a SOC 2 Type 1 attestation, more GitHub stars (~2,800), reference fintech customers such as Xendit and PiggyVest, and a flat $999/month Premium tier that some teams prefer for billing predictability.' },
-      { q: 'Is Convoy still maintained?', a: "Yes. Convoy ships 2 to 3 releases per month (v26.6.2 landed in July 2026), its blog is active and the GitHub repository has multiple regular contributors. Treat any 'Convoy is dead' claim you find online as outdated." },
+      { q: 'What does Convoy do better than Hook0?', a: 'Convoy handles both inbound and outbound webhooks in one product, while Hook0 focuses on outbound delivery. Convoy also has a SOC 2 Type 1 attestation, more GitHub stars (~2,875), publicly referenced fintech customers, and a flat $999/month Premium tier that some teams prefer for billing predictability.' },
+      { q: 'Is Convoy still maintained?', a: "Yes. Convoy ships 2 to 3 releases per month (v26.8.0 landed in September 2026), its blog is active and the GitHub repository has multiple regular contributors. Treat any 'Convoy is dead' claim you find online as outdated." },
     ],
+  },
+  comparisonSources: {
+    competitors: ['Convoy'],
+    scope: 'This page compares the public plans, license and maintenance status of Hook0 and Convoy. Prices are each vendor\'s published figures; maintenance is taken from Convoy\'s public GitHub activity.',
+    sources: [
+      { label: 'Convoy releases on GitHub', url: 'https://github.com/frain-dev/convoy/releases', consulted: '2026-09-29' },
+      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
+      { label: 'Convoy license on GitHub', url: 'https://github.com/frain-dev/convoy/blob/main/LICENSE', consulted: '2026-09-29' },
+    ],
+    updated: '2026-09-29',
   },
   related: {
     h2: 'Related',

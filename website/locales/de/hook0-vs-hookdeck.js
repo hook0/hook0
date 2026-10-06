@@ -7,7 +7,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, Webhook-Plattform vs Gateway | Hook0',
   pageDescription: 'Vergleich Hook0 und Hookdeck: eine Open-Source-Webhook-Plattform (SSPL-1.0) gegen ein Gateway plus separates Zustellprodukt. Lizenzen, Selbst-Hosting und Tarife.',
-  pageModified: '2026-09-16',
+  pageModified: '2026-09-29',
   breadcrumb: 'Hook0 vs. Hookdeck',
   tldr: {
     h2: 'Kurz gesagt',
@@ -59,7 +59,7 @@ module.exports = {
       { feature: 'Subscriber-Verwaltung', hook0Html: 'Integriertes Portal', hookdeckHtml: 'Nicht zutreffend' },
       { feature: 'HMAC-Signaturen', hook0Html: 'Automatisch erzeugt', hookdeckHtml: 'Nur Verifikation' },
       { feature: 'Event-Typ-Verwaltung', hook0Html: 'Vollständige Event-Typ-Registry', hookdeckHtml: 'Nein' },
-      { feature: 'Kostenloser Tarif', hook0Html: '100 Events/Tag, EU-gehostet', hookdeckHtml: '100.000 Events/Monat' },
+      { feature: 'Kostenloser Tarif', hook0Html: '100 Events/Tag, EU-gehostet', hookdeckHtml: '10.000 Events/Monat' },
       { feature: 'Datenhosting', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA) oder Selbst-Hosting', hookdeckHtml: 'In Kanada, EU-Region verfügbar' },
     ],
   },
@@ -80,6 +80,15 @@ module.exports = {
     prefix: 'Willst du mehr Details?',
     linkText: 'Lies den vollständigen Vergleich mit Architektur-Diagrammen in unserer Dokumentation',
     linkHref: 'https://documentation.hook0.com/comparisons/hookdeck-vs-hook0',
+  },
+  comparisonSources: {
+    competitors: ["Hookdeck"],
+    scope: "Diese Seite vergleicht die öffentlichen Tarife, Lizenzen und das Hosting von Hook0 und Hookdeck für den Versand von Webhooks. Die Preise sind die veröffentlichten Angaben der Anbieter, und die Funktionen entsprechen ihrer öffentlichen Dokumentation.",
+    sources: [
+      { label: "Hookdeck Preise", url: "https://hookdeck.com/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Hookdeck Outpost Quellcode und Lizenz auf GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
+    ],
+    updated: "2026-09-29",
   },
   related: {
     h2: 'Verwandte Themen',
