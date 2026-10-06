@@ -99,6 +99,7 @@ module.exports = {
       { enSlug: 'build-vs-buy-webhooks', label: 'Selbst bauen vs kaufen bei Webhooks' },
       { enSlug: 'webhook-cost-comparison', label: 'Webhook-Kostenvergleich (auf Englisch)' },
       { enSlug: 'eu-webhook-infrastructure', label: 'EU-Webhook-Infrastruktur (auf Englisch)' },
+      { enSlug: 'sovereign-webhooks', label: 'Souveräne Webhooks' },
     ],
   },
 };

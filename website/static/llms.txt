@@ -13,6 +13,7 @@
 - [Webhook MCP Server](https://www.hook0.com/webhooks-for-ai-agents): MCP server that gives Claude, Cursor, and Windsurf tools to create subscriptions, emit events, and replay failed deliveries on the webhooks you send.
 - [Security & Compliance](https://www.hook0.com/security): EU data residency (France, Clever Cloud), GDPR-aligned process, DPA on request.
 - [EU Webhook Infrastructure](https://www.hook0.com/eu-webhook-infrastructure): Webhook data plane on Clever Cloud in France, from the free tier up. French-law company, public sub-processor list, self-host or on-prem anytime.
+- [Sovereign Webhooks](https://www.hook0.com/sovereign-webhooks): Digital sovereignty as who can be legally compelled to produce your data, not just where it sits. French-law editor with no US parent, EU data plane, open-source (SSPL-1.0) and reversible, Cloudflare (US) edge disclosed. The CLOUD Act lens and a seven-question vendor checklist.
 
 ## Proof
 - Production customers include Coinbase, GEODIS, WoodWing, Optery, Eudonet, Alteos, ActiveAnts, and Apizee.

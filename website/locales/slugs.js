@@ -53,6 +53,9 @@ module.exports = {
   // EN + FR only (DE gate: no second DE cluster until paid DE proves demand).
   'webhook-cost-comparison': { fr: 'comparatif-cout-webhook' },
   'eu-webhook-infrastructure': { fr: 'infrastructure-webhook-europeenne', de: 'eu-webhook-infrastruktur' },
+  // Digital-sovereignty angle: jurisdiction/control/CLOUD-Act, distinct intent
+  // from the residency-focused eu-webhook-infrastructure page it cross-links.
+  'sovereign-webhooks': { fr: 'webhooks-souverains', de: 'souveraene-webhooks' },
   'hookdeck-alternatives': { fr: 'alternatives-a-hookdeck', de: 'hookdeck-alternativen' },
   'hook0-alternatives': { fr: 'alternatives-a-hook0', de: 'hook0-alternativen' },
   'mediakit': { fr: 'kit-presse', de: 'pressekit' },
