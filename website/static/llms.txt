@@ -39,6 +39,7 @@
 - [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix)
 - [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck)
 - [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy)
+- [Hook0 vs Requeue](https://www.hook0.com/hook0-vs-requeue): Requeue is an inbound dead-letter inbox that catches webhooks you receive and failed cron/worker jobs to replay into your app. Hook0 is outbound webhooks-as-a-service: it sends webhooks to your users with per-attempt logs, free retries, HMAC, and replay from the dashboard or API. Opposite directions on the same reliability problem; Hook0 does not offer a production inbound dead-letter today.
 - [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks)
 - [Hookdeck Alternatives](https://www.hook0.com/hookdeck-alternatives): Hookdeck runs inbound gateway and outbound delivery as two separate products. Weighs Hook0, Svix, and Convoy for sending and monitoring webhooks.
 - [Svix Alternatives](https://www.hook0.com/svix-alternatives): Hook0, Hookdeck, and Convoy measured against Svix on pricing, self-hosting, and source-available licensing.
