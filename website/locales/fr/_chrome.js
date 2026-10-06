@@ -128,6 +128,9 @@ module.exports = {
     offerSelfHostedDescription: 'Open source (SSPL-1.0). À déployer sur ta propre infrastructure.',
   },
   includes: {
+    // Libellés partagés du bloc méthodologie + sources comparatives
+    // (src/includes/_comparison-methodology.ejs). Les données par page
+    // (concurrents, périmètre, sources) vivent dans `comparisonSources` de chaque page.
     comparisonMethodology: {
       eyebrow: 'Méthodologie',
       h2: 'Comment nous avons comparé, et nos sources',
@@ -437,7 +440,7 @@ module.exports = {
       wip: false,
     },
     {
-      title: 'Exploité dans le respect du RGPD',
+      title: 'Prêt pour le RGPD',
       description: "Hook0 est conçu pour la conformité RGPD et peut signer un accord de traitement des données avec ton entreprise si tu en as besoin.",
       wip: false,
     },

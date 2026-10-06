@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Svix : plateformes webhook comparées | Hook0',
   pageDescription: 'Compare Hook0 et Svix : SSPL-1.0 vs open-core, bootstrappé vs VC, UE vs US, auto-hébergement sur tous les plans. Honnête.',
-  pageModified: '2026-09-29',
+  pageModified: '2026-10-04',
   breadcrumb: 'Hook0 vs Svix',
   tldr: {
     h2: 'En bref',
@@ -24,7 +24,7 @@ module.exports = {
     h2: 'Différences clés',
     cards: [
       { title: 'Code source disponible, pas d\'add-ons fermés', body: 'Le serveur Hook0 est publié sous SSPL-1.0, les SDK sous MIT. Tu récupères la plateforme entière, tu la lis, tu la modifies, tu l\'auto-héberges. Le cœur de Svix est en MIT, mais les fonctions enterprise (SSO, analytics avancées, support dédié) restent fermées sur les plans payants.' },
-      { title: 'Bootstrappé depuis le premier jour', body: 'Svix est financé par des VC. Les investisseurs attendent un retour, ce qui crée de la pression pour augmenter les prix ou se faire racheter. Hook0 est 100% bootstrappé. Pas de board à satisfaire, pas de mandat de croissance à tout prix.' },
+      { title: 'Bootstrappé depuis le premier jour', body: 'Svix est financé par des VC et a levé des fonds externes ; Hook0 est 100% bootstrappé et ne prend aucun financement externe. Les deux modèles répondent à des parties prenantes différentes, investisseurs contre clients, ce qui influence la feuille de route et la tarification de chacun dans le temps.' },
       { title: 'Aucun verrouillage fournisseur', body: 'Hook0 Cloud fait tourner le même code open source que tu peux lire et auditer. Si tu en as besoin un jour, tu exportes et tu l\'exécutes toi-même (gratuit, Docker ou Kubernetes), donc tu n\'es jamais piégé dans une plateforme propriétaire. Svix réserve l\'auto-hébergement à ses clients enterprise.' },
       { title: 'Plan de données UE, edge US divulgué', body: "Le plan de données de Hook0 tourne sur Clever Cloud en France, exploité par une société française. Le CDN en frontal est Cloudflare (US), divulgué dans notre liste publique de sous-traitants avec son mécanisme de transfert. Svix documente des régions de données dont l'UE, mais l'éditeur lui-même est de droit américain. Et comme le même code s'auto-héberge, vous pouvez faire tourner Hook0 dans votre propre réseau, où aucune donnée de webhook ne le quitte." },
     ],
@@ -48,7 +48,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
-    lastReviewed: 'Dernière revue, septembre 2026.',
+    lastReviewed: 'Dernière revue, octobre 2026.',
     items: [
       { q: 'Quelles entreprises utilisent Hook0 ?', a: 'Hook0 délivre des webhooks en production pour des équipes comme Coinbase, GEODIS, WoodWing, Optery et Eudonet. Coinbase l\'a dit publiquement, au sujet du partenariat : "Thank you for all of your help, we appreciate your partnership." (Ian Mukherjee, Coinbase).' },
       { q: 'Hook0 est-il open source comme Svix ?', a: 'Le serveur Hook0 est publié sous SSPL-1.0 et les SDK clients sous MIT, sans palier enterprise propriétaire. SSPL est une licence copyleft à source disponible, tu peux lire, modifier et auto-héberger toute la plateforme librement. Le cœur de Svix est MIT, mais plusieurs fonctions enterprise sont fermées et réservées aux plans payants.' },
@@ -70,10 +70,10 @@ module.exports = {
     competitors: ["Svix"],
     scope: "Cette page compare les offres publiques, les licences et l'hébergement de Hook0 et de Svix pour l'envoi de webhooks. Les prix sont ceux publiés par chaque éditeur, et les fonctionnalités reflètent leur documentation publique.",
     sources: [
-      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-09-29" },
-      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-09-29" },
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-04" },
+      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-10-04" },
     ],
-    updated: "2026-09-29",
+    updated: "2026-10-04",
   },
   related: {
     h2: 'Sur le même sujet',

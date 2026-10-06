@@ -130,6 +130,9 @@ module.exports = {
     offerSelfHostedDescription: 'Open Source (SSPL-1.0). Auf deiner eigenen Infrastruktur betreiben.',
   },
   includes: {
+    // Gemeinsame Beschriftungen für den Block Methodik + Quellen
+    // (src/includes/_comparison-methodology.ejs). Die Daten pro Seite
+    // (Wettbewerber, Umfang, Quellen) stehen in `comparisonSources` jeder Seite.
     comparisonMethodology: {
       eyebrow: 'Methodik',
       h2: 'Wie wir verglichen haben, und unsere Quellen',
@@ -438,7 +441,7 @@ module.exports = {
       wip: false,
     },
     {
-      title: 'DSGVO-konform betrieben',
+      title: 'DSGVO-bereit',
       description: 'Hook0 ist auf DSGVO-Konformität ausgelegt und kann bei Bedarf einen Auftragsverarbeitungsvertrag mit deinem Unternehmen abschließen.',
       wip: false,
     },

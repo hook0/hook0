@@ -7,7 +7,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, Webhook-Plattform vs Gateway | Hook0',
   pageDescription: 'Vergleich Hook0 und Hookdeck: eine Open-Source-Webhook-Plattform (SSPL-1.0) gegen ein Gateway plus separates Zustellprodukt. Lizenzen, Selbst-Hosting und Tarife.',
-  pageModified: '2026-09-29',
+  pageModified: '2026-10-04',
   breadcrumb: 'Hook0 vs. Hookdeck',
   tldr: {
     h2: 'Kurz gesagt',
@@ -66,7 +66,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Häufige Fragen',
-    lastReviewed: 'Zuletzt geprüft September 2026.',
+    lastReviewed: 'Zuletzt geprüft Oktober 2026.',
     items: [
       { q: 'Was ist der Unterschied zwischen Hook0 und Hookdeck?', a: 'Hook0 ist eine Webhook-Plattform, du sendest Events per API, Hook0 stellt sie mit Wiederholungen, Signaturen und Monitoring an deine Subscriber zu. Hookdecks Event Gateway sitzt zwischen bestehenden Webhook-Sendern und -Empfängern und ergänzt Zuverlässigkeit. Es sendet selbst keine Webhooks, das übernimmt Outpost, Hookdecks zweites Produkt.' },
       { q: 'Ist Hook0 Open Source?', a: 'Der Hook0-Server wird unter SSPL-1.0 veröffentlicht und die SDKs unter MIT. SSPL ist eine Copyleft-Lizenz mit verfügbarem Quellcode, du darfst die gesamte Plattform frei prüfen, ändern und selbst hosten. Hookdeck veröffentlicht Outpost, seine Zustellungskomponente, unter Apache-2.0 und hält sein Event Gateway geschlossen und nur als verwalteten Dienst verfügbar.' },
@@ -85,10 +85,10 @@ module.exports = {
     competitors: ["Hookdeck"],
     scope: "Diese Seite vergleicht die öffentlichen Tarife, Lizenzen und das Hosting von Hook0 und Hookdeck für den Versand von Webhooks. Die Preise sind die veröffentlichten Angaben der Anbieter, und die Funktionen entsprechen ihrer öffentlichen Dokumentation.",
     sources: [
-      { label: "Hookdeck Preise", url: "https://hookdeck.com/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Hookdeck Preise", url: "https://hookdeck.com/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
       { label: "Hookdeck Outpost Quellcode und Lizenz auf GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
     ],
-    updated: "2026-09-29",
+    updated: "2026-10-04",
   },
   related: {
     h2: 'Verwandte Themen',

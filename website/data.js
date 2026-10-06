@@ -186,8 +186,8 @@ locals.features = [
     wip: false,
   },
   {
-    title: 'GDPR Compliant',
-    description: 'Hook0 is GDPR compliant and can easily execute a data processor agreement with your company if needed.',
+    title: 'GDPR-ready',
+    description: 'Hook0 is GDPR-ready and can easily execute a data processor agreement with your company if needed.',
     wip: false,
   },
   {

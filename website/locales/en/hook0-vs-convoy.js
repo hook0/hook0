@@ -6,7 +6,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Convoy: Webhook Platforms Compared (2026)',
   pageDescription: 'Compare Hook0 (Rust, SSPL-1.0, EU-hosted cloud from €59/month) and Convoy (Go, Elastic License v2.0, $0 to $999/month). Features, licensing and pricing side by side.',
-  pageModified: '2026-09-29',
+  pageModified: '2026-10-04',
   breadcrumb: 'Hook0 vs Convoy',
   tldr: {
     h2: 'The Short Answer',
@@ -66,10 +66,10 @@ module.exports = {
     scope: 'This page compares the public plans, license and maintenance status of Hook0 and Convoy. Prices are each vendor\'s published figures; maintenance is taken from Convoy\'s public GitHub activity.',
     sources: [
       { label: 'Convoy releases on GitHub', url: 'https://github.com/frain-dev/convoy/releases', consulted: '2026-09-29' },
-      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
-      { label: 'Convoy license on GitHub', url: 'https://github.com/frain-dev/convoy/blob/main/LICENSE', consulted: '2026-09-29' },
+      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
+      { label: 'Convoy license on GitHub', url: 'https://github.com/frain-dev/convoy/blob/main/LICENSE', consulted: '2026-10-04' },
     ],
-    updated: '2026-09-29',
+    updated: '2026-10-04',
   },
   related: {
     h2: 'Related',

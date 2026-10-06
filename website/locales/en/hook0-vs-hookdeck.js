@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck: Webhook Platform vs Gateway',
   pageDescription: 'Compare Hook0 and Hookdeck: an open-source webhook platform vs a gateway plus a separate delivery product. Licensing, self-hosting scope, and pricing tiers.',
-  pageModified: '2026-09-29',
+  pageModified: '2026-10-04',
   breadcrumb: 'Hook0 vs Hookdeck',
   tldr: {
     h2: 'The Short Answer',
@@ -62,7 +62,7 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
-    lastReviewed: 'Last reviewed September 2026.',
+    lastReviewed: 'Last reviewed October 2026.',
     items: [
       { q: 'What is the difference between Hook0 and Hookdeck?', a: "Hook0 is a webhook platform: you send events via API, Hook0 delivers them to subscribers with retries, signatures, and monitoring. Hookdeck's Event Gateway sits between existing webhook senders and receivers to add reliability. It doesn't send webhooks itself: that is Outpost, Hookdeck's second product." },
       { q: 'Is Hook0 open-source?', a: "Hook0's server is published under SSPL-1.0 and the SDKs under MIT. SSPL is a source-available copyleft license: you can inspect, modify, and self-host the entire platform freely. Hookdeck publishes Outpost, its delivery component, under Apache-2.0, and keeps its Event Gateway closed-source and managed-only." },
@@ -81,10 +81,10 @@ module.exports = {
     competitors: ['Hookdeck'],
     scope: 'This page compares the public plans, licenses and hosting of Hook0 and Hookdeck for sending webhooks. Prices are each vendor\'s published figures; features reflect their public documentation.',
     sources: [
-      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
+      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
       { label: 'Hookdeck Outpost source and license on GitHub', url: 'https://github.com/hookdeck/outpost', consulted: '2026-09-29' },
     ],
-    updated: '2026-09-29',
+    updated: '2026-10-04',
   },
   related: {
     h2: 'Related',
