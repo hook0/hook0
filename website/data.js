@@ -291,6 +291,8 @@ locals.footerLinks = {
       { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
       { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
       { label: 'Hook0 vs Requeue', href: './hook0-vs-requeue' },
+      { label: 'Hook0 vs ngrok', href: './hook0-vs-ngrok' },
+      { label: 'Hook0 vs Webhook Relay', href: './hook0-vs-webhook-relay' },
       { label: 'Hook0 Alternatives', href: './hook0-alternatives' },
       { label: 'Svix Alternatives', href: './svix-alternatives' },
       { label: 'Hookdeck Alternatives', href: './hookdeck-alternatives' },

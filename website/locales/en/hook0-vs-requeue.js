@@ -15,7 +15,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Requeue: Inbound vs Outbound Webhooks',
   pageDescription: 'Requeue is an inbound dead-letter inbox for webhooks you receive and failed jobs. Hook0 is outbound webhooks-as-a-service: delivery, free retries, HMAC, replay, EU-hosted. Which one fits.',
-  pageModified: '2026-10-02',
+  pageModified: '2026-10-06',
   breadcrumb: 'Hook0 vs Requeue',
   tldr: {
     h2: 'The Short Answer',
@@ -68,6 +68,15 @@ module.exports = {
       { q: 'Which should I choose, Hook0 or Requeue?', a: 'Pick by direction. Sending webhooks to your own customers at scale, with signatures, per-attempt logs, free retries and a subscriber portal: Hook0. Catching and replaying webhooks you receive from third parties, plus failed cron and worker jobs, on a small team: Requeue. They sit on adjacent sides of the same reliability problem.' },
       { q: 'Is Hook0 affiliated with Requeue?', a: 'No. Requeue is a trademark of its respective owner, and Hook0 is independent and not affiliated with or endorsed by Requeue. This page is a factual comparison for teams evaluating both tools.' },
     ],
+  },
+  comparisonSources: {
+    competitors: ['Requeue'],
+    scope: "This page compares the role, replay, hosting and source of Hook0 and Requeue. Requeue facts come from its public home page and GitHub repository.",
+    sources: [
+      { label: 'Requeue home page', url: 'https://getrequeue.com/', consulted: '2026-10-06' },
+      { label: 'Requeue on GitHub', url: 'https://github.com/requeue-hq/requeue', consulted: '2026-10-06' },
+    ],
+    updated: '2026-10-06',
   },
   related: {
     h2: 'Related',
