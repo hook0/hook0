@@ -4,6 +4,7 @@ module.exports = {
   pageTitle: 'Hook0 Alternatives; Honest Comparison (2026)',
   pageDescription: 'Looking for Hook0 alternatives? Compare Hook0, Svix, Hookdeck, and Convoy side by side on licensing, self-hosting, pricing, and features.',
   breadcrumb: 'Hook0 alternatives',
+  pageModified: '2026-09-29',
   tldr: {
     h2: 'The Short Answer',
     body: "The main alternatives to Hook0 are Svix, Hookdeck, and Convoy, and each solves a different slice of the webhook problem. Svix is open-core with closed enterprise features and $17M in VC; Hookdeck pairs a closed inbound gateway with its Apache-2.0 Outpost delivery engine; Convoy is source-available under the Elastic License v2.0. Hook0 is the one that is fully open-source under SSPL-1.0, bootstrapped, and free to self-host, with the same code running in the managed EU cloud and on your own servers. The table below puts all four side by side.",
@@ -24,7 +25,7 @@ module.exports = {
     rows: [
       { criteria: 'Open-Source', hook0Html: 'Yes (SSPL-1.0, full source)', svixHtml: 'Partial (open-core, enterprise closed)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0)' },
       { criteria: 'Self-Hosting', hook0Html: 'Free (Docker / K8s)', svixHtml: 'Enterprise plan only', hookdeckHtml: 'Outpost yes; Event Gateway cloud-only', convoyHtml: 'Yes (self-managed)' },
-      { criteria: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', hookdeckHtml: 'Yes (100k events/mo)', convoyHtml: 'Community edition only' },
+      { criteria: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', hookdeckHtml: 'Yes (10k events/mo)', convoyHtml: 'Community edition only' },
       { criteria: 'Pricing Model', hook0Html: 'Per-event, transparent', svixHtml: 'Per-event + enterprise tiers', hookdeckHtml: 'Per-event managed; Outpost self-host free', convoyHtml: 'Enterprise pricing' },
       { criteria: 'HMAC Signatures', hook0Html: 'Included (all plans)', svixHtml: 'Included', hookdeckHtml: 'Verification only', convoyHtml: 'Included' },
       { criteria: 'Retry Logic', hook0Html: 'Configurable per subscription (fast + slow phases)', svixHtml: 'Automatic retries', hookdeckHtml: 'Automatic retries', convoyHtml: 'Automatic retries' },
@@ -63,6 +64,19 @@ module.exports = {
       { q: 'What does Hook0 cost?', a: 'Hook0 has a free tier with no credit card required. Hook0 is also open-source and self-hostable for compliance requirements. Hook0 Cloud adds managed infrastructure, EU hosting, automatic updates, and priority support. Paid plans start at €59/month with per-event pricing.' },
       { q: 'Does Hook0 work at scale?', a: "Yes. Hook0's architecture supports PostgreSQL-only for simplicity or Pulsar + S3 for high throughput. Cloud customers process millions of events per day. The same architecture runs identically when self-hosted." },
     ],
+  },
+  comparisonSources: {
+    competitors: ['Svix', 'Hookdeck', 'Convoy'],
+    scope: 'This page compares webhook-sending platforms on their public plans, licenses and hosting. Prices are each vendor\'s published figures; features reflect their public documentation.',
+    sources: [
+      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-09-29' },
+      { label: 'Svix source code and license on GitHub', url: 'https://github.com/svix/svix-webhooks', consulted: '2026-09-29' },
+      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
+      { label: 'Hookdeck Outpost source and license on GitHub', url: 'https://github.com/hookdeck/outpost', consulted: '2026-09-29' },
+      { label: 'Convoy releases on GitHub', url: 'https://github.com/frain-dev/convoy/releases', consulted: '2026-09-29' },
+      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
+    ],
+    updated: '2026-09-29',
   },
   related: {
     h2: 'Related',

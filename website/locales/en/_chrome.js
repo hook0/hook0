@@ -137,6 +137,20 @@ module.exports = {
     offerSelfHostedDescription: 'Open-source under SSPL-1.0. Run on your own infrastructure.',
   },
   includes: {
+    // Shared labels for the comparison methodology + sources block
+    // (src/includes/_comparison-methodology.ejs). Per-page data (competitor
+    // names, scope, source links) lives in each page locale's `methodology`.
+    comparisonMethodology: {
+      eyebrow: 'Methodology',
+      h2: 'How we compared, and our sources',
+      sourcesLabel: 'Sources',
+      consultedWord: 'consulted',
+      archiveWord: 'archived copy',
+      updatedWord: 'Last reviewed',
+      nameSeparator: ', ',
+      disclaimerBefore: 'This is an independent comparison. Hook0 is not affiliated with, endorsed by, or sponsored by ',
+      disclaimerAfter: '. Product names and trademarks belong to their respective owners, and every competitor figure links to a public source with the date we checked it.',
+    },
     howItWorks: {
       eyebrow: 'How It Works',
       h2: 'Set up webhooks in 10 minutes',

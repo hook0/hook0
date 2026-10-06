@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Hook0-Alternativen (2026), ehrlicher Vergleich | Hook0',
   pageDescription: 'Du suchst Hook0-Alternativen? Vergleich Hook0, Svix, Hookdeck und Convoy Seite an Seite zu Lizenzierung, Selbst-Hosting, Preis und Funktionen.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-09-29',
   breadcrumb: 'Hook0-Alternativen',
   tldr: {
     h2: 'Kurz gesagt',
@@ -27,7 +27,7 @@ module.exports = {
     rows: [
       { criteria: 'Quellcode', hook0Html: 'Ja (SSPL-1.0, gesamter Quellcode)', svixHtml: 'Teilweise (Open Core, Enterprise geschlossen)', hookdeckHtml: 'Teilweise (Outpost Apache-2.0; Event Gateway geschlossen)', convoyHtml: 'Quelloffen verfügbar (Elastic License 2.0)' },
       { criteria: 'Selbst-Hosting', hook0Html: 'Kostenlos (Docker / K8s)', svixHtml: 'Nur Enterprise-Plan', hookdeckHtml: 'Outpost ja; Event Gateway nur Cloud', convoyHtml: 'Ja (selbst-verwaltet)' },
-      { criteria: 'Kostenloser Tarif', hook0Html: 'Ja, ohne Kreditkarte', svixHtml: 'Ja', hookdeckHtml: 'Ja (100k Events/Monat)', convoyHtml: 'Nur Community-Edition' },
+      { criteria: 'Kostenloser Tarif', hook0Html: 'Ja, ohne Kreditkarte', svixHtml: 'Ja', hookdeckHtml: 'Ja (10k Events/Monat)', convoyHtml: 'Nur Community-Edition' },
       { criteria: 'Preismodell', hook0Html: 'Event-basiert, transparent', svixHtml: 'Event-basiert + Enterprise-Stufen', hookdeckHtml: 'Event-basiert im Managed-Betrieb; Outpost selbst gehostet kostenlos', convoyHtml: 'Enterprise-Preise' },
       { criteria: 'HMAC-Signaturen', hook0Html: 'Enthalten (alle Tarife)', svixHtml: 'Enthalten', hookdeckHtml: 'Nur Verifizierung', convoyHtml: 'Enthalten' },
       { criteria: 'Wiederholungslogik', hook0Html: 'Konfigurierbar pro Abonnement (schnelle + langsame Phasen)', svixHtml: 'Automatische Wiederholungen', hookdeckHtml: 'Automatische Wiederholungen', convoyHtml: 'Automatische Wiederholungen' },
@@ -66,6 +66,19 @@ module.exports = {
       { q: 'Was kostet Hook0?', a: 'Hook0 hat einen kostenlosen Tarif ohne Kreditkarte. Hook0 ist auch Open Source und selbst-hostbar für Compliance-Anforderungen. Hook0 Cloud ergänzt um verwaltete Infrastruktur, EU-Hosting, automatische Updates und Priority-Support. Bezahlte Tarife starten bei 59 €/Monat mit Event-basierter Abrechnung.' },
       { q: 'Skaliert Hook0?', a: 'Ja. Die Architektur von Hook0 unterstützt nur PostgreSQL für Einfachheit oder Pulsar + S3 für hohen Durchsatz. Cloud-Kunden verarbeiten Millionen Events pro Tag. Dieselbe Architektur läuft identisch im Selbst-Hosting.' },
     ],
+  },
+  comparisonSources: {
+    competitors: ["Svix", "Hookdeck", "Convoy"],
+    scope: "Diese Seite vergleicht Plattformen für den Webhook-Versand anhand ihrer öffentlichen Tarife, Lizenzen und ihres Hostings. Die Preise sind die veröffentlichten Angaben der Anbieter, und die Funktionen entsprechen ihrer öffentlichen Dokumentation.",
+    sources: [
+      { label: "Svix Preise", url: "https://www.svix.com/pricing/", consulted: "2026-09-29" },
+      { label: "Svix Quellcode und Lizenz auf GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-09-29" },
+      { label: "Hookdeck Preise", url: "https://hookdeck.com/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Hookdeck Outpost Quellcode und Lizenz auf GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
+      { label: "Convoy Releases auf GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
+      { label: "Convoy Preise", url: "https://www.getconvoy.io/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
+    ],
+    updated: "2026-09-29",
   },
   related: {
     h2: 'Verwandte Themen',

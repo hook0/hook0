@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Svix-Alternativen 2026, Webhook-Plattformen | Hook0',
   pageDescription: 'Du evaluierst Svix? Vergleich Hook0, Hookdeck, Convoy: Preis, Selbst-Hosting, Lizenzierung und was « Open Source » bedeutet.',
-  pageModified: '2026-09-14',
+  pageModified: '2026-09-29',
   breadcrumb: 'Svix-Alternativen',
   tldr: {
     h2: 'Kurz gesagt',
@@ -36,7 +36,7 @@ module.exports = {
       { criteria: 'Lizenz', svixHtml: 'MIT (Open Core, Enterprise geschlossen)', hook0Html: 'SSPL-1.0 (gesamter Quellcode verfügbar)', hookdeckHtml: 'Teilweise (Outpost Apache-2.0; Event Gateway geschlossen)', convoyHtml: 'Quelloffen verfügbar (Elastic License 2.0)', hostedhooksHtml: 'Closed Source' },
       { criteria: 'Finanzierung', svixHtml: '17 Mio. $ VC-finanziert', hook0Html: '100% bootstrappt', hookdeckHtml: '3,5 Mio. $ VC-finanziert', convoyHtml: 'VC-finanziert', hostedhooksHtml: 'Bootstrapped' },
       { criteria: 'Selbst-Hosting', svixHtml: 'Nur Enterprise-Plan (volle Features)', hook0Html: 'Kostenlos (Docker / K8s)', hookdeckHtml: 'Nur Outpost (Event Gateway nur Cloud)', convoyHtml: 'Ja (selbst-verwaltet)', hostedhooksHtml: 'Nein' },
-      { criteria: 'Kostenloser Tarif', svixHtml: 'Ja', hook0Html: 'Ja, ohne Kreditkarte', hookdeckHtml: 'Ja (100k Events/Monat)', convoyHtml: 'Nur Community-Edition', hostedhooksHtml: 'Ja (begrenzt)' },
+      { criteria: 'Kostenloser Tarif', svixHtml: 'Ja', hook0Html: 'Ja, ohne Kreditkarte', hookdeckHtml: 'Ja (10k Events/Monat)', convoyHtml: 'Nur Community-Edition', hostedhooksHtml: 'Ja (begrenzt)' },
       { criteria: 'HMAC-Signaturen', svixHtml: 'Enthalten', hook0Html: 'Enthalten (alle Tarife)', hookdeckHtml: 'Nur Verifizierung', convoyHtml: 'Enthalten', hostedhooksHtml: 'Enthalten' },
       { criteria: 'Wiederholungslogik', svixHtml: 'Automatische Wiederholungen', hook0Html: 'Konfigurierbar pro Abonnement (schnelle + langsame Phasen)', hookdeckHtml: 'Automatische Wiederholungen', convoyHtml: 'Automatische Wiederholungen', hostedhooksHtml: 'Automatische Wiederholungen' },
       { criteria: 'Datenhosting', svixHtml: 'In den USA', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA) oder Selbst-Hosting', hookdeckHtml: 'In den USA', convoyHtml: 'Nur Selbst-Hosting', hostedhooksHtml: 'In den USA' },
@@ -56,6 +56,20 @@ module.exports = {
       { q: 'Wie migriere ich von Svix zu Hook0?', a: 'Hook0 nutzt dieselben Webhook-Bausteine wie Svix, nämlich eine Event-API, Abonnements pro Endpoint, HMAC-Signaturen und automatische Wiederholungen. Du richtest deine Producer auf die Hook0-API, legst deine Abonnements neu an und stellst deine Signaturprüfung auf das Hook0-Secret um. Weil der Server quelloffen ist, kannst du den gesamten Ablauf auf einer selbst gehosteten Instanz proben, bevor du Produktionstraffic umziehst.' },
       { q: 'Ist Hook0 im Vergleich zu Svix produktionsreif?', a: 'Hook0 liefert die Zustellgarantien, die du von einer Webhook-Plattform erwartest, nämlich HMAC-signierte Payloads, konfigurierbare Wiederholungen in schnellen und langsamen Phasen und Zustellungs-Monitoring in jedem Tarif. Weil der Server unter SSPL-1.0 quelloffen ist, kannst du den genauen Zustell- und Wiederholungscode lesen, statt einer Behauptung zu vertrauen, und ihn für volle Kontrolle selbst betreiben. Seine EU-Datenebene läuft auf Clever Cloud in Frankreich.' },
     ],
+  },
+  comparisonSources: {
+    competitors: ["Svix", "Hookdeck", "Convoy", "HostedHooks"],
+    scope: "Diese Seite vergleicht Plattformen für den Webhook-Versand anhand ihrer öffentlichen Tarife, Lizenzen und ihres Hostings. Die Preise sind die veröffentlichten Angaben der Anbieter, und die Funktionen entsprechen ihrer öffentlichen Dokumentation.",
+    sources: [
+      { label: "Svix Preise", url: "https://www.svix.com/pricing/", consulted: "2026-09-29" },
+      { label: "Svix Quellcode und Lizenz auf GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-09-29" },
+      { label: "Hookdeck Preise", url: "https://hookdeck.com/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Hookdeck Outpost Quellcode und Lizenz auf GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
+      { label: "Convoy Releases auf GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
+      { label: "Convoy Preise", url: "https://www.getconvoy.io/pricing", consulted: "2026-09-29", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
+      { label: "HostedHooks Preise", url: "https://www.hostedhooks.com/pricing", consulted: "2026-09-29" },
+    ],
+    updated: "2026-09-29",
   },
   related: {
     h2: 'Verwandte Themen',

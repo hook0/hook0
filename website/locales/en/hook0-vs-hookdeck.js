@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck: Webhook Platform vs Gateway',
   pageDescription: 'Compare Hook0 and Hookdeck: an open-source webhook platform vs a gateway plus a separate delivery product. Licensing, self-hosting scope, and pricing tiers.',
-  pageModified: '2026-09-16',
+  pageModified: '2026-09-29',
   breadcrumb: 'Hook0 vs Hookdeck',
   tldr: {
     h2: 'The Short Answer',
@@ -55,7 +55,7 @@ module.exports = {
       { feature: 'Subscriber Management', hook0Html: 'Built-in portal', hookdeckHtml: 'Not applicable' },
       { feature: 'HMAC Signatures', hook0Html: 'Generated automatically', hookdeckHtml: 'Verification only' },
       { feature: 'Event Type Management', hook0Html: 'Full event type registry', hookdeckHtml: 'No' },
-      { feature: 'Free Tier', hook0Html: '100/day free, EU-hosted', hookdeckHtml: '100,000 events/month' },
+      { feature: 'Free Tier', hook0Html: '100/day free, EU-hosted', hookdeckHtml: '10,000 events/month' },
       { feature: 'Data Hosting', hook0Html: 'Europe (GDPR) or self-host', hookdeckHtml: 'Canada-based, EU region available' },
     ],
   },
@@ -76,6 +76,15 @@ module.exports = {
     prefix: 'Want more detail?',
     linkText: 'Read the full comparison with architecture diagrams in our docs',
     linkHref: 'https://documentation.hook0.com/comparisons/hookdeck-vs-hook0',
+  },
+  comparisonSources: {
+    competitors: ['Hookdeck'],
+    scope: 'This page compares the public plans, licenses and hosting of Hook0 and Hookdeck for sending webhooks. Prices are each vendor\'s published figures; features reflect their public documentation.',
+    sources: [
+      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
+      { label: 'Hookdeck Outpost source and license on GitHub', url: 'https://github.com/hookdeck/outpost', consulted: '2026-09-29' },
+    ],
+    updated: '2026-09-29',
   },
   related: {
     h2: 'Related',
