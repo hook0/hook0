@@ -32,8 +32,12 @@ test.describe("Email verification auto-login", () => {
     expect(registerResponse.status()).toBeLessThan(400);
 
     // Pull the verification token from the email (Mailpit) WITHOUT consuming it,
-    // so the BROWSER is the one that verifies + auto-logs-in.
-    const token = await getVerificationTokenFromMailpit(request, email);
+    // so the BROWSER is the one that verifies + auto-logs-in. Reading the token
+    // out of the mailbox rather than through the CI database shortcut means this
+    // waits on real SMTP -> Mailpit delivery, so give it the same
+    // single-worker-CI headroom the redirects use: a slow delivery is then
+    // waited out, not scored as a flaky "no verification email".
+    const token = await getVerificationTokenFromMailpit(request, email, BACKEND_ROUNDTRIP_TIMEOUT);
     expect(token.length).toBeGreaterThan(0);
 
     // Open the verification link in the browser — the real user path. We never
@@ -73,7 +77,7 @@ test.describe("Email verification auto-login", () => {
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    const token = await getVerificationTokenFromMailpit(request, email);
+    const token = await getVerificationTokenFromMailpit(request, email, BACKEND_ROUNDTRIP_TIMEOUT);
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
     await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, {
       timeout: BACKEND_ROUNDTRIP_TIMEOUT,
@@ -106,7 +110,7 @@ test.describe("Email verification auto-login", () => {
     });
     expect(registerResponse.status()).toBeLessThan(400);
 
-    const token = await getVerificationTokenFromMailpit(request, email);
+    const token = await getVerificationTokenFromMailpit(request, email, BACKEND_ROUNDTRIP_TIMEOUT);
 
     // First use consumes the link and signs the user in.
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);

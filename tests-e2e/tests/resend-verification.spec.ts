@@ -1,7 +1,7 @@
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 import { Client } from "pg";
 import { API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import { fromItsOwnAddress, BACKEND_ROUNDTRIP_TIMEOUT } from "../fixtures/test-setup";
 
 const MAILPIT_URL = process.env.MAILPIT_URL || "http://localhost:8025";
 const DATABASE_URL =
@@ -64,12 +64,22 @@ async function verificationEmails(
   return found;
 }
 
-/** Wait until at least `count` verification emails reached `email`. */
+/**
+ * Wait until at least `count` verification emails reached `email`.
+ *
+ * This polls the real mailbox — it never takes the database shortcut — so what
+ * it waits on is genuine SMTP -> Mailpit delivery. Under single-worker CI the
+ * whole suite queues behind one backend, so that delivery sits in the same
+ * contention as every other backend round-trip; the default is sized on that
+ * budget (BACKEND_ROUNDTRIP_TIMEOUT) so a slow-but-real delivery is waited out
+ * rather than scored as a flaky "saw fewer emails than expected". A mail that
+ * never arrives still fails, just later.
+ */
 async function waitForVerificationEmails(
   request: APIRequestContext,
   email: string,
   count: number,
-  maxWaitMs = 20000
+  maxWaitMs = BACKEND_ROUNDTRIP_TIMEOUT
 ): Promise<Array<{ html: string }>> {
   const startedAt = Date.now();
   let latest: Array<{ html: string }> = [];
