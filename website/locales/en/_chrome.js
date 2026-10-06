@@ -142,7 +142,7 @@ module.exports = {
   includes: {
     // Shared labels for the comparison methodology + sources block
     // (src/includes/_comparison-methodology.ejs). Per-page data (competitor
-    // names, scope, source links) lives in each page locale's `methodology`.
+    // names, scope, source links) lives in each page locale's `comparisonSources`.
     comparisonMethodology: {
       eyebrow: 'Methodology',
       h2: 'How we compared, and our sources',
@@ -452,8 +452,8 @@ module.exports = {
       wip: false,
     },
     {
-      title: 'GDPR Compliant',
-      description: 'Hook0 is GDPR compliant and can easily execute a data processor agreement with your company if needed.',
+      title: 'GDPR-ready',
+      description: 'Hook0 is GDPR-ready and can easily execute a data processor agreement with your company if needed.',
       wip: false,
     },
     {

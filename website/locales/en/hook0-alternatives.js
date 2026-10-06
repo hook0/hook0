@@ -4,10 +4,10 @@ module.exports = {
   pageTitle: 'Hook0 Alternatives; Honest Comparison (2026)',
   pageDescription: 'Looking for Hook0 alternatives? Compare Hook0, Svix, Hookdeck, and Convoy side by side on licensing, self-hosting, pricing, and features.',
   breadcrumb: 'Hook0 alternatives',
-  pageModified: '2026-09-29',
+  pageModified: '2026-10-04',
   tldr: {
     h2: 'The Short Answer',
-    body: "The main alternatives to Hook0 are Svix, Hookdeck, and Convoy, and each solves a different slice of the webhook problem. Svix is open-core with closed enterprise features and $17M in VC; Hookdeck pairs a closed inbound gateway with its Apache-2.0 Outpost delivery engine; Convoy is source-available under the Elastic License v2.0. Hook0 is the one that is fully open-source under SSPL-1.0, bootstrapped, and free to self-host, with the same code running in the managed EU cloud and on your own servers. The table below puts all four side by side.",
+    body: "The main alternatives to Hook0 are Svix, Hookdeck, and Convoy, and each solves a different slice of the webhook problem. Svix is open-core with closed enterprise features and $17M in VC; Hookdeck pairs a closed inbound gateway with its Apache-2.0 Outpost delivery engine; Convoy is source-available under the Elastic License v2.0. Hook0 is open-source under SSPL-1.0, bootstrapped, and free to self-host on every plan, with the same code running in the managed EU cloud and on your own servers. The table below puts all four side by side.",
   },
   hero: {
     eyebrow: 'Comparison',
@@ -25,7 +25,7 @@ module.exports = {
     rows: [
       { criteria: 'Open-Source', hook0Html: 'Yes (SSPL-1.0, full source)', svixHtml: 'Partial (open-core, enterprise closed)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0)' },
       { criteria: 'Self-Hosting', hook0Html: 'Free (Docker / K8s)', svixHtml: 'Enterprise plan only', hookdeckHtml: 'Outpost yes; Event Gateway cloud-only', convoyHtml: 'Yes (self-managed)' },
-      { criteria: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', hookdeckHtml: 'Yes (10k events/mo)', convoyHtml: 'Community edition only' },
+      { criteria: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', hookdeckHtml: 'Yes (10,000 events/mo)', convoyHtml: 'Community edition only' },
       { criteria: 'Pricing Model', hook0Html: 'Per-event, transparent', svixHtml: 'Per-event + enterprise tiers', hookdeckHtml: 'Per-event managed; Outpost self-host free', convoyHtml: 'Enterprise pricing' },
       { criteria: 'HMAC Signatures', hook0Html: 'Included (all plans)', svixHtml: 'Included', hookdeckHtml: 'Verification only', convoyHtml: 'Included' },
       { criteria: 'Retry Logic', hook0Html: 'Configurable per subscription (fast + slow phases)', svixHtml: 'Automatic retries', hookdeckHtml: 'Automatic retries', convoyHtml: 'Automatic retries' },
@@ -41,8 +41,8 @@ module.exports = {
     cards: [
       { title: '"Hook0 is HTTPS-only"', body: 'Yes; and that is a feature, not a limitation. Sending webhook payloads over plain HTTP means your customers\' data transits in clear text. Every serious production system uses HTTPS. We enforce it because security is not optional.', color: 'green' },
       { title: '"No published SLA"', body: 'Hook0 Cloud Enterprise includes a custom SLA with dedicated support. If uptime guarantees matter, that is the fastest path; no infrastructure to manage, no ops team needed. Hook0 is also open-source, so you always have the option to self-host if your compliance requirements demand it.', color: 'indigo' },
-      { title: '"Pricing is unclear"', body: 'Our pricing is public and per-event. No sales call required. No "contact us" wall. Cloud starts at €59/month; 8x cheaper than Svix for comparable features. Try getting that transparency from a VC-funded competitor whose real numbers sit behind a sales call.', color: 'green' },
-      { title: "What they won't mention: funding", body: 'Hookdeck raised $3.5M in VC. Svix raised $17M. Convoy is VC-funded too. Hook0 is 100% bootstrapped. When your webhook provider needs to 10x revenue to satisfy investors, guess whose prices go up? Not ours.', color: 'indigo' },
+      { title: '"Pricing is unclear"', body: 'Our pricing is public and per-event, starting at €59/month on Cloud with no sales call and no "contact us" wall. For reference, Svix publishes a free tier plus paid plans up to Professional at $490/month, with Enterprise pricing on request (svix.com/pricing, consulted 2026-10-04).', color: 'green' },
+      { title: 'Funding model', body: 'Hookdeck has raised $3.5M in VC, Svix $17M, and Convoy is VC-backed; Hook0 is 100% bootstrapped and takes no outside funding. Bootstrapped and VC-funded vendors answer to different incentives, customer revenue versus investor returns, which is worth weighing when you pick a long-term provider.', color: 'indigo' },
     ],
   },
   difference: {
@@ -58,7 +58,7 @@ module.exports = {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
     items: [
-      { q: 'What are the best Hook0 alternatives?', a: 'The main alternatives to Hook0 are Svix (open-core, MIT core with closed enterprise features, VC-funded), Hookdeck (a Canadian company: the inbound Event Gateway is closed and cloud-only, while Outpost, its outbound delivery engine, is Apache-2.0 and self-hostable), and Convoy (Elastic License 2.0, source-available like the SSPL-1.0 used by Hook0, maintained by frain-dev, VC-funded). Each solves a different slice of the webhook problem. Hook0 is the only one that is fully open-source, bootstrapped, and self-hostable for free, with the same code running in the managed cloud and on your own servers.' },
+      { q: 'What are the best Hook0 alternatives?', a: 'The main alternatives to Hook0 are Svix (open-core, MIT core with closed enterprise features, VC-funded), Hookdeck (a Canadian company: the inbound Event Gateway is closed and cloud-only, while Outpost, its outbound delivery engine, is Apache-2.0 and self-hostable), and Convoy (Elastic License 2.0, source-available like the SSPL-1.0 used by Hook0, maintained by frain-dev, VC-funded). Each solves a different slice of the webhook problem. Hook0 is open-source under SSPL-1.0, bootstrapped, and self-hostable for free, with the same code running in the managed cloud and on your own servers.' },
       { q: 'Is Hookdeck better than Hook0?', a: 'Hookdeck is a webhook gateway; it proxies existing webhooks for reliability. Hook0 is a webhook platform; it sends webhooks on your behalf with retries, signatures, and subscriber management. They solve different problems. If you need to add webhooks to your product, Hook0 is the right tool.' },
       { q: 'Should I use Svix or Hook0?', a: 'Both are webhook platforms, but they differ on licensing and funding. Svix is open-core (enterprise features are closed-source) and raised $17M in VC. Hook0 is fully open-source under SSPL-1.0, bootstrapped, and offers free self-hosting. If vendor independence and long-term pricing stability matter, Hook0 is the safer bet.' },
       { q: 'What does Hook0 cost?', a: 'Hook0 has a free tier with no credit card required. Hook0 is also open-source and self-hostable for compliance requirements. Hook0 Cloud adds managed infrastructure, EU hosting, automatic updates, and priority support. Paid plans start at €59/month with per-event pricing.' },
@@ -69,14 +69,14 @@ module.exports = {
     competitors: ['Svix', 'Hookdeck', 'Convoy'],
     scope: 'This page compares webhook-sending platforms on their public plans, licenses and hosting. Prices are each vendor\'s published figures; features reflect their public documentation.',
     sources: [
-      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-09-29' },
-      { label: 'Svix source code and license on GitHub', url: 'https://github.com/svix/svix-webhooks', consulted: '2026-09-29' },
-      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
+      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-10-04' },
+      { label: 'Svix source code and license on GitHub', url: 'https://github.com/svix/svix-webhooks', consulted: '2026-10-04' },
+      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
       { label: 'Hookdeck Outpost source and license on GitHub', url: 'https://github.com/hookdeck/outpost', consulted: '2026-09-29' },
       { label: 'Convoy releases on GitHub', url: 'https://github.com/frain-dev/convoy/releases', consulted: '2026-09-29' },
-      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-09-29', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
+      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
     ],
-    updated: '2026-09-29',
+    updated: '2026-10-04',
   },
   related: {
     h2: 'Related',

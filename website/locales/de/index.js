@@ -1,7 +1,8 @@
 // Startseite DE. /humanizer pro + legal-reviewer angewendet.
 // SSPL = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIE
 // « Open Source » allein. DSGVO als Prozess-Claim
-// (« auf DSGVO-Konformität ausgelegt » / « DSGVO-konform betrieben »).
+// (« auf DSGVO-Konformität ausgelegt » / « Für die DSGVO gebaut »), nie
+// als absolute Konformitätsaussage (kein « DSGVO-konform betrieben »).
 // Verbotene Claims: « 100% souverän », « kein US-Konzern im Stack »,
 // « keine Daten verlassen die EU », « CLOUD Act free ».
 module.exports = {
@@ -19,7 +20,7 @@ module.exports = {
     trustFreePlan: 'Kostenloser Plan',
     trustNoCard: 'Keine Kreditkarte',
     trustHostedEurope: 'In Frankreich (EU) gehostet',
-    trustGdpr: 'DSGVO-konform betrieben',
+    trustGdpr: 'Für die DSGVO gebaut',
     scrollLabel: 'Scrollen',
     socialProductHuntAlt: 'Hook0 auf Product Hunt',
     socialGithubStars: 'GitHub-Sterne',
