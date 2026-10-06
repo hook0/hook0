@@ -26,6 +26,7 @@ module.exports = {
   'migrate-from-webhook-site': { fr: 'migrer-depuis-webhook-site', de: 'von-webhook-site-migrieren' },
   'open-source-webhooks': { fr: 'webhooks-open-source', de: 'quelloffene-webhooks' },
   'hook0-vs-convoy': { fr: 'hook0-vs-convoy', de: 'hook0-vs-convoy' },
+  'hook0-vs-requeue': { fr: 'hook0-vs-requeue', de: 'hook0-vs-requeue' },
   'self-hosted-webhooks': { fr: 'webhooks-auto-heberges', de: 'selbst-gehostete-webhooks' },
   'build-vs-buy-webhooks': { fr: 'build-vs-buy-webhooks', de: 'build-vs-buy-webhooks' },
   // EN-only educational/GEO explainer (HOO-106): "how webhooks work", rebuilt

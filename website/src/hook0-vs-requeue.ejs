@@ -1,0 +1,168 @@
+<%
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('hook0-vs-requeue', locals.lang || 'en')); }
+var t = locals.t;
+var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHelpers.getPath : function (s) { return './' + s; };
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
+<head>
+    <title><%= locals.pageTitle %></title>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+<%- include('./includes/_breadcrumb.ejs') %>
+
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow"><%= t.hero.eyebrow %></span>
+        <h1 class="mt-4 text-display-xl text-white">
+            <%= t.hero.titleBefore %>
+            <span class="block text-gradient-green"><%= t.hero.titleAccent %></span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            <%= t.hero.subtitle %>
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'vs-requeue-hero-register')">
+                <%= t.hero.ctaPrimary %>
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'vs-requeue-hero-playground')">
+                <%= t.hero.ctaSecondary %>
+            </a>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Direct-answer summary (AEO): a self-contained lead answer that featured
+     snippets and AI Overviews can lift verbatim, and that states the trade-off
+     up front for readers who skim. Rendered only when the locale supplies
+     `t.tldr`, so a locale not yet translated for it skips the block cleanly. -->
+<% if (t.tldr) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card card--glow p-8 animate-on-scroll">
+            <h2 class="text-xl font-bold text-white mb-3"><%= t.tldr.h2 %></h2>
+            <p class="text-body-lg text-gray-300"><%= t.tldr.body %></p>
+        </div>
+    </div>
+</section>
+<% } %>
+
+<!-- Key Differentiators -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.differentiators.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.differentiators.h2 %></h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <% var __diffIcons = [
+              { color: 'green', path: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z' },
+              { color: 'indigo', path: 'M13 10V3L4 14h7v7l9-11h-7z' },
+              { color: 'green', path: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
+              { color: 'indigo', path: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+            ]; %>
+            <% t.differentiators.cards.forEach(function (c, i) { var icon = __diffIcons[i] || __diffIcons[0]; %>
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-<%= icon.color %>-500/10 border border-<%= icon.color %>-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-<%= icon.color %>-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<%= icon.path %>"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3"><%= c.title %></h3>
+                <p class="text-gray-400">
+                    <%- c.body %>
+                </p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.comparison.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.comparison.h2 %></h2>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.feature %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.comparison.headers.hook0 %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.requeue %></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.comparison.rows.forEach(function (r) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300"><%= r.feature %></td>
+                        <td class="py-4 px-6 text-green-400 font-medium"><%- r.hook0Html %></td>
+                        <td class="py-4 px-6 text-gray-400"><%- r.requeueHtml %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.faq.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.faq.h2 %></h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <% t.faq.items.forEach(function (item) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2"><%= item.q %></h3>
+                <p class="text-gray-400"><%= item.a %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center"><%= t.related.h2 %></h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <% t.related.links.forEach(function (link) { %>
+            <a href="<%= getPath(link.enSlug, locals.pageLang) || getPath(link.enSlug, 'en') %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= link.label %></a>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
