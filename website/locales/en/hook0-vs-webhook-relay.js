@@ -36,7 +36,7 @@ module.exports = {
     cards: [
       { title: 'Inbound Gateway or Outbound Delivery', body: "Webhook Relay sits in front of your systems and takes in webhooks that GitHub, Stripe or Shopify send you, then routes them where you need them. Hook0 sits behind your product and publishes its events to every subscriber, so the delivery it manages goes <em>out</em> to your users." },
       { title: 'Both Can Reach Localhost', body: "Webhook Relay forwards to localhost and to servers with no public IP through its agent and tunnels. The Hook0 CLI covers the development case with <code>hook0 listen 3000</code>, a WebSocket tunnel to your local port that needs no account and runs through a relay you can host yourself." },
-      { title: 'EU Publisher, EU Cloud by Default', body: "Hook0 is published by a French company with no US entity, outside the reach of the US Cloud Act, and its managed cloud runs in the EU by default. Webhook Relay is published by AppScension Ltd, a UK company, and says it runs on Google Cloud; its public pages do not state a data region." },
+      { title: 'EU Publisher, EU Cloud by Default', body: "Hook0 is published by a French company with no US parent, subsidiary or establishment, and its managed cloud runs in the EU by default. Webhook Relay is published by AppScension Ltd, a UK company, and says it runs on Google Cloud; its public pages do not state a data region." },
       { title: 'Open Source You Can Run Today', body: "Hook0's server and relay are open source under SSPL-1.0 (source-available, not OSI-approved), and its client SDKs are MIT. You can self-host the whole stack without talking to anyone. Webhook Relay lists a self-hosted option through its sales team." },
     ],
   },
