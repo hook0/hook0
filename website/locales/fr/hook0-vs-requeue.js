@@ -9,7 +9,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Requeue : webhooks entrants vs sortants | Hook0',
   pageDescription: "Requeue est une inbox dead-letter pour les webhooks que tu reçois et les jobs en échec. Hook0 fait l'inverse, émission de webhooks managée, relances gratuites, HMAC, replay, hébergé en UE. Lequel choisir.",
-  pageModified: '2026-10-02',
+  pageModified: '2026-10-06',
   breadcrumb: 'Hook0 vs Requeue',
   tldr: {
     h2: 'En bref',
@@ -62,6 +62,15 @@ module.exports = {
       { q: 'Lequel choisir, Hook0 ou Requeue ?', a: "Choisis selon le sens. Envoyer des webhooks à tes propres clients à l'échelle, avec signatures, journal par tentative, relances gratuites et portail abonnés, c'est Hook0. Attraper et rejouer les webhooks que tu reçois de tiers, plus les jobs cron et worker en échec, dans une petite équipe, c'est Requeue. Ils occupent des faces adjacentes du même problème de fiabilité." },
       { q: 'Hook0 est-il affilié à Requeue ?', a: "Non. Requeue est une marque de son détenteur respectif, et Hook0 est indépendant, ni affilié ni soutenu par Requeue. Cette page est une comparaison factuelle pour les équipes qui évaluent les deux outils." },
     ],
+  },
+  comparisonSources: {
+    competitors: ['Requeue'],
+    scope: "Cette page compare le rôle, le replay, l'hébergement et le code source de Hook0 et de Requeue. Les faits sur Requeue viennent de sa page d'accueil et de son dépôt GitHub publics.",
+    sources: [
+      { label: "Page d'accueil de Requeue", url: 'https://getrequeue.com/', consulted: '2026-10-06' },
+      { label: 'Requeue sur GitHub', url: 'https://github.com/requeue-hq/requeue', consulted: '2026-10-06' },
+    ],
+    updated: '2026-10-06',
   },
   related: {
     h2: 'Sur le même sujet',

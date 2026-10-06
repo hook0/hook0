@@ -1,5 +1,5 @@
 <%
-if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('hook0-vs-requeue', locals.lang || 'en')); }
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('hook0-vs-webhook-relay', locals.lang || 'en')); }
 var t = locals.t;
 var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHelpers.getPath : function (s) { return './' + s; };
 %><!DOCTYPE html>
@@ -30,13 +30,13 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
         </p>
 
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'vs-requeue-hero-register')">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'vs-webhook-relay-hero-register')">
                 <%= t.hero.ctaPrimary %>
                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                 </svg>
             </a>
-            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'vs-requeue-hero-playground')">
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'vs-webhook-relay-hero-playground')">
                 <%= t.hero.ctaSecondary %>
             </a>
         </div>
@@ -110,7 +110,7 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
                     <tr class="border-b border-white/10">
                         <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.feature %></th>
                         <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.comparison.headers.hook0 %></th>
-                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.requeue %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.relay %></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
@@ -118,7 +118,7 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300"><%= r.feature %></td>
                         <td class="py-4 px-6 text-green-400 font-medium"><%- r.hook0Html %></td>
-                        <td class="py-4 px-6 text-gray-400"><%- r.requeueHtml %></td>
+                        <td class="py-4 px-6 text-gray-400"><%- r.relayHtml %></td>
                     </tr>
                     <% }); %>
                 </tbody>
@@ -126,6 +126,21 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
         </div>
     </div>
 </section>
+
+<!-- Where the other tool fits: the honest counterweight to the table. A
+     comparison that names a competitor says plainly when that competitor is the
+     better pick (content-seo doctrine #4, loyal comparative advertising).
+     Rendered only when the locale supplies `t.fit`. -->
+<% if (t.fit) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card card--glow p-8 animate-on-scroll">
+            <h2 class="text-xl font-bold text-white mb-3"><%= t.fit.h2 %></h2>
+            <p class="text-body-lg text-gray-300"><%- t.fit.body %></p>
+        </div>
+    </div>
+</section>
+<% } %>
 
 <!-- FAQ Section -->
 <section class="section relative overflow-hidden">
