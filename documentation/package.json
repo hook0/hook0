@@ -69,6 +69,9 @@
     "uuid": "11.1.1",
     "js-yaml": "^4.3.1",
     "dompurify": "^3.4.13",
+    "katex": "0.18.2",
+    "tinypool": "^2.1.2",
+    "postcss-selector-parser": "^7.1.6",
     "postcss": {
       "nanoid": "^3.3.17"
     }
