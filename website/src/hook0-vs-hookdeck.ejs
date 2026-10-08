@@ -60,6 +60,21 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
 </section>
 <% } %>
 
+<!-- What Hookdeck is: answers the navigational "hookdeck" intent first (most
+     visitors land here searching the brand), so the page describes both
+     Hookdeck products before comparing them. Rendered only when the locale
+     supplies `t.whatIs`. -->
+<% if (t.whatIs) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 animate-on-scroll">
+        <h2 class="text-display font-bold text-white text-center"><%= t.whatIs.h2 %></h2>
+        <% t.whatIs.paragraphs.forEach(function (p) { %>
+        <p class="mt-6 text-body-lg text-gray-300"><%- p %></p>
+        <% }); %>
+    </div>
+</section>
+<% } %>
+
 <!-- Platform vs Gateway -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
@@ -147,6 +162,114 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
         </div>
     </div>
 </section>
+
+<!-- Published prices, dated: every figure must match a source listed in
+     `t.comparisonSources` with the same consultation date (comparative
+     advertising burden of proof, see _comparison-methodology.ejs). If you
+     change a price here, bump that source's `consulted` date too. -->
+<% if (t.pricing) { %>
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.pricing.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.pricing.h2 %></h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto"><%= t.pricing.intro %></p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <% t.pricing.headers.forEach(function (h) { %>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= h %></th>
+                        <% }); %>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.pricing.rows.forEach(function (r) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 <%= r.hook0 ? 'text-green-400 font-medium' : 'text-gray-300' %>"><%= r.product %></td>
+                        <td class="py-4 px-6 text-gray-300"><%= r.plan %></td>
+                        <td class="py-4 px-6 text-gray-300"><%= r.price %></td>
+                        <td class="py-4 px-6 text-gray-400"><%= r.volume %></td>
+                        <td class="py-4 px-6 text-gray-400"><%= r.retention %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-6 text-sm text-gray-500 text-center">
+            <%= t.pricing.note %>
+            <a href="<%= getPath(t.pricing.link.enSlug, locals.pageLang) || getPath(t.pricing.link.enSlug, 'en') %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= t.pricing.link.label %></a>.
+        </p>
+    </div>
+</section>
+<% } %>
+
+<!-- Where Hookdeck fits better: the honest counterweight to the table, plus
+     a pointer to the wider alternatives page for readers who want neither. -->
+<% if (t.fit) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card p-8 border-white/10 animate-on-scroll">
+            <h2 class="text-xl font-bold text-white mb-4"><%= t.fit.h2 %></h2>
+            <ul class="space-y-3 text-gray-300">
+                <% t.fit.bullets.forEach(function (b) { %>
+                <li class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span><%= b %></span>
+                </li>
+                <% }); %>
+            </ul>
+            <p class="mt-6 text-gray-400">
+                <%= t.fit.linkPrefix %>
+                <a href="<%= getPath(t.fit.link.enSlug, locals.pageLang) || getPath(t.fit.link.enSlug, 'en') %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= t.fit.link.label %></a>.
+            </p>
+        </div>
+    </div>
+</section>
+<% } %>
+
+<!-- Migration from Hookdeck Outpost: concept mapping then ordered steps, so
+     a reader comparing the two can see the switch is a remap, not a rewrite. -->
+<% if (t.migration) { %>
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.migration.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.migration.h2 %></h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto"><%= t.migration.intro %></p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto mb-12">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.migration.headers.outpost %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.migration.headers.hook0 %></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.migration.mapping.forEach(function (m) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300"><%= m.outpost %></td>
+                        <td class="py-4 px-6 text-green-400"><%- m.hook0Html %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <ol class="space-y-4 animate-on-scroll list-decimal list-inside text-gray-300">
+            <% t.migration.steps.forEach(function (s) { %>
+            <li><%- s %></li>
+            <% }); %>
+        </ol>
+    </div>
+</section>
+<% } %>
 
 <!-- FAQ Section -->
 <section class="section relative overflow-hidden">
