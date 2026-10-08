@@ -25,11 +25,11 @@ import Head from '@docusaurus/Head';
 
 This is not an apples-to-apples comparison. [Hookdeck](https://hookdeck.com/) and Hook0 solve different problems.
 
-Hookdeck is an inbound webhook proxy. It sits between third-party services (Stripe, GitHub, Shopify) and your application. It retries, deduplicates, and routes incoming webhooks.
+Hookdeck sells two products. The **Event Gateway** is an inbound webhook proxy: it sits between third-party services (Stripe, GitHub, Shopify) and your application, and it retries, deduplicates, and routes incoming webhooks. **Outpost** is a separate outbound product, written in Go and licensed Apache-2.0, that sends your events to your customers' webhook endpoints or to queues and buses such as SQS, Kafka or Pub/Sub.
 
-Hook0 is an outbound webhook server. It sends webhooks from your application to your customers' endpoints, with retry logic, signatures, and delivery tracking.
+Hook0 is an outbound webhook server. It sends webhooks from your application to your customers' endpoints, with retry logic, signatures, and delivery tracking. On the sending side, the product to compare Hook0 with is Outpost.
 
-Many teams use both: Hook0 for sending, Hookdeck for receiving.
+Many teams use both: Hook0 for sending, Hookdeck's Event Gateway for receiving.
 
 ## Inbound vs outbound
 
@@ -66,21 +66,22 @@ flowchart LR
 | Feature | Hookdeck | Hook0 |
 |---------|----------|-------|
 | **SaaS** | ✅ | ✅ |
-| **Self-hosting** | ❌ | ✅ Full feature parity |
-| **Open-Source** | ❌ Proprietary | ✅ SSPL-1.0 |
-| **Inbound webhook proxy** | ✅ Core focus | ❌ |
-| **Outbound webhook delivery** | ⚠️ Secondary | ✅ Core focus |
-| **HMAC signature verification** | ✅ Verify incoming | ✅ Sign outgoing |
+| **Self-hosting** | ⚠️ Outpost only (Redis, PostgreSQL, a message queue) | ✅ Full feature parity (PostgreSQL) |
+| **Open-Source** | ⚠️ Outpost Apache-2.0, Event Gateway proprietary | ✅ SSPL-1.0 |
+| **Inbound webhook proxy** | ✅ Event Gateway | ❌ |
+| **Outbound webhook delivery** | ✅ Outpost (separate product) | ✅ Core focus |
+| **Non-HTTP destinations** | ✅ Outpost: SQS, EventBridge, Kinesis, S3, Pub/Sub, Service Bus, RabbitMQ, Kafka, Cloudflare Queues | ❌ HTTPS only |
+| **HMAC signatures** | ✅ Verify incoming (Event Gateway), sign outgoing (Outpost) | ✅ Sign outgoing |
 | **Automatic retries** | ✅ | ✅ Fixed escalating backoff, capped by max retries + window |
 | **Dead letter queue** | ✅ | ✅ |
 | **Request transformation** | ✅ | ❌ |
 | **Webhook deduplication** | ✅ | ✅ Via event IDs |
-| **Event type hierarchy** | ❌ | ✅ Dot-notation |
-| **Multi-tenant filtering** | ❌ | ✅ Label-based |
+| **Event type hierarchy** | ⚠️ Outpost topics | ✅ Dot-notation |
+| **Multi-tenant filtering** | ✅ Outpost tenants | ✅ Label-based |
 | **Custom retry schedules** | ✅ | ⚠️ Global limits only (self-hosted), not per subscription |
 | **Delivery logs & replay** | ✅ | ✅ |
 | **REST API** | ✅ | ✅ |
-| **Local development tunnel** | ✅ CLI tool | ❌ |
+| **Local development tunnel** | ✅ CLI tool | ✅ [`hook0 listen`](/reference/cli) |
 | **Self-funded** | ❌ $5.5M raised | ✅ Fully self-funded |
 
 *Funding data last verified: January 2025*
@@ -91,6 +92,7 @@ flowchart LR
 - You need to transform incoming webhook payloads before they hit your application
 - You want a local development tunnel for testing webhooks locally
 - You need to fan out a single incoming webhook to multiple internal services
+- You send events to customers who want them in SQS, Kafka or Pub/Sub rather than on an HTTPS endpoint (Outpost)
 
 ## Pick Hook0 if
 
@@ -125,9 +127,9 @@ flowchart LR
 
 ## Pricing
 
-Hookdeck charges per request. At high volume, costs scale linearly with webhook traffic.
+As published on 8 October 2026, Hookdeck's Event Gateway is free up to 10,000 events a month, then starts at $39/month (Team) or $499/month (Growth). Outpost is free to self-host, or $10 per million events managed, with a $499/month minimum on its Growth plan.
 
-Hook0 offers both cloud pricing (per event) and self-hosting (free, you pay for infrastructure). If you process millions of events monthly, self-hosting Hook0 eliminates per-message costs entirely.
+Hook0 Cloud is free up to 100 events a day, then €59/month (Startup) or €190/month (Pro) excluding VAT, with overage billed per event instead of blocked. Self-hosting Hook0 is free: you pay for the infrastructure, not per message. The [Hook0 vs Hookdeck page](https://www.hook0.com/hook0-vs-hookdeck) lists every plan side by side.
 
 ## Try Hook0
 
