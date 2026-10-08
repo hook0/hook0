@@ -34,6 +34,7 @@ module.exports = {
       { label: 'Alternativen vergleichen', href: 'https://documentation.hook0.com/comparisons', color: 'purple' },
       { label: 'Open-Source-Freunde', href: './open-source-freunde', color: 'pink' },
       { label: 'Webhook-Tester', href: 'https://play.hook0.com', color: 'emerald', external: true },
+      { label: 'Kostenlose Webhooks', href: './webhook-kostenlos', color: 'green', icon: 'gift' },
       { label: 'Preise', href: './preise', color: 'indigo', icon: 'tag' },
     ],
   },

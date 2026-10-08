@@ -47,6 +47,7 @@ module.exports = {
             { enSlug: 'open-source-webhooks',      icon: 'code',   label: 'Webhooks open source', description: 'Open source (SSPL-1.0)' },
             { enSlug: 'self-hosted-webhooks',      icon: 'server', label: 'Webhooks auto-hébergés',      description: 'Ton infra, tes données' },
             { enSlug: 'migrate-from-webhook-site', icon: 'move',   label: 'Migrer depuis webhook.site',  description: 'Passe ton trafic en production' },
+            { enSlug: 'webhook-free',              icon: 'gift',   label: 'Webhooks gratuits',           description: 'Tester et essayer des webhooks' },
           ],
         },
       },
@@ -475,6 +476,7 @@ module.exports = {
     compare: {
       title: 'Comparer',
       items: [
+        { label: 'Webhooks gratuits', href: './webhook-gratuit' },
         { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
         { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
         { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
