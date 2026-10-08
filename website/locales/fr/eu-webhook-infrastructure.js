@@ -12,7 +12,7 @@
 module.exports = {
   "pageTitle": "Infrastructure webhook européenne : hébergée en France | Hook0",
   "pageDescription": "Le data plane webhook de Hook0 tourne chez Clever Cloud, en France, dès le tier gratuit. Éditeur de droit français, sous-traitants publics, self-host possible.",
-  "pageModified": "2026-09-24",
+  "pageModified": "2026-10-08",
   "track": "fr-infrastructure-webhook-eu",
   // Bloc réponse directe (AEO). Chaque fait est ancré dans la copie de la page :
   // data plane Clever Cloud SAS (France, EEE) sur chaque offre, éditeur de droit
@@ -82,7 +82,7 @@ module.exports = {
       {
         "highlight": false,
         "provider": "Svix",
-        "residencyHtml": "Pas de cloud managé hébergé en Europe affiché ; la résidence des données est évoquée sans région EU explicite.",
+        "residencyHtml": "Régions UE et US sur la plateforme managée ; régions sur mesure avec le plan Enterprise.",
         "priceHtml": "L'offre managée Pro démarre à 490 $/mois ; self-host (MIT) pour maîtriser toi-même la résidence"
       },
       {
@@ -150,7 +150,7 @@ module.exports = {
       },
       {
         "q": "Quels fournisseurs de webhooks proposent une résidence EU sur leur cloud managé ?",
-        "a": "En juillet 2026 : Hook0 héberge son data plane en France sur chaque offre. Hookdeck affiche des régions US, EU et Asie sur sa plateforme managée, sans publier les régions EU exactes. Svix n'affiche pas de cloud managé hébergé en Europe. Convoy ne propose pas de résidence géographique managée — tu choisis ta région en t'auto-hébergeant. Les offres évoluent, vérifie aussi leur documentation à jour."
+        "a": "En juillet 2026 : Hook0 héberge son data plane en France sur chaque offre. Hookdeck affiche des régions US, EU et Asie sur sa plateforme managée, sans publier les régions EU exactes. Svix affiche des régions UE et US sur sa plateforme managée, avec des régions sur mesure en Enterprise. Convoy ne propose pas de résidence géographique managée — tu choisis ta région en t'auto-hébergeant. Les offres évoluent, vérifie aussi leur documentation à jour."
       }
     ]
   },

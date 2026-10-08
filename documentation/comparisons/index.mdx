@@ -68,7 +68,7 @@ import Head from '@docusaurus/Head';
           "name": "What is the best open-source webhook management tool?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is open-core: the open-source version lacks features available in the paid tier. Convoy (Go) handles both inbound and outbound but is VC-funded. For teams that want full source access with no feature gating, Hook0 is the strongest option."
+            "text": "Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is open-core: its open-source server lacks some features of the hosted service. Convoy (Go) handles both inbound and outbound but is VC-funded. For teams that want full source access with no feature gating, Hook0 is the strongest option."
           }
         },
         {
@@ -97,8 +97,8 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 | Feature | Hook0 | Svix | Hookdeck | Hostedhooks |
 |---------|-------|------|----------|-------------|
 | **SaaS (managed)** | ✅ | ✅ | ✅ | ✅ |
-| **Self-hosting** | ✅ Full feature parity | ⚠️ Open-core (limited) | ❌ | ❌ |
-| **Open-source license** | ✅ SSPL-1.0 | ⚠️ Open-core | ❌ Proprietary | ❌ Proprietary |
+| **Self-hosting** | ✅ Full feature parity | ⚠️ Open-core (limited) | ⚠️ Outpost only (Apache-2.0) | ❌ |
+| **Open-source license** | ✅ SSPL-1.0 | ⚠️ Open-core | ⚠️ Partial (Outpost Apache-2.0, Event Gateway closed) | ❌ Proprietary |
 | **Outbound webhooks** | ✅ | ✅ | ⚠️ Primarily inbound | ✅ |
 | **Inbound webhook proxy** | ❌ | ❌ | ✅ Core focus | ❌ |
 | **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ | ❌ |
@@ -113,7 +113,7 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 | **Authentication** | Biscuit tokens + Service tokens | API keys | API keys | API keys |
 | **Self-funded** | ✅ | ❌ $17M raised | ❌ $5.5M raised | Unknown |
 
-*Funding and feature data last verified: January 2025*
+*Funding and feature data last verified: January 2025. Svix and Hookdeck self-hosting rows rechecked against their public repositories and pricing pages on 2026-10-08.*
 
 ## Detailed comparisons
 
@@ -127,13 +127,13 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 
 **Time to integrate**: Hook0 and Svix both have good APIs. First webhook in under 10 minutes with either. Hookdeck is fast too, but it solves a different problem (receiving webhooks, not sending them).
 
-**Cost at scale**: Self-hosting Hook0 costs you nothing beyond your own infrastructure. With Svix's open-source version, you get a subset of features. With Hookdeck and Hostedhooks, you pay per message with no self-hosting escape hatch.
+**Cost at scale**: Self-hosting Hook0 costs you nothing beyond your own infrastructure. With Svix's open-source version, you get a subset of features. Hostedhooks has no self-hosting option, and Hookdeck's inbound Event Gateway is cloud-only; only its Outpost delivery engine can be self-hosted.
 
 **Lock-in**: Hook0 is SSPL-1.0. You can view, modify, fork, and self-host the code. The only restriction: if you offer Hook0 as a managed service to others, you must open-source your entire stack. For self-hosting your own webhook infrastructure, there are no extra obligations. If we disappeared tomorrow, your webhook infrastructure would keep running.
 
 ## Open-source options
 
-Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is "open-core" -- the open-source version lacks features available in the paid tier.
+Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is "open-core": its open-source server lacks some features of the hosted service, and supported on-prem deployment is an Enterprise-plan feature.
 
 If you need source access for auditing, compliance, or to avoid vendor dependency, Hook0 is the only real option here.
 
@@ -157,7 +157,7 @@ Message queues (RabbitMQ, Kafka, SQS) handle internal communication. Webhooks ha
 
 ### What is the best open-source webhook management tool?
 
-Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is open-core: the open-source version lacks features available in the paid tier. Convoy (Go) handles both inbound and outbound but is VC-funded. For teams that want full source access with no feature gating, Hook0 is the strongest option.
+Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is open-core: its open-source server lacks some features of the hosted service. Convoy (Go) handles both inbound and outbound but is VC-funded. For teams that want full source access with no feature gating, Hook0 is the strongest option.
 
 ### How does pricing compare at scale?
 

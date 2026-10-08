@@ -16,7 +16,7 @@
 module.exports = {
   "pageTitle": "EU-Webhook-Infrastruktur: standardmäßig in Frankreich gehostet | Hook0",
   "pageDescription": "Hook0 betreibt seine Webhook-Data-Plane bei Clever Cloud (Frankreich) ab der kostenlosen Stufe. Französische Gesellschaft, öffentliche Liste der Unterauftragsverarbeiter, jederzeit Self-Hosting oder On-Premise.",
-  "pageModified": "2026-09-24",
+  "pageModified": "2026-10-08",
   "track": "de-eu-webhook-infrastruktur",
   // Direktantwort-Block (AEO). Jede Zahl ist in der Seitenkopie unten verankert:
   // Clever Cloud SAS (Frankreich, EWR) auf jedem Tarif, Gesellschaft nach
@@ -86,7 +86,7 @@ module.exports = {
       {
         "highlight": false,
         "provider": "Svix",
-        "residencyHtml": "Keine in der EU gehostete verwaltete Cloud beworben; Datenresidenz wird ohne explizite EU-Region erwähnt.",
+        "residencyHtml": "EU- und US-Regionen auf der verwalteten Plattform; eigene Regionen im Enterprise-Tarif.",
         "priceHtml": "Managed Pro beginnt bei 490 $/Monat; Self-Hosting (MIT), um die Residenz selbst zu steuern"
       },
       {
@@ -154,7 +154,7 @@ module.exports = {
       },
       {
         "q": "Welche Webhook-Anbieter bieten EU-Datenresidenz in ihrer verwalteten Cloud?",
-        "a": "Stand Juli 2026: Hook0 hostet seine Data Plane in Frankreich auf jedem Tarif. Hookdeck bewirbt US-, EU- und Asien-Regionen auf seiner verwalteten Plattform, ohne die genauen EU-Regionen zu veröffentlichen. Svix bewirbt keine in der EU gehostete verwaltete Cloud. Convoy bietet keine verwaltete geografische Residenz; du wählst deine Region per Self-Hosting. Anbieter ändern ihre Angebote, prüfe daher auch deren aktuelle Dokumentation."
+        "a": "Stand Juli 2026: Hook0 hostet seine Data Plane in Frankreich auf jedem Tarif. Hookdeck bewirbt US-, EU- und Asien-Regionen auf seiner verwalteten Plattform, ohne die genauen EU-Regionen zu veröffentlichen. Svix führt EU- und US-Regionen auf seiner verwalteten Plattform, eigene Regionen im Enterprise-Tarif. Convoy bietet keine verwaltete geografische Residenz; du wählst deine Region per Self-Hosting. Anbieter ändern ihre Angebote, prüfe daher auch deren aktuelle Dokumentation."
       }
     ]
   },

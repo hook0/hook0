@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Alternatives à Hookdeck 2026, plateforme webhook open source et UE | Hook0',
   pageDescription: 'Hookdeck sépare entrant et sortant en deux produits. Compare Hook0, Svix et Convoy sur les licences open source, l\'auto-hébergement gratuit et la résidence des données en UE.',
-  pageModified: '2026-10-04',
+  pageModified: '2026-10-08',
   breadcrumb: 'Alternatives à Hookdeck',
   tldr: {
     h2: 'En bref',
@@ -37,10 +37,10 @@ module.exports = {
       { criteria: 'Type', hookdeckHtml: 'Event Gateway (entrant) + Outpost (sortant)', hook0Html: 'Plateforme webhook complète', svixHtml: 'Plateforme webhook (open core)', convoyHtml: 'Plateforme webhook', awsEventbridgeHtml: 'Bus d\'events (écosystème AWS)' },
       { criteria: 'Envoi de webhooks', hookdeckHtml: 'Oui (Outpost, produit séparé)', hook0Html: 'Oui (feature centrale)', svixHtml: 'Oui', convoyHtml: 'Oui', awsEventbridgeHtml: 'Oui (via API Destinations)' },
       { criteria: 'Réception de webhooks', hookdeckHtml: 'Oui (feature centrale)', hook0Html: 'Non (par design)', svixHtml: 'Non', convoyHtml: 'Oui (entrant + sortant)', awsEventbridgeHtml: 'Oui (ingestion d\'events)' },
-      { criteria: 'Auto-hébergement', hookdeckHtml: 'Outpost uniquement (Apache-2.0)', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Plan entreprise uniquement', convoyHtml: 'Oui (auto-géré)', awsEventbridgeHtml: 'Non (AWS uniquement)' },
+      { criteria: 'Auto-hébergement', hookdeckHtml: 'Outpost uniquement (Apache-2.0)', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Serveur MIT, autogéré ; on-prem supporté en Enterprise', convoyHtml: 'Oui (auto-géré)', awsEventbridgeHtml: 'Non (AWS uniquement)' },
       { criteria: 'Open source', hookdeckHtml: 'Partiel (Outpost Apache-2.0, Gateway fermé)', hook0Html: 'Oui (SSPL-1.0, source intégrale)', svixHtml: 'Partiel (open core, entreprise fermé)', convoyHtml: 'Source disponible (Elastic License 2.0)', awsEventbridgeHtml: 'Non (propriétaire AWS)' },
       { criteria: 'Tier gratuit', hookdeckHtml: 'Oui (10 000 events/mois)', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui', convoyHtml: 'Édition communauté uniquement', awsEventbridgeHtml: 'Pay-per-use (facturation AWS)' },
-      { criteria: 'Hébergement des données', hookdeckHtml: 'Au Canada, région UE disponible', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', svixHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', awsEventbridgeHtml: 'Multi-régions (AWS)' },
+      { criteria: 'Hébergement des données', hookdeckHtml: 'Au Canada, région UE disponible', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', svixHtml: 'Régions UE et US, ou auto-hébergement', convoyHtml: 'Auto-hébergé uniquement', awsEventbridgeHtml: 'Multi-régions (AWS)' },
       { criteria: 'Financement', hookdeckHtml: '3,5 M$ levés en VC', hook0Html: '100% bootstrappé', svixHtml: '17 M$ levés en VC', convoyHtml: 'Financé en VC', awsEventbridgeHtml: 'Amazon (entreprise cotée)' },
     ],
   },
@@ -75,12 +75,12 @@ module.exports = {
     sources: [
       { label: "Tarifs Hookdeck", url: "https://hookdeck.com/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
       { label: "Code source et licence de Hookdeck Outpost sur GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
-      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-04" },
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-08" },
       { label: "Releases de Convoy sur GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
       { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
       { label: "Tarifs AWS EventBridge", url: "https://aws.amazon.com/eventbridge/pricing/", consulted: "2026-09-29" },
     ],
-    updated: "2026-10-04",
+    updated: "2026-10-08",
   },
   related: {
     h2: 'Sur le même sujet',

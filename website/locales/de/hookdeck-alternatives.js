@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Hookdeck-Alternativen 2026, Open-Source-Webhook-Plattformen (EU) | Hook0',
   pageDescription: 'Hookdeck trennt Eingang und Ausgang in zwei Produkte. Vergleiche Hook0, Svix und Convoy bei Open-Source-Lizenz, kostenlosem Selbst-Hosting und EU-Datenresidenz.',
-  pageModified: '2026-10-04',
+  pageModified: '2026-10-08',
   breadcrumb: 'Hookdeck-Alternativen',
   tldr: {
     h2: 'Kurz gesagt',
@@ -37,10 +37,10 @@ module.exports = {
       { criteria: 'Typ', hookdeckHtml: 'Event Gateway (eingehend) + Outpost (ausgehend)', hook0Html: 'Vollständige Webhook-Plattform', svixHtml: 'Webhook-Plattform (Open Core)', convoyHtml: 'Webhook-Plattform', awsEventbridgeHtml: 'Event-Bus (AWS-Ökosystem)' },
       { criteria: 'Webhooks senden', hookdeckHtml: 'Ja (Outpost, separates Produkt)', hook0Html: 'Ja (Kernfunktion)', svixHtml: 'Ja', convoyHtml: 'Ja', awsEventbridgeHtml: 'Ja (via API Destinations)' },
       { criteria: 'Webhooks empfangen', hookdeckHtml: 'Ja (Kernfunktion)', hook0Html: 'Nein (per Design)', svixHtml: 'Nein', convoyHtml: 'Ja (eingehend + ausgehend)', awsEventbridgeHtml: 'Ja (Event-Ingestion)' },
-      { criteria: 'Selbst-Hosting', hookdeckHtml: 'Nur Outpost (Apache-2.0)', hook0Html: 'Kostenlos (Docker / K8s)', svixHtml: 'Nur Enterprise-Plan', convoyHtml: 'Ja (selbst-verwaltet)', awsEventbridgeHtml: 'Nein (nur AWS)' },
+      { criteria: 'Selbst-Hosting', hookdeckHtml: 'Nur Outpost (Apache-2.0)', hook0Html: 'Kostenlos (Docker / K8s)', svixHtml: 'MIT-Server, selbst betrieben; On-Prem-Support in Enterprise', convoyHtml: 'Ja (selbst-verwaltet)', awsEventbridgeHtml: 'Nein (nur AWS)' },
       { criteria: 'Quellcode', hookdeckHtml: 'Teilweise (Outpost Apache-2.0, Gateway geschlossen)', hook0Html: 'Ja (SSPL-1.0, gesamter Quellcode)', svixHtml: 'Teilweise (Open Core, Enterprise geschlossen)', convoyHtml: 'Source-available (Elastic License 2.0)', awsEventbridgeHtml: 'Nein (AWS-proprietär)' },
       { criteria: 'Kostenloser Tarif', hookdeckHtml: 'Ja (10.000 Events/Monat)', hook0Html: 'Ja, ohne Kreditkarte', svixHtml: 'Ja', convoyHtml: 'Nur Community-Edition', awsEventbridgeHtml: 'Pay-per-use (AWS-Abrechnung)' },
-      { criteria: 'Datenhosting', hookdeckHtml: 'In Kanada, EU-Region verfügbar', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA) oder Selbst-Hosting', svixHtml: 'In den USA', convoyHtml: 'Nur Selbst-Hosting', awsEventbridgeHtml: 'Multi-Region (AWS)' },
+      { criteria: 'Datenhosting', hookdeckHtml: 'In Kanada, EU-Region verfügbar', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA) oder Selbst-Hosting', svixHtml: 'EU- und US-Regionen oder Selbst-Hosting', convoyHtml: 'Nur Selbst-Hosting', awsEventbridgeHtml: 'Multi-Region (AWS)' },
       { criteria: 'Finanzierung', hookdeckHtml: '3,5 Mio. $ VC-finanziert', hook0Html: '100% bootstrappt', svixHtml: '17 Mio. $ VC-finanziert', convoyHtml: 'VC-finanziert', awsEventbridgeHtml: 'Amazon (börsennotiert)' },
     ],
   },
@@ -75,12 +75,12 @@ module.exports = {
     sources: [
       { label: "Hookdeck Preise", url: "https://hookdeck.com/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
       { label: "Hookdeck Outpost Quellcode und Lizenz auf GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
-      { label: "Svix Preise", url: "https://www.svix.com/pricing/", consulted: "2026-10-04" },
+      { label: "Svix Preise", url: "https://www.svix.com/pricing/", consulted: "2026-10-08" },
       { label: "Convoy Releases auf GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
       { label: "Convoy Preise", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
       { label: "AWS EventBridge Preise", url: "https://aws.amazon.com/eventbridge/pricing/", consulted: "2026-09-29" },
     ],
-    updated: "2026-10-04",
+    updated: "2026-10-08",
   },
   related: {
     h2: 'Verwandte Themen',

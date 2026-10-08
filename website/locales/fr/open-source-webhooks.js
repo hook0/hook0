@@ -15,7 +15,7 @@ module.exports = {
   },
   pageTitle: 'Webhooks open source (SSPL-1.0) : Hook0',
   pageDescription: 'Hook0 est une plateforme webhooks open source (SSPL-1.0). Cloud UE managé ou auto-hébergement libre.',
-  "pageModified": "2026-07-16",
+  "pageModified": "2026-10-08",
   "track": "fr-oss-webhooks",
   "hero": {
     "eyebrow": "Open source",
@@ -88,7 +88,7 @@ module.exports = {
       {
         "criteria": "Auto-hébergement possible",
         "sspl": "Oui, gratuit (Docker / K8s)",
-        "openCore": "Plan enterprise uniquement",
+        "openCore": "Oui, serveur cœur MIT ; on-prem supporté en Enterprise",
         "mit": "Oui, gratuit",
         "proprietary": "Non"
       },
@@ -109,7 +109,7 @@ module.exports = {
       {
         "criteria": "Souveraineté des données",
         "sspl": "Contrôle total (auto-hébergé ou Cloud UE)",
-        "openCore": "Cloud US ou auto-hébergement enterprise",
+        "openCore": "Cloud US ou UE, ou auto-hébergement du cœur",
         "mit": "Auto-hébergement uniquement",
         "proprietary": "Cloud US, pas d'option d'auto-hébergement"
       },

@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Alternatives à Svix 2026 : webhooks comparés | Hook0',
   pageDescription: 'Tu évalues Svix ? Compare Hook0, Hookdeck, Convoy : tarification, auto-hébergement, licences et ce qu\'« open source » veut dire.',
-  pageModified: '2026-10-04',
+  pageModified: '2026-10-08',
   breadcrumb: 'Alternatives à Svix',
   tldr: {
     h2: 'En bref',
@@ -24,7 +24,7 @@ module.exports = {
     cards: [
       { title: 'Les limites de l\'open core', body: 'La base MIT de Svix est de l\'open source authentique. Le hic, les features entreprise comme SSO, analytics avancées et support dédié sont propriétaires. Quand tu scales, tu te cognes au paywall. Si ton équipe a besoin d\'un accès source complet, c\'est un problème.' },
       { title: '17 M$ de VC vs bootstrappé', body: 'Svix a levé 17 M$ en venture capital ; Hook0 est 100% bootstrappé et ne prend aucun financement externe. Les deux modèles répondent à des parties prenantes différentes, investisseurs contre clients, ce qui mérite d\'être pesé quand tu choisis un fournisseur sur la durée.' },
-      { title: 'Pas d\'hébergement européen', body: 'Svix est basé aux États-Unis et ne propose pas de cloud UE. Si tu es soumis au RGPD ou à des règles de souveraineté des données, c\'est bloquant. Tu peux auto-héberger, mais ça impose leur plan entreprise.' },
+      { title: 'La région UE ne dit pas tout', body: 'Le cloud managé de Svix propose des régions UE et US, et son serveur MIT peut tourner sur ta propre infra. Un accord de traitement des données EEE est inclus dans les plans Professional et Enterprise. Hook0 garde son plan de données chez Clever Cloud en France sur chaque offre, tier gratuit compris, et publie sa liste de sous-traitants. Pour une revue RGPD ou souveraineté, compare qui exploite l\'infrastructure, pas seulement où elle se trouve.' },
     ],
   },
   comparison: {
@@ -35,11 +35,11 @@ module.exports = {
     rows: [
       { criteria: 'Licence', svixHtml: 'MIT (open core, entreprise fermé)', hook0Html: 'SSPL-1.0 (source intégrale disponible)', hookdeckHtml: 'Partiel (Outpost en Apache-2.0 ; Event Gateway fermé)', convoyHtml: 'Source ouverte (Elastic License 2.0)', hostedhooksHtml: 'Code fermé' },
       { criteria: 'Financement', svixHtml: '17 M$ levés en VC', hook0Html: '100% bootstrappé', hookdeckHtml: '3,5 M$ levés en VC', convoyHtml: 'Financé en VC', hostedhooksHtml: 'Bootstrappé' },
-      { criteria: 'Auto-hébergement', svixHtml: 'Plan entreprise uniquement (features complètes)', hook0Html: 'Gratuit (Docker / K8s)', hookdeckHtml: 'Outpost seulement (Event Gateway cloud uniquement)', convoyHtml: 'Oui (auto-géré)', hostedhooksHtml: 'Non' },
+      { criteria: 'Auto-hébergement', svixHtml: 'Serveur MIT, autogéré ; on-prem supporté en Enterprise', hook0Html: 'Gratuit (Docker / K8s)', hookdeckHtml: 'Outpost seulement (Event Gateway cloud uniquement)', convoyHtml: 'Oui (auto-géré)', hostedhooksHtml: 'Non' },
       { criteria: 'Tier gratuit', svixHtml: 'Oui', hook0Html: 'Oui, sans carte bancaire', hookdeckHtml: 'Oui (10 000 events/mois)', convoyHtml: 'Édition communauté uniquement', hostedhooksHtml: 'Oui (limité)' },
       { criteria: 'Signatures HMAC', svixHtml: 'Incluses', hook0Html: 'Incluses (tous les plans)', hookdeckHtml: 'Vérification seulement', convoyHtml: 'Incluses', hostedhooksHtml: 'Incluses' },
       { criteria: 'Logique de relances', svixHtml: 'Relances automatiques', hook0Html: 'Configurable par abonnement (phases rapide + lente)', hookdeckHtml: 'Relances automatiques', convoyHtml: 'Relances automatiques', hostedhooksHtml: 'Relances automatiques' },
-      { criteria: 'Hébergement des données', svixHtml: 'Aux États-Unis', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', hookdeckHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', hostedhooksHtml: 'Aux États-Unis' },
+      { criteria: 'Hébergement des données', svixHtml: 'Régions UE et US, ou auto-hébergement', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', hookdeckHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', hostedhooksHtml: 'Aux États-Unis' },
       { criteria: 'Niveau open source', svixHtml: 'Partiel (open core)', hook0Html: 'Total (SSPL, sans add-ons fermés)', hookdeckHtml: 'Partiel (Outpost seulement)', convoyHtml: 'Source ouverte (Elastic License 2.0)', hostedhooksHtml: 'Aucun' },
     ],
   },
@@ -48,10 +48,10 @@ module.exports = {
     h2: 'Questions fréquentes',
     items: [
       { q: 'Svix est-il vraiment open source ?', a: 'Partiellement. La base de Svix est sous licence MIT, mais les features entreprise (SSO, analytics avancées, support prioritaire) sont propriétaires et fermées. Ça s\'appelle de l\'open core. Tu peux faire tourner l\'édition communauté, mais les features clés en prod demandent un plan payant. Hook0, à l\'inverse, livre tout sous SSPL-1.0 sans add-ons fermés.' },
-      { q: 'Puis-je auto-héberger Svix gratuitement ?', a: 'Tu peux auto-héberger l\'édition communauté sous MIT, mais les features entreprise ne sont pas incluses. Un auto-hébergement complet avec toutes les features exige le plan entreprise de Svix. Hook0 et Convoy proposent tous les deux un auto-hébergement gratuit avec parité fonctionnelle complète.' },
+      { q: 'Puis-je auto-héberger Svix gratuitement ?', a: 'Oui, avec des limites. Le serveur Svix est sous licence MIT et son README documente une installation Docker et Docker Compose ouverte à tous. Le même README précise que certaines fonctions du service hébergé ne sont pas encore dans le serveur open source, et le déploiement on-prem supporté fait partie du plan Enterprise. Hook0 s\'auto-héberge gratuitement avec les mêmes fonctions que son cloud.' },
       { q: 'Quelle est la meilleure alternative à Svix pour les startups ?', a: 'Hook0 marche bien pour les startups. Tier gratuit, sans carte bancaire, tarification à l\'event à partir de 59 €/mois, et auto-hébergement gratuit via Docker ou Kubernetes. La société est 100% bootstrappée, donc pas de VC qui pousse à augmenter les prix au prochain trimestre. Convoy vaut le coup d\'œil aussi, mais il est sous Elastic License 2.0, une licence à source ouverte, comme la SSPL-1.0 de Hook0.' },
-      { q: 'Comment la tarification de Svix se compare-t-elle aux alternatives ?', a: 'Svix propose un tier gratuit et des plans payants à l\'event, mais l\'auto-hébergement et les features entreprise demandent une tarification entreprise (contact sales). Hook0 Cloud démarre à 59 €/mois avec une tarification transparente et inclut l\'auto-hébergement gratuit sur tous les plans. Hookdeck facture à l\'event, avec son Event Gateway en cloud uniquement et Outpost auto-hébergeable. Convoy est auto-hébergé uniquement, avec une tarification entreprise pour le support. HostedHooks propose des plans payants cloud uniquement.' },
-      { q: "Quelle alternative à Svix est à la fois hébergée dans l'UE et open source ?", a: "Hook0. Son plan de données tourne sur Clever Cloud en France (dans l'UE) sur chaque offre, et l'intégralité du serveur est open source (SSPL-1.0), donc vous pouvez l'auditer ou l'auto-héberger. Svix est hébergé aux États-Unis et en open-core ; beaucoup de services de webhooks hébergés dans l'UE sont fermés et cloud-only. Le CDN en frontal de Hook0 Cloud est Cloudflare (US), divulgué dans la liste publique de sous-traitants." },
+      { q: 'Comment la tarification de Svix se compare-t-elle aux alternatives ?', a: 'Svix propose un tier gratuit, un plan Basic dès 20 $/mois et Professional dès 490 $/mois. Le déploiement on-prem supporté, le SSO SAML/OIDC et les régions sur mesure relèvent du plan Enterprise, sur devis. Hook0 Cloud démarre à 59 €/mois avec une tarification transparente et inclut l\'auto-hébergement gratuit sur tous les plans. Hookdeck facture à l\'event, avec son Event Gateway en cloud uniquement et Outpost auto-hébergeable. Convoy est auto-hébergé uniquement, avec une tarification entreprise pour le support. HostedHooks propose des plans payants cloud uniquement.' },
+      { q: "Quelle alternative à Svix est à la fois hébergée dans l'UE et open source ?", a: "Hook0. Son plan de données tourne sur Clever Cloud en France (dans l'UE) sur chaque offre, et l'intégralité du serveur est open source (SSPL-1.0), donc vous pouvez l'auditer ou l'auto-héberger. Svix est en open-core, avec des régions UE et US sur son cloud managé ; beaucoup de services de webhooks hébergés dans l'UE sont fermés et cloud-only. Le CDN en frontal de Hook0 Cloud est Cloudflare (US), divulgué dans la liste publique de sous-traitants." },
       { q: 'Existe-t-il une alternative à Svix gratuite et open source ?', a: "Oui. Hook0 est open source sous SSPL-1.0 et gratuit à auto-héberger sur Docker ou Kubernetes, avec un tier cloud gratuit sans carte bancaire. Convoy est à source ouverte sous Elastic License 2.0 et lui aussi auto-hébergeable, mais c'est Hook0 qui propose en plus un cloud hébergé en UE si tu préfères ne pas l'exploiter toi-même." },
       { q: 'Comment migrer de Svix vers Hook0 ?', a: "Hook0 reprend les mêmes briques webhook que Svix, à savoir une API d'events, des abonnements par endpoint, des signatures HMAC et des relances automatiques. Tu pointes tes producers vers l'API de Hook0, tu recrées tes abonnements et tu bascules ta vérification de signature sur le secret de Hook0. Comme le serveur est open source, tu peux répéter tout le flux sur une instance auto-hébergée avant de déplacer le trafic de production." },
       { q: 'Hook0 est-il prêt pour la production face à Svix ?', a: "Hook0 embarque les garanties de livraison qu'on attend d'une plateforme webhook, à savoir des payloads signés en HMAC, des relances configurables en phases rapide et lente, et un monitoring de livraison sur tous les plans. Comme le serveur est open source sous SSPL-1.0, tu peux lire le code exact de livraison et de relance au lieu de croire une promesse, et l'exploiter toi-même pour un contrôle total. Son plan de données UE tourne sur Clever Cloud en France." },
@@ -61,15 +61,15 @@ module.exports = {
     competitors: ["Svix", "Hookdeck", "Convoy", "HostedHooks"],
     scope: "Cette page compare des plateformes d'envoi de webhooks sur leurs offres publiques, leurs licences et leur hébergement. Les prix sont ceux publiés par chaque éditeur, et les fonctionnalités reflètent leur documentation publique.",
     sources: [
-      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-04" },
-      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-10-04" },
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-08" },
+      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-10-08" },
       { label: "Tarifs Hookdeck", url: "https://hookdeck.com/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
       { label: "Code source et licence de Hookdeck Outpost sur GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
       { label: "Releases de Convoy sur GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
       { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
       { label: "Tarifs HostedHooks", url: "https://www.hostedhooks.com/pricing", consulted: "2026-09-29" },
     ],
-    updated: "2026-10-04",
+    updated: "2026-10-08",
   },
   related: {
     h2: 'Sur le même sujet',

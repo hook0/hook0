@@ -10,7 +10,7 @@ module.exports = {
   },
   pageTitle: 'Hook0 Preise: kostenloser Tarif, EU-Cloud | Webhooks',
   pageDescription: 'Developer-Tarif dauerhaft kostenlos. Cloud ab 59 €/Monat, Open Source (SSPL-1.0), selbst hostbar. Keine versteckten Kosten.',
-  "pageModified": "2026-06-27",
+  "pageModified": "2026-10-08",
   "track": "de-preise",
   "hero": {
     "h1": "Hook0 Preise",
@@ -58,7 +58,7 @@ module.exports = {
       },
       {
         "q": "Wie vergleicht sich der Hook0-Preis mit Svix und Hookdeck?",
-        "a": "Hook0 Cloud startet bei 59 € netto/Monat gegenüber Svix bei 490 $/Monat für vergleichbare Funktionen. Svix versteckt Self-Hosting hinter Enterprise-Preisen. Hookdeck veröffentlicht Outpost, seine Sende-Komponente, unter Apache-2.0, Self-Hosting ist dort also ebenfalls möglich. Der Unterschied liegt darin, dass Hook0 denselben Code in der Cloud und auf deinen eigenen Servern betreibt, ohne Enterprise-Stufe, die Funktionen zurückhält. Hook0 ist vollständig Open Source unter SSPL-1.0, du kannst also selbst hosten, wenn du Datensouveränität brauchst. Detaillierte Zahlen von 100k bis 10M Events pro Monat findest du im <a href=\"/webhook-cost-comparison\">Webhook-Kostenvergleich</a> (auf Englisch)."
+        "a": "Hook0 Cloud startet bei 59 € netto/Monat gegenüber Svix bei 490 $/Monat für vergleichbare Funktionen. Der MIT-Server von Svix lässt sich selbst hosten, unterstütztes On-Prem-Deployment bleibt aber dem Enterprise-Tarif vorbehalten. Hookdeck veröffentlicht Outpost, seine Sende-Komponente, unter Apache-2.0, Self-Hosting ist dort also ebenfalls möglich. Der Unterschied liegt darin, dass Hook0 denselben Code in der Cloud und auf deinen eigenen Servern betreibt, ohne Enterprise-Stufe, die Funktionen zurückhält. Hook0 ist vollständig Open Source unter SSPL-1.0, du kannst also selbst hosten, wenn du Datensouveränität brauchst. Detaillierte Zahlen von 100k bis 10M Events pro Monat findest du im <a href=\"/webhook-cost-comparison\">Webhook-Kostenvergleich</a> (auf Englisch)."
       }
     ]
   }

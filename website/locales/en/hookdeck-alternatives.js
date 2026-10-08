@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hookdeck Alternatives 2026: Open-Source, EU-Hosted Webhook Platforms',
   pageDescription: 'Hookdeck splits inbound and outbound into two products. See how Hook0, Svix, and Convoy compare on open-source licensing, free self-hosting, and EU data residency.',
-  pageModified: '2026-10-04',
+  pageModified: '2026-10-08',
   breadcrumb: 'Hookdeck alternatives',
   tldr: {
     h2: 'The Short Answer',
@@ -35,10 +35,10 @@ module.exports = {
       { criteria: 'Type', hookdeckHtml: 'Event Gateway (inbound) + Outpost (outbound)', hook0Html: 'Full webhook platform', svixHtml: 'Webhook platform (open-core)', convoyHtml: 'Webhook platform', awsEventbridgeHtml: 'Event bus (AWS ecosystem)' },
       { criteria: 'Sending Webhooks', hookdeckHtml: 'Yes (Outpost, separate product)', hook0Html: 'Yes (core feature)', svixHtml: 'Yes', convoyHtml: 'Yes', awsEventbridgeHtml: 'Yes (via API Destinations)' },
       { criteria: 'Receiving Webhooks', hookdeckHtml: 'Yes (core feature)', hook0Html: 'No (by design)', svixHtml: 'No', convoyHtml: 'Yes (incoming + outgoing)', awsEventbridgeHtml: 'Yes (event ingestion)' },
-      { criteria: 'Self-Hosting', hookdeckHtml: 'Outpost only (Apache-2.0)', hook0Html: 'Free (Docker / K8s)', svixHtml: 'Enterprise plan only', convoyHtml: 'Yes (self-managed)', awsEventbridgeHtml: 'No (AWS only)' },
+      { criteria: 'Self-Hosting', hookdeckHtml: 'Outpost only (Apache-2.0)', hook0Html: 'Free (Docker / K8s)', svixHtml: 'MIT server, self-managed; supported on-prem on Enterprise', convoyHtml: 'Yes (self-managed)', awsEventbridgeHtml: 'No (AWS only)' },
       { criteria: 'Open Source', hookdeckHtml: 'Partial (Outpost Apache-2.0, Gateway closed)', hook0Html: 'Yes (SSPL-1.0, full source)', svixHtml: 'Partial (open-core, enterprise closed)', convoyHtml: 'Source-available (Elastic License 2.0)', awsEventbridgeHtml: 'No (AWS proprietary)' },
       { criteria: 'Free Tier', hookdeckHtml: 'Yes (10,000 events/mo)', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', convoyHtml: 'Community edition only', awsEventbridgeHtml: 'Pay-per-use (AWS billing)' },
-      { criteria: 'Data Hosting', hookdeckHtml: 'Canada-based, EU region available', hook0Html: 'Europe (GDPR) or self-host', svixHtml: 'US-based', convoyHtml: 'Self-host only', awsEventbridgeHtml: 'Multi-region (AWS)' },
+      { criteria: 'Data Hosting', hookdeckHtml: 'Canada-based, EU region available', hook0Html: 'Europe (GDPR) or self-host', svixHtml: 'US and EU regions, or self-host', convoyHtml: 'Self-host only', awsEventbridgeHtml: 'Multi-region (AWS)' },
       { criteria: 'Funding', hookdeckHtml: '$3.5M VC-funded', hook0Html: '100% Bootstrapped', svixHtml: '$17M VC-funded', convoyHtml: 'VC-funded', awsEventbridgeHtml: 'Amazon (public company)' },
     ],
   },
@@ -73,12 +73,12 @@ module.exports = {
     sources: [
       { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
       { label: 'Hookdeck Outpost source and license on GitHub', url: 'https://github.com/hookdeck/outpost', consulted: '2026-09-29' },
-      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-10-04' },
+      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-10-08' },
       { label: 'Convoy releases on GitHub', url: 'https://github.com/frain-dev/convoy/releases', consulted: '2026-09-29' },
       { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
       { label: 'AWS EventBridge pricing', url: 'https://aws.amazon.com/eventbridge/pricing/', consulted: '2026-09-29' },
     ],
-    updated: '2026-10-04',
+    updated: '2026-10-08',
   },
   related: {
     h2: 'Related',

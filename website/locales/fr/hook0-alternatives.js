@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Alternatives à Hook0 2026 : comparaison honnête | Hook0',
   pageDescription: 'Compare Hook0, Svix, Hookdeck et Convoy côte à côte : licences, auto-hébergement, tarification et fonctionnalités.',
-  pageModified: '2026-10-04',
+  pageModified: '2026-10-08',
   breadcrumb: 'Alternatives à Hook0',
   tldr: {
     h2: 'En bref',
@@ -26,13 +26,13 @@ module.exports = {
     headers: { criteria: 'Critère', hook0: 'Hook0', svix: 'Svix', hookdeck: 'Hookdeck', convoy: 'Convoy' },
     rows: [
       { criteria: 'Code source', hook0Html: 'Oui (SSPL-1.0, source intégrale)', svixHtml: 'Partiel (open core, entreprise fermé)', hookdeckHtml: 'Partiel (Outpost en Apache-2.0 ; Event Gateway fermé)', convoyHtml: 'Source ouverte (Elastic License 2.0)' },
-      { criteria: 'Auto-hébergement', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Plan entreprise uniquement', hookdeckHtml: 'Outpost oui ; Event Gateway cloud uniquement', convoyHtml: 'Oui (auto-géré)' },
+      { criteria: 'Auto-hébergement', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Serveur MIT, autogéré ; on-prem supporté en Enterprise', hookdeckHtml: 'Outpost oui ; Event Gateway cloud uniquement', convoyHtml: 'Oui (auto-géré)' },
       { criteria: 'Tier gratuit', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui', hookdeckHtml: 'Oui (10 000 events/mois)', convoyHtml: 'Édition communauté uniquement' },
       { criteria: 'Modèle tarifaire', hook0Html: 'À l\'event, transparent', svixHtml: 'À l\'event + tarifs entreprise', hookdeckHtml: 'À l\'event en managé ; Outpost auto-hébergé gratuit', convoyHtml: 'Tarification entreprise' },
       { criteria: 'Signatures HMAC', hook0Html: 'Incluses (tous les plans)', svixHtml: 'Incluses', hookdeckHtml: 'Vérification seulement', convoyHtml: 'Incluses' },
       { criteria: 'Logique de relances', hook0Html: 'Configurable par abonnement (phases rapide + lente)', svixHtml: 'Relances automatiques', hookdeckHtml: 'Relances automatiques', convoyHtml: 'Relances automatiques' },
       { criteria: 'Financement', hook0Html: '100% bootstrappé', svixHtml: '17 M$ levés en VC', hookdeckHtml: '3,5 M$ levés en VC', convoyHtml: 'Financé en VC' },
-      { criteria: 'Hébergement des données', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', svixHtml: 'Aux États-Unis', hookdeckHtml: 'Au Canada, région UE disponible', convoyHtml: 'Auto-hébergé uniquement' },
+      { criteria: 'Hébergement des données', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', svixHtml: 'Régions UE et US, ou auto-hébergement', hookdeckHtml: 'Au Canada, région UE disponible', convoyHtml: 'Auto-hébergé uniquement' },
       { criteria: 'Type', hook0Html: 'Plateforme webhook complète', svixHtml: 'Plateforme webhook (open core)', hookdeckHtml: 'Passerelle webhook + moteur d\'envoi Outpost', convoyHtml: 'Plateforme webhook' },
     ],
   },
@@ -52,7 +52,7 @@ module.exports = {
     h2: 'La différence Hook0',
     cards: [
       { title: 'Une plateforme, une seule base de code', body: 'Hookdeck coupe le sujet en deux : l\'Event Gateway d\'ingestion reste fermé et cloud uniquement, tandis qu\'Outpost gère l\'envoi sortant en Apache-2.0. Hook0 livre l\'envoi, les relances, les signatures et le portail abonnés dans une seule plateforme, et le code que tu auto-héberges est celui qu\'on fait tourner.' },
-      { title: 'Pas de paywall entreprise', body: 'Contrairement à Svix, chaque feature est livrée dans chaque plan. L\'auto-hébergement n\'est pas planqué derrière un appel commercial.' },
+      { title: 'Pas de paywall entreprise', body: 'Chaque fonction de Hook0 est livrée dans chaque plan, et auto-héberger le serveur complet ne demande aucun appel commercial. Le serveur MIT de Svix s\'auto-héberge aussi, mais le déploiement on-prem supporté fait partie du plan Enterprise.' },
       { title: 'Européen, conçu pour la conformité RGPD', body: 'Plan de données hébergé en UE chez Clever Cloud (France). CDN via Cloudflare (USA), divulgué dans notre <a href="/fr/accord-traitement-donnees">DPA</a> et nos <a href="/fr/sous-traitants-rgpd">sous-traitants RGPD</a>. Bootstrappé, pas de board de VC américains qui décident de ta politique de données.' },
     ],
   },
@@ -71,14 +71,14 @@ module.exports = {
     competitors: ["Svix", "Hookdeck", "Convoy"],
     scope: "Cette page compare des plateformes d'envoi de webhooks sur leurs offres publiques, leurs licences et leur hébergement. Les prix sont ceux publiés par chaque éditeur, et les fonctionnalités reflètent leur documentation publique.",
     sources: [
-      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-04" },
-      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-10-04" },
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-08" },
+      { label: "Code source et licence de Svix sur GitHub", url: "https://github.com/svix/svix-webhooks", consulted: "2026-10-08" },
       { label: "Tarifs Hookdeck", url: "https://hookdeck.com/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
       { label: "Code source et licence de Hookdeck Outpost sur GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
       { label: "Releases de Convoy sur GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
       { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
     ],
-    updated: "2026-10-04",
+    updated: "2026-10-08",
   },
   related: {
     h2: 'Sur le même sujet',

@@ -17,7 +17,7 @@ module.exports = {
   },
   "pageTitle": "Bester Open-Source-Webhook-Server (2026) | Hook0",
   "pageDescription": "Open-Source-Webhook-Server im Vergleich: Hook0 (SSPL-1.0, voll funktional), Svix (Open Core), Convoy (Elastic License 2.0). Cloud ab 59 €/Monat oder selbst gehostet für Compliance.",
-  "pageModified": "2026-07-16",
+  "pageModified": "2026-10-08",
   "track": "de-oss-webhooks",
   "hero": {
     "eyebrow": "Open Source",
@@ -90,7 +90,7 @@ module.exports = {
       {
         "criteria": "Selbst hosten möglich",
         "sspl": "Ja, kostenlos (Docker / K8s)",
-        "openCore": "Nur im Enterprise-Plan",
+        "openCore": "Ja, MIT-Kernserver; On-Prem-Support in Enterprise",
         "mit": "Ja, kostenlos",
         "proprietary": "Nein"
       },
@@ -111,7 +111,7 @@ module.exports = {
       {
         "criteria": "Datensouveränität",
         "sspl": "Volle Kontrolle (Self-Host oder EU-Cloud)",
-        "openCore": "US-Cloud oder Enterprise-Self-Host",
+        "openCore": "US- oder EU-Cloud oder Self-Hosting des Kerns",
         "mit": "Nur Self-Host",
         "proprietary": "US-Cloud, keine Self-Host-Option"
       },
