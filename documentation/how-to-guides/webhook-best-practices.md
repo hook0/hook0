@@ -1,8 +1,8 @@
 ---
-title: "Webhook Best Practices That Actually Prevent Outages"
+title: "Webhook Best Practices: 8 Rules That Prevent Lost and Duplicate Events"
 sidebar_label: "Webhook best practices"
-description: "Production patterns for both sides of a webhook: HMAC signatures, idempotency keys, exponential backoff, circuit breakers, and payload versioning that survives change."
-keywords: [webhook best practices, webhook security, webhook retry, webhook design, webhook versioning]
+description: "Sign payloads, deduplicate on event_id, answer 200 fast and process async, version event types, use HTTPS: the producer and consumer rules, with Hook0's signature format."
+keywords: [webhook best practices, webhook security, webhook signing hmac verification, webhook idempotency, webhook retry, webhook design, webhook versioning]
 faqItems:
   - question: "How fast should a webhook endpoint respond?"
     answer: >-
@@ -22,20 +22,31 @@ faqItems:
       example order.shipped.v1 then order.shipped.v2. Keep the old version
       running for at least 6 months after you announce deprecation so consumers
       have time to migrate.
+  - question: "What are the most important webhook best practices?"
+    answer: >-
+      As a producer, sign every payload with HMAC-SHA256, give each event a
+      unique ID, send self-contained payloads and version event types instead
+      of changing them. As a consumer, verify the signature on the raw body
+      before anything else, return a 2xx quickly and process asynchronously,
+      deduplicate on the event ID, and only expose HTTPS endpoints.
 ---
 
 # Webhook best practices
 
-Production patterns for both sides of a webhook integration: the producer (sender) and the consumer (receiver).
+The short version: the producer signs every payload, gives each event a unique ID and versions its event types; the consumer verifies the signature on the raw body, returns a 2xx within a few seconds, processes the event in the background and skips event IDs it has already handled. The sections below cover each rule for both sides of the integration, the producer (sender) and the consumer (receiver), with Hook0's own formats where they apply.
+
+:::tip Try it on your own endpoint
+The free Hook0 Cloud plan signs and retries 100 events a day, with no credit card. [Create an account](https://app.hook0.com/register), or send a signed request to [Hook0 Play](https://play.hook0.com) to inspect the headers your endpoint will receive.
+:::
 
 ## For producers (sending webhooks)
 
 ### Sign every payload
 
-Every outgoing webhook should include an HMAC-SHA256 signature in the headers. This lets consumers verify the payload hasn't been tampered with.
+Every outgoing webhook should include an HMAC-SHA256 signature in the headers. This lets consumers verify the payload hasn't been tampered with. Include a timestamp in the signed string so that a captured request cannot be replayed later. Hook0's header carries the timestamp (`t`), the names of the signed headers (`h`) and the signature (`v1`):
 
 ```
-X-Hook0-Signature: sha256=<hex-encoded-hmac>
+X-Hook0-Signature: t=1765443663,h=content-type x-event-id,v1=85da0586ae0b711d...
 ```
 
 Generate the signature from the raw request body using the shared secret. Never sign a re-serialized version of the payload; byte differences will break verification.
@@ -99,20 +110,25 @@ Give consumers time to migrate. Support old versions for at least 6 months after
 
 ### Verify signatures first
 
-Before processing any webhook, verify the HMAC signature. Reject requests with missing or invalid signatures immediately.
+Before processing any webhook, verify the HMAC signature. Reject requests with missing or invalid signatures immediately. For a Hook0 `v1` signature, the signed string is the timestamp, the header names, the header values and the raw body, joined by dots:
 
 ```python
 import hmac
 import hashlib
 
-def verify_signature(payload_body, secret, received_signature):
-    expected = hmac.new(
-        secret.encode('utf-8'),
-        payload_body,
-        hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(f"sha256={expected}", received_signature)
+def verify_hook0_signature(raw_body: bytes, headers, secret: str, signature_header: str) -> bool:
+    parts = dict(p.split("=", 1) for p in signature_header.split(","))
+    names = parts.get("h", "")
+    if names:
+        values = ".".join(headers.get(n, "") for n in names.split(" "))
+        signed = f"{parts['t']}.{names}.{values}.".encode() + raw_body
+    else:
+        signed = f"{parts['t']}.".encode() + raw_body
+    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, parts.get("v1", ""))
 ```
+
+Also reject requests whose `t` is too old (a few minutes) to block replays.
 
 Use constant-time comparison (`hmac.compare_digest`) to prevent timing attacks. See [Secure webhook endpoints](/how-to-guides/secure-webhook-endpoints) for a more detailed walkthrough, and [Hook0's security model](/explanation/security-model) for how signatures fit into the broader security architecture.
 
@@ -152,7 +168,7 @@ Before processing, check if the event ID exists. If it does, skip it.
 
 ### Use HTTPS endpoints only
 
-Always expose webhook endpoints over HTTPS. This prevents payload interception and man-in-the-middle attacks. Most webhook providers (including Hook0) refuse to deliver to plain HTTP URLs in production. See [Subscriptions](/concepts/subscriptions) for how to configure your endpoints in Hook0.
+Always expose webhook endpoints over HTTPS. This prevents payload interception and man-in-the-middle attacks. Hook0 accepts both `http://` and `https://` targets, so a plain-HTTP URL works for local testing; use HTTPS for every production subscription. See [Subscriptions](/concepts/subscriptions) for how to configure your endpoints in Hook0.
 
 ## Payload design guidelines
 
@@ -194,7 +210,7 @@ As a producer:
 - Delivery success rate (target: >99.5%)
 - P95 delivery latency
 - Retry rate per endpoint
-- Dead letter queue depth
+- Deliveries that exhausted their retries
 
 As a consumer:
 - Processing success rate
@@ -207,7 +223,7 @@ As a consumer:
 Alert on:
 - Delivery success rate drops below 99%
 - Any endpoint has >5 consecutive failures
-- Dead letter queue has >100 unprocessed events
+- Events whose retries were exhausted without a success
 - Processing latency exceeds 30 seconds
 
 See [Monitor webhook performance](/how-to-guides/monitor-webhook-performance) for Hook0-specific monitoring setup.
@@ -215,7 +231,7 @@ See [Monitor webhook performance](/how-to-guides/monitor-webhook-performance) fo
 ## Further reading
 
 - [Webhook authentication tutorial](/tutorials/webhook-authentication) -- HMAC implementation walkthrough
-- [Webhook retry logic](/explanation/webhook-retry-logic) -- backoff algorithms and dead letter handling
+- [Webhook retry logic](/explanation/webhook-retry-logic) -- the retry schedule and when Hook0 gives up
 - [Debug failed webhooks](/how-to-guides/debug-failed-webhooks) -- troubleshooting delivery failures
 - [Secure webhook endpoints](/how-to-guides/secure-webhook-endpoints) -- endpoint security in depth
 - [Event types & subscriptions](/tutorials/event-types-subscriptions) -- setting up routing and filtering

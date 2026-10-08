@@ -1,30 +1,68 @@
 ---
-title: "Webhook Delivery Monitoring: Catch Failures Before Users Do"
-description: "Track p95 latency, spot failing endpoints, and set alerts via API. Includes the Hook0 dashboard queries that surface silent delivery failures others miss."
-keywords: [webhook monitoring, webhook delivery tracking, webhook latency, webhook alerts, webhook performance dashboard, delivery failure monitoring]
+title: "Webhook Monitoring: The 5 Delivery Metrics and the API Fields Behind Them"
+sidebar_label: "Monitor webhook performance"
+description: "Success rate, retry rate, error mix, endpoint response time and delivery latency: which Hook0 API field each one comes from, how to compute it, and when to alert."
+keywords: [webhook monitoring, webhook delivery metrics, webhook success rate, webhook error tracking, webhook error monitoring, webhook latency, webhook alerts, endpoint health]
 faqItems:
   - question: "How do I monitor webhook delivery in Hook0?"
     answer: >-
-      Every delivery attempt is recorded as a request attempt, carrying the HTTP
-      request, the response, timing, and retry count. Watch it from the
-      dashboard or pull it through the API, then track success rate, retry rate,
-      error distribution, and delivery latency over a rolling window.
+      Every delivery try is stored as a request attempt with its status, retry
+      count, HTTP status and timestamps, and links to the response your
+      endpoint sent back. List them with GET /request_attempts/ (filter by
+      subscription, event or time range), fetch the response with GET
+      /responses/{response_id}, and compute success rate, retry rate, error
+      mix and latency over a rolling window.
+  - question: "Which metrics show that a webhook endpoint is unhealthy?"
+    answer: >-
+      Watch five numbers per subscription: first-attempt success rate, share
+      of events that needed a retry, error names (E_TIMEOUT, E_CONNECTION,
+      E_DNS, E_HTTP), endpoint response time from elapsed_time_ms, and
+      delivery latency from created_at to succeeded_at. A falling success rate
+      with a rising E_TIMEOUT count usually means a slow endpoint; a burst of
+      E_HTTP means the handler is rejecting requests.
   - question: "What is a healthy webhook retry rate?"
     answer: >-
-      Under 5 percent of events needing a retry is the range Hook0 treats as
-      healthy. Above that, read the error distribution: a spike in E_TIMEOUT or
-      E_CONNECTION usually points at a slow or flaky endpoint rather than at the
-      payload.
+      Hook0 does not impose a threshold. A common starting point is to
+      investigate when more than 5 percent of events need a retry, then tune
+      that value to your own baseline. Read the error names before the rate:
+      a spike in E_TIMEOUT or E_CONNECTION points at a slow or flaky endpoint
+      rather than at the payload.
   - question: "How fast should a webhook be delivered?"
     answer: >-
-      For immediate deliveries, the time from event creation to a successful
-      attempt should stay under 30 seconds. Track that latency as succeeded_at
-      minus created_at on the request attempt and alert when the p95 drifts up.
+      Measure it as succeeded_at minus created_at on the request attempt. For
+      events sent without a delay, a first successful attempt within 30
+      seconds is a reasonable target; alert when the p95 drifts above your
+      baseline rather than on single slow deliveries.
+  - question: "How do I track webhook errors?"
+    answer: >-
+      Group failed request attempts by the response_error_name of their
+      response. E_CONNECTION, E_TIMEOUT and E_DNS are network problems,
+      E_HTTP means your endpoint answered with a non-2xx status, and
+      E_INVALID_TARGET means the subscription URL is wrong. Hook0 retries all
+      of them on its schedule, so a growing count of the same error on one
+      subscription is the signal to act on.
 ---
 
-# Monitor Webhook Performance
+# Monitor webhook performance
 
-Monitoring webhook delivery performance is crucial for ensuring reliability and diagnosing issues in your webhook infrastructure. Hook0 provides multiple mechanisms for tracking webhook performance, delivery status, and error patterns.
+To monitor webhook delivery in Hook0, read the [request attempts](/concepts/request-attempts) of each subscription and track five numbers over a rolling window: first-attempt success rate, retry rate, error mix, endpoint response time and delivery latency. Each one comes from a field Hook0 already stores on every delivery, so you compute it from the API without adding instrumentation to your endpoint.
+
+## Delivery metrics and where they come from
+
+| Metric | Computed from | API source |
+|--------|---------------|------------|
+| First-attempt success rate | attempts with `retry_count = 0` and `status.type = successful`, divided by all attempts with `retry_count = 0` | `GET /request_attempts/` |
+| Retry rate | events with at least one attempt where `retry_count > 0`, divided by all events | `GET /request_attempts/` |
+| Error mix | count of `response_error_name` per value (`E_TIMEOUT`, `E_CONNECTION`, `E_DNS`, `E_HTTP`...) | `GET /responses/{response_id}` |
+| Endpoint response time | `elapsed_time_ms`, p50 and p95 | `GET /responses/{response_id}` |
+| Delivery latency | `succeeded_at - created_at` on the successful attempt | `GET /request_attempts/` |
+| Pending backlog | attempts whose `status.type` is `pending`, `waiting` or `paused` | `GET /request_attempts/` |
+
+Filter every query by `subscription_id` to get per-endpoint numbers, and by `min_created_at` / `max_created_at` to set the window.
+
+:::tip Try it on your own events
+The free Hook0 Cloud plan records every delivery attempt for 100 events a day, with no credit card. [Create an account](https://app.hook0.com/register), or send a first request to [Hook0 Play](https://play.hook0.com) to see the attempt and response a delivery produces.
+:::
 
 ## Overview
 
@@ -77,13 +115,9 @@ For each event, you can view:
 - Error categories (connection, timeout, HTTP error)
 - Retry schedule and next attempt time
 
-### Subscription Health
+### Application dashboard
 
-Monitor subscription-level metrics:
-- Success rate over time
-- Average response time
-- Recent failures and error patterns
-- Retry queue depth
+The application dashboard charts the number of events received per day against your plan's quota. The dashboard does not chart per-subscription success rate or response time: compute those from the API as shown in [Delivery metrics and where they come from](#delivery-metrics-and-where-they-come-from).
 
 ## API Endpoints for Monitoring
 
@@ -187,12 +221,13 @@ Track the percentage of webhook deliveries that succeed on first attempt:
 ```sql
 -- Example query pattern
 SELECT
-  COUNT(*) FILTER (WHERE succeeded_at IS NOT NULL AND retry_count = 0) * 100.0 / COUNT(*) as success_rate
+  COUNT(*) FILTER (WHERE succeeded_at IS NOT NULL) * 100.0 / COUNT(*) as first_attempt_success_rate
 FROM webhook.request_attempt
-WHERE created_at > NOW() - INTERVAL '1 day';
+WHERE retry_count = 0
+  AND created_at > NOW() - INTERVAL '1 day';
 ```
 
-**Healthy Range:** > 95% for first-attempt success
+**Starting target:** above 95% first-attempt success. Hook0 does not enforce this value; set yours from your own baseline.
 
 ### 2. Average Response Time
 
@@ -206,7 +241,7 @@ INNER JOIN webhook.request_attempt ra ON ra.response__id = r.response__id
 WHERE ra.created_at > NOW() - INTERVAL '1 hour';
 ```
 
-**Healthy Range:** < 1000ms (1 second) for most endpoints
+**Starting target:** under 1,000 ms for most endpoints.
 
 ### 3. Retry Rate
 
@@ -221,7 +256,7 @@ FROM webhook.request_attempt
 WHERE created_at > NOW() - INTERVAL '1 day';
 ```
 
-**Healthy Range:** < 5% of events requiring retries
+**Starting target:** under 5% of events requiring a retry.
 
 ### 4. Error Distribution
 
@@ -261,7 +296,7 @@ WHERE ra.succeeded_at IS NOT NULL
   AND ra.created_at > NOW() - INTERVAL '1 hour';
 ```
 
-**Healthy Range:** < 30 seconds for immediate deliveries
+**Starting target:** under 30 seconds for events sent without a delay.
 
 ## Sentry Integration
 

@@ -1,7 +1,7 @@
 // Docusaurus client module: restore Scalar API-reference deep links on hard load.
 //
 // The API reference at /api is a Scalar viewer (@scalar/api-reference, pulled
-// from the jsDelivr CDN by @scalar/docusaurus) that fetches its OpenAPI
+// from the jsDelivr CDN when /api mounts, see lazy-plugin.js) that fetches its OpenAPI
 // specification, hook0-api.json, at runtime. On an in-app click Scalar already
 // holds the spec in memory, so a permalink such as
 //   /api#tag/subscriptions-management/GET/api/v1/request_attempts
@@ -36,7 +36,9 @@ function restoreDeepLink() {
     return;
   }
 
-  var deadline = Date.now() + 8000; // give a slow spec fetch time to finish
+  // On a hard load the viewer script itself is fetched after hydration, before
+  // the spec, so leave room for both downloads.
+  var deadline = Date.now() + 15000;
   var nudged = false;
 
   function tick() {
