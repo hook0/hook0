@@ -35,6 +35,8 @@
 - [Webhook-MCP-Server für KI-Agenten (DE)](https://www.hook0.com/de/mcp-server-fuer-webhooks): German page, MCP-Server und Webhooks für KI-Agenten.
 - [Plateforme de webhooks (FR)](https://www.hook0.com/fr/plateforme-webhook): Page française, hébergement UE et conformité RGPD.
 - [Serveur MCP webhook pour agents IA (FR)](https://www.hook0.com/fr/serveur-mcp-webhook): Page française, serveur MCP et webhooks pour agents IA.
+- [Webhook gratuit (FR)](https://www.hook0.com/fr/webhook-gratuit): Page française, les trois options gratuites (testeur sans compte, serveur SSPL-1.0 auto-hébergé, offre cloud gratuite).
+- [Kostenlose Webhooks (DE)](https://www.hook0.com/de/webhook-kostenlos): German page, die drei kostenlosen Wege (Tester ohne Konto, selbst gehosteter SSPL-1.0-Server, kostenloser Cloud-Tarif).
 
 ## Comparisons
 - [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix)

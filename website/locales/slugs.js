@@ -22,6 +22,9 @@ module.exports = {
   'oss-friends': { fr: 'amis-open-source', de: 'open-source-freunde' },
   'security': { fr: 'securite', de: 'sicherheit' },
   'webhook-playground': { fr: 'testeur-webhook', de: 'webhook-tester' },
+  // Landing of the "free webhook" cluster. FR/DE slugs follow how each market
+  // types the query ("webhook gratuit", "webhook kostenlos").
+  'webhook-free': { fr: 'webhook-gratuit', de: 'webhook-kostenlos' },
   'built-to-last': { fr: 'construit-pour-durer', de: 'gebaut-um-zu-bleiben' },
   'migrate-from-webhook-site': { fr: 'migrer-depuis-webhook-site', de: 'von-webhook-site-migrieren' },
   'open-source-webhooks': { fr: 'webhooks-open-source', de: 'quelloffene-webhooks' },
