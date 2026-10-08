@@ -69,7 +69,7 @@ module.exports = {
   personalData: {
     h2: 'Personenbezogene Daten',
     p1: 'Die FGRibreau SARL verarbeitet personenbezogene Daten gemäß den geltenden französischen und europäischen Vorschriften, insbesondere der Verordnung (EU) 2016/679 (DSGVO).',
-    p2Html: 'Vollständige Details zur Erhebung, Verarbeitung und zum Schutz Ihrer personenbezogenen Daten finden Sie in unserer <a href="/de/privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">Datenschutzerklärung</a>.',
+    p2Html: 'Vollständige Details zur Erhebung, Verarbeitung und zum Schutz Ihrer personenbezogenen Daten finden Sie in unserer <a href="./datenschutzerklaerung" class="text-green-400 hover:text-green-300 transition-colors">Datenschutzerklärung</a>.',
   },
   law: {
     h2: 'Anwendbares Recht und Gerichtsstand',

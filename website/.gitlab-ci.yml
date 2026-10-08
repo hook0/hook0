@@ -24,6 +24,10 @@ website.build:
   variables:
     CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
     RUSTUP_HOME: "$CI_PROJECT_DIR/.rustup"
+    # Full history: build-i18n dates each sitemap <lastmod> from the last commit
+    # touching the page. With the default shallow clone, pages untouched within
+    # the fetched depth would fall back to the build date.
+    GIT_DEPTH: "0"
   before_script:
     # rsync is invoked by the build-i18n orchestrator to mirror src/ into
     # temp/<lang>/ at flat depth. The node:NODE_VERSION image is Debian-based
@@ -42,6 +46,7 @@ website.build:
     - cargo --version
   script:
     - cd website/
+    - (cd scripts/build-i18n && cargo test --release)
     - npm ci
     - npm run build
     - npm run check:i18n
