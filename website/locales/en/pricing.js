@@ -59,7 +59,7 @@ module.exports = {
       },
       {
         "q": "How does Hook0 pricing compare to Svix and Hookdeck?",
-        "a": "Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix locks self-hosting behind enterprise pricing. Hookdeck publishes its sending component, Outpost, under Apache-2.0, so that part can be self-hosted too. The difference is that Hook0 runs the same code in the cloud and on your own servers, with no enterprise tier holding features back. Hook0 is fully open-source under SSPL-1.0, so you can self-host if you need data sovereignty. For detailed numbers from 100k to 10M events per month, see the <a href=\"/webhook-cost-comparison\">webhook cost comparison</a>."
+        "a": "Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix's MIT server can be self-hosted, with supported on-prem deployment reserved for its Enterprise plan. Hookdeck publishes its sending component, Outpost, under Apache-2.0, so that part can be self-hosted too. The difference is that Hook0 runs the same code in the cloud and on your own servers, with no enterprise tier holding features back. Hook0 is fully open-source under SSPL-1.0, so you can self-host if you need data sovereignty. For detailed numbers from 100k to 10M events per month, see the <a href=\"/webhook-cost-comparison\">webhook cost comparison</a>."
       }
     ]
   }
