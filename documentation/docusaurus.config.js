@@ -124,8 +124,10 @@ const config = {
         },
       },
     ],
+    // @scalar/docusaurus, minus the script it adds to every page: the API
+    // reference bundle now loads only when /api renders (src/scalar/lazy-plugin.js).
     [
-      "@scalar/docusaurus",
+      require.resolve("./src/scalar/lazy-plugin.js"),
       {
         label: "API Reference",
         route: "/api",

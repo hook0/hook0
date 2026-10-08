@@ -1,5 +1,5 @@
 ---
-title: "Why Most Webhook Retry Strategies Fail — and How to Fix Yours"
+title: "Webhook Retry Strategy: Why Most Fail and the Two-Phase Schedule That Holds Up"
 description: "Fixed interval, exponential backoff, jitter, and two-phase retry compared side by side, with real failure scenarios and how Hook0's own retry schedule works."
 keywords: [webhook retry strategy, exponential backoff webhook, webhook retry best practices, webhook delivery retry, retry with jitter, two-phase retry]
 faqItems:
@@ -17,6 +17,13 @@ faqItems:
       failures like container restarts and deploy rollouts; the hours-apart
       delays cover longer outages without hammering an endpoint that is coming
       back.
+  - question: "What is the best retry strategy for webhooks?"
+    answer: >-
+      A two-phase schedule with jitter: a few retries seconds apart for
+      transient failures such as deploys or network blips, then delays that
+      grow to hours for longer outages, plus a random delay added to each
+      retry so that deliveries which failed together spread out. Bound it
+      with a maximum number of attempts and a maximum time window.
   - question: "Why add jitter to webhook retries?"
     answer: >-
       Jitter breaks the synchronization between subscribers that failed at the
@@ -28,19 +35,21 @@ faqItems:
 
 # Webhook retry strategies compared
 
-3-5% of webhook deliveries fail on the first attempt. Network blips, rolling deploys, load balancer drains, brief DNS hiccups. These are transient failures — the endpoint is fine a few seconds later.
+The retry strategy that holds up in production is two-phase: a few retries seconds apart to absorb transient failures, then delays that grow to hours to ride out real outages, with random jitter added so that deliveries which failed together do not retry together. Fixed-interval retries synchronize subscribers and hammer a recovering endpoint; pure exponential backoff spreads them out but quickly leaves gaps of many hours. Hook0 uses a two-phase schedule with jitter, described in [How Hook0 retries](#how-hook0-retries).
+
+Some share of webhook deliveries always fails on the first attempt: network blips, rolling deploys, load balancer drains, brief DNS hiccups. These are transient failures, and the endpoint is fine a few seconds later.
 
 Without retries, those events are gone. With naive retries, you risk making things worse. Your strategy determines whether you recover quietly or trigger a cascading outage.
 
 ## Strategy comparison
 
-| Strategy | Recovery rate | Thundering herd risk | Complexity | When to use |
+| Strategy | Covers long outages | Thundering herd risk | Complexity | When to use |
 |----------|:---:|:---:|:---:|-------------|
-| Fixed interval | ~85% | **High** | Low | Dev/test environments only |
-| Exponential backoff | ~92% | Medium | Low | Single-consumer systems |
-| Exponential + jitter | ~95% | **Low** | Medium | Multi-consumer systems |
-| Two-phase (fast then slow) | Very high | **Low** | Medium | Production webhook infrastructure |
-| Circuit breaker | Varies | **None** | High | When you control both sides |
+| Fixed interval | Only with many attempts | **High** | Low | Dev/test environments only |
+| Exponential backoff | Yes, with growing gaps | Medium | Low | Single-consumer systems |
+| Exponential + jitter | Yes, with growing gaps | **Low** | Medium | Multi-consumer systems |
+| Two-phase (fast then slow) | Yes, with bounded gaps | **Low** | Medium | Production webhook infrastructure |
+| Circuit breaker | Depends on the reset policy | **None** | High | When you control both sides |
 
 ## Fixed interval: why it breaks at scale
 

@@ -39,4 +39,39 @@ test.describe("Documentation /api reference", () => {
     // No uncaught runtime error at all on the API reference page.
     expect(pageErrors, `Unexpected page errors:\n${pageErrors.join("\n")}`).toEqual([]);
   });
+
+  // The Scalar viewer bundle is loaded by /api itself (documentation/src/scalar/lazy-plugin.js).
+  // Before, @scalar/docusaurus put it as a synchronous <script> on every page, which held
+  // back the first paint of every guide. These two tests pin both halves of the change:
+  // guides no longer fetch it, and /api still renders when reached through client-side
+  // navigation (the hard-load case is covered by the test above).
+  test("guide pages do not download the Scalar API reference bundle", async ({ page }) => {
+    const scalarRequests: string[] = [];
+    page.on("request", (req) => {
+      if (req.url().includes("@scalar/api-reference")) scalarRequests.push(req.url());
+    });
+
+    await page.goto("/how-to-guides/monitor-webhook-performance", { waitUntil: "load" });
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(scalarRequests, "a guide page requested the Scalar bundle").toEqual([]);
+  });
+
+  test("renders the API reference after client-side navigation from a guide", async ({ page }) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (err) => pageErrors.push(String(err)));
+
+    await page.goto("/how-to-guides/monitor-webhook-performance", { waitUntil: "load" });
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "Reference", exact: true })
+      .first()
+      .click();
+
+    await expect(page).toHaveURL(/\/api$/);
+    await expect(page.getByRole("heading", { level: 1, name: /hook0 api/i })).toBeVisible({
+      timeout: 20000,
+    });
+    expect(pageErrors, `Unexpected page errors:\n${pageErrors.join("\n")}`).toEqual([]);
+  });
 });
