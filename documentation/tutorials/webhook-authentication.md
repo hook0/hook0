@@ -1,7 +1,7 @@
 ---
 title: "Webhook HMAC Verification: the Step Most Integrations Skip"
 sidebar_label: "Webhook authentication"
-description: "Working code for Python, Node.js & Rust. Covers HMAC-SHA256 signatures, timestamp validation to block replay attacks, and the IP allowlisting gotcha that breaks production."
+description: "Working code for Python, Node.js and Go. Covers HMAC-SHA256 signatures, timestamp validation to block replay attacks, and the IP allowlisting gotcha that breaks production."
 keywords: [webhook authentication, HMAC signature verification, webhook security, secure webhooks, replay attack prevention, webhook signature Python, webhook signature Node.js]
 faqItems:
   - question: "How do I verify a Hook0 webhook signature?"
@@ -32,7 +32,13 @@ faqItems:
 
 # Implementing Webhook Authentication
 
-This tutorial covers various webhook authentication methods, from basic signature verification to advanced security patterns. You'll learn how to secure your webhook endpoints and verify webhook authenticity using the [signing secret of the subscription](/concepts/subscriptions#subscription-secrets) that delivered the webhook.
+Hook0 signs every delivery with HMAC-SHA256 and sends the result in the `X-Hook0-Signature` header. Verifying it well comes down to five practices: compute the HMAC over the raw request body, never re-serialized JSON; compare signatures in constant time; reject timestamps outside a tolerance window (300 seconds is a sensible default) to block replays; accept both the old and the new secret while you rotate; and never rely on an IP allowlist instead of the signature.
+
+This tutorial puts these practices into code in Python, Node.js and Go, using the [signing secret of the subscription](/concepts/subscriptions#subscription-secrets) that delivered the webhook, then moves on to advanced security patterns.
+
+:::tip Get a real signature to test against
+Point a subscription at [Hook0 Play](https://play.hook0.com) to inspect signed requests, or [create a free Hook0 Cloud account](https://app.hook0.com/register) (100 events a day, no credit card).
+:::
 
 ## Prerequisites
 

@@ -1,7 +1,7 @@
 ---
-title: "Webhook Endpoint Security: 5 Attacks Most Receivers Don't Block"
-description: "Secure webhook endpoints against spoofing, replay, and injection. HMAC verification, timestamp validation, idempotency, and rate limiting, with examples."
-keywords: [secure webhook endpoints, webhook endpoint security, webhook replay attack, webhook hmac verification, webhook idempotency, webhook rate limiting, webhook threat model]
+title: "Webhook Endpoint Security: Why HMAC Beats an IP Allowlist"
+description: "Secure a webhook endpoint in five checks: HMAC signature, timestamp window, payload schema, event_id dedup and rate limiting, and why IP allowlists fall short."
+keywords: [secure webhook endpoints, webhook endpoint security, webhook ip allowlist, webhook ip whitelist, webhook hmac verification, webhook replay attack, webhook idempotency, webhook rate limiting, webhook threat model]
 faqItems:
   - question: "What attacks does a webhook endpoint need to defend against?"
     answer: >-
@@ -27,7 +27,25 @@ faqItems:
 
 # Securing webhook endpoints
 
-Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks using [subscription signing secrets](/concepts/subscriptions#subscription-secrets) and [subscription](/concepts/subscriptions) configuration.
+A webhook endpoint is secure when it rejects every request it cannot prove came from the sender. With Hook0 that means five checks, in this order: verify the HMAC-SHA256 signature in the `X-Hook0-Signature` header against the raw body, reject timestamps outside a short window (300 seconds is a sensible default), validate the payload against a schema, skip any `event_id` you have already processed, and rate-limit the route. An IP allowlist is not one of them: Hook0 does not guarantee fixed delivery IPs, so an allowlist ends up dropping real webhooks.
+
+This guide implements each check, using [subscription signing secrets](/concepts/subscriptions#subscription-secrets) and [subscription](/concepts/subscriptions) configuration, then adds logging and attack detection.
+
+## IP allowlist or HMAC signature?
+
+| | IP allowlist | HMAC signature |
+|-|--------------|----------------|
+| Proves the request came from Hook0 | No, only where it came from | Yes, only the holder of the subscription secret can sign |
+| Detects a modified payload | No | Yes, the signature covers the body |
+| Blocks a replayed request | No | Yes, combined with the timestamp check |
+| Survives sender infrastructure changes | No, breaks when delivery IPs change | Yes, independent of the network |
+| Secret rotation | Not applicable | Accept the old and new secret during the overlap |
+
+Keep IP filtering for blocking abusive sources (Step 4), not as proof of origin.
+
+:::tip Test your verifier against real signatures
+Send a request to [Hook0 Play](https://play.hook0.com) and copy its `X-Hook0-Signature` header, or [create a free Hook0 Cloud account](https://app.hook0.com/register) (100 events a day, no credit card) to sign deliveries with your own subscription secret.
+:::
 
 ## Quick Start (5 minutes)
 
@@ -45,7 +63,7 @@ For detailed implementation, see sections below.
 :::danger Spoofing attacks
 Attackers sending fake webhook requests.
 
-**Mitigation**: Signature verification, IP allowlisting
+**Mitigation**: Signature verification. IP allowlisting does not prove origin, see [IP allowlist or HMAC signature?](#ip-allowlist-or-hmac-signature)
 :::
 
 :::warning Replay attacks
@@ -367,6 +385,10 @@ For production with multiple instances, use PostgreSQL for idempotency storage i
 :::
 
 ## Step 4: IP allowlisting and geolocation
+
+:::caution Do not allowlist Hook0 delivery IPs
+Hook0 does not guarantee a fixed set of delivery IPs. Use the filter below to block abusive sources or to restrict traffic you control, and keep `requireAllowlist` off for Hook0 webhooks: the HMAC signature from Step 1 is what proves origin.
+:::
 
 ### IP filtering
 

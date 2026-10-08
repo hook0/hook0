@@ -1,8 +1,8 @@
 ---
-title: "Debug Failed Webhooks: Trace the Delivery That Never Arrived"
+title: "Debug Failed Webhooks: Read the Delivery Log, Then Replay"
 sidebar_label: "Debug failed webhooks"
-description: "Diagnose webhook delivery failures in Hook0. Read request attempts, tell a 4xx that won't retry from a 5xx that will, and find the endpoint that fails without ever returning an error."
-keywords: [debug webhooks, failed webhook delivery, webhook not received, webhook delivery failure, request attempts, webhook troubleshooting]
+description: "Find out why a webhook failed: read the status code, error name and response body of each attempt, see when Hook0 retries it, then replay the event."
+keywords: [debug webhooks, failed webhook delivery, webhook not received, webhook delivery failure, webhook delivery log, replay failed webhooks, request attempts, webhook troubleshooting]
 faqItems:
   - question: "Why is my webhook not being delivered?"
     answer: >-
@@ -12,21 +12,57 @@ faqItems:
       to see which of those actually failed.
   - question: "Which webhook HTTP status codes get retried?"
     answer: >-
-      All 5xx responses are retried, since they read as a temporary problem on
-      your side. 4xx responses are permanent and are not retried, with two
-      exceptions: 408 (request timeout) and 429 (rate limited), which Hook0 does
-      retry. A 2xx counts as success and never retries.
+      Any response other than a 2xx counts as a failed delivery and is
+      retried on Hook0's schedule, 4xx and 5xx alike, as are network errors
+      such as timeouts or refused connections. For a 429, Hook0 honours the
+      Retry-After header. Retries stop once MAX_RETRIES or MAX_RETRY_WINDOW is
+      reached, or when the subscription is disabled.
   - question: "How do I find out why a webhook failed?"
     answer: >-
       Open the request attempt for the failed event and read its response
       status, body, and error name. Codes like E_CONNECTION, E_TIMEOUT, E_DNS,
       and E_HTTP pin the failure to the network, a slow endpoint, DNS
       resolution, or a non-2xx response.
+  - question: "What does a webhook delivery log record?"
+    answer: >-
+      Each Hook0 request attempt stores its status, retry count, the HTTP
+      status your endpoint returned, and when it was created, picked up,
+      failed or succeeded, plus when the next retry is due. The linked
+      response holds the error name, response headers, response body, and
+      elapsed time in milliseconds.
+  - question: "How do I replay a failed webhook?"
+    answer: >-
+      Fix the endpoint, then call POST /events/{event_id}/replay with your
+      application_id. Hook0 sends the event again to every active
+      subscription whose event type and labels match it, and records the new
+      deliveries as fresh request attempts.
 ---
 
 # Debugging failed webhook deliveries
 
-This guide walks through identifying, diagnosing, and fixing webhook delivery failures in Hook0. Each failed delivery is tracked as a [request attempt](/concepts/request-attempts).
+To debug a failed webhook in Hook0, open the event's [request attempts](/concepts/request-attempts), read the HTTP status and error name of the last one, then fetch its response to see the body and headers your endpoint sent back. Any non-2xx response or network error is retried automatically on a fixed schedule, so a 4xx caused by a bug in your handler keeps failing until you fix the handler or disable the subscription. Once the endpoint is fixed, replay the event with `POST /events/{event_id}/replay`.
+
+The rest of this guide covers each step: reading the dashboard and the API, the five failure scenarios that cause most incidents, local debugging, alerting on failure rates, and bulk recovery.
+
+## What the delivery log records
+
+Every delivery try is a request attempt. Its stored response holds what your endpoint answered.
+
+| Field | Stored on | What it tells you |
+|-------|-----------|-------------------|
+| `status.type` | Request attempt | `pending`, `paused`, `in_progress`, `waiting`, `successful` or `failed` |
+| `retry_count` | Request attempt | `0` for the first try, then one more for each retry |
+| `http_response_status` | Request attempt | HTTP status your endpoint returned, empty when the request never got an answer |
+| `created_at`, `picked_at`, `failed_at`, `succeeded_at` | Request attempt | When the attempt was queued, sent, and how it ended |
+| `delay_until` | Request attempt | When the next retry is due |
+| `response_id` | Request attempt | Points to the stored response, fetched with `GET /responses/{response_id}` |
+| `response_error_name` | Response | `E_CONNECTION`, `E_TIMEOUT`, `E_DNS`, `E_HTTP`, `E_INVALID_TARGET` or `E_INVALID_HEADER` |
+| `http_code`, `headers`, `body` | Response | The status, headers and body your endpoint sent back |
+| `elapsed_time_ms` | Response | How long your endpoint took to answer |
+
+:::tip Try it on your own events
+The free Hook0 Cloud plan includes delivery monitoring for 100 events a day, with no credit card. [Create an account](https://app.hook0.com/register), or send a first request to [Hook0 Play](https://play.hook0.com) to see what a signed delivery looks like.
+:::
 
 :::tip General Troubleshooting
 For API errors, connection issues, and authentication problems, see [Troubleshooting Guide](./troubleshooting.md). This guide focuses specifically on webhook delivery failures.
@@ -54,12 +90,11 @@ Request processed successfully. No retry needed.
 :::
 
 :::warning 4xx - Client Errors
-- 400-407, 409-499: Permanent failures, no retry
-- 408 (Timeout), 429 (Rate Limited): Temporary failures, will retry
+Retried like any other failure, so a 4xx from a bug in your handler fails again on every retry until you fix it. For 429 (Rate Limited), Hook0 waits at least as long as the `Retry-After` header asks, up to a cap.
 :::
 
 :::danger 5xx - Server Errors
-All 5xx codes: Temporary failures, will retry. Suggests issues with your webhook endpoint.
+Retried on the [retry schedule](/explanation/webhook-retry-logic). Points to a problem in your webhook endpoint.
 :::
 
 :::info Network errors
