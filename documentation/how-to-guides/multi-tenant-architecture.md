@@ -1,15 +1,38 @@
 ---
-title: "Multi-Tenant Webhooks: One Hook0 Setup, Millions of Isolated Tenants"
+title: "Multi-Tenant Webhook Service: Route Each Tenant With Labels"
 sidebar_label: "Multi-tenant architecture"
-description: "Build multi-tenant webhook delivery on Hook0 with label-based routing. Per-tenant isolation, delivery logs, and a design that scales to billions of events, the pattern GitLab.com uses."
-keywords: [multi-tenant webhooks, webhook per tenant, tenant isolation, label routing, SaaS webhooks, scalable webhook architecture]
+description: "One Hook0 application for every customer: tag events with a tenant label, filter each tenant's subscriptions on it, and show per-tenant delivery logs."
+keywords: [multi-tenant webhooks, multi-tenant webhook service, webhook per tenant, tenant isolation, label routing, SaaS webhooks, scalable webhook architecture]
+faqItems:
+  - question: "How do I isolate webhooks per tenant in Hook0?"
+    answer: >-
+      Put a tenant label on every event, for example tenant_id, and set the
+      same label filter on each tenant's subscriptions. A subscription only
+      receives an event when all of its label filters match the event's
+      labels, so one tenant's endpoint never gets another tenant's events.
+  - question: "Do I need one Hook0 application per tenant?"
+    answer: >-
+      No. One application can serve every tenant: event types are shared,
+      and labels on events and subscriptions decide who receives what. Labels
+      can also go finer than the tenant, such as project_id or environment,
+      for project-level or group-level webhooks.
+  - question: "How do tenants see their own webhook delivery logs?"
+    answer: >-
+      List request attempts filtered by subscription_id, then fetch each
+      attempt's response for the status code, headers and body. Your backend
+      calls the API for the tenant's own subscriptions and renders the result
+      in your webhook settings page.
 ---
 
 # Multi-tenant webhook architecture
 
-This guide shows how to implement a multi-tenant webhook system using Hook0's [label](/concepts/labels)-based routing. It works for platforms with millions of users and projects, with full isolation and delivery visibility.
+To run a multi-tenant webhook service on Hook0, keep one application for your whole platform, add a tenant [label](/concepts/labels) such as `tenant_id` to every event you send, and create each customer's subscriptions with the same label filter. Hook0 then delivers each event only to the endpoints of the tenant it belongs to, and you read delivery logs per subscription to show each customer their own history.
 
-We use GitLab.com as an example, but the same architecture applies to any multi-tenant SaaS.
+The example below models a code-hosting platform in the style of GitLab.com, with namespace, project and pipeline events. The same architecture applies to any multi-tenant SaaS.
+
+:::tip Try the pattern on a free account
+[Create a free Hook0 Cloud account](https://app.hook0.com/register) (100 events a day, no credit card) and follow the steps below with two test tenants.
+:::
 
 ## The problem
 
