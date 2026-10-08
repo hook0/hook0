@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <%# Netlify serves this page at whatever path was not found (/de/x/y/...). The
+        shared header and footer link with "./slug", which would resolve under that
+        missing path and lead to more 404s. Anchor them to the site root. %>
+    <base href="/">
     <title>404 - This Hook Came Up Empty | Hook0</title>
     <meta name="description" content="The page you're looking for doesn't exist. This hook came up empty!">
     <% Object.assign(locals, { pageNoindex: true, pageCanonical: null, pageHreflang: null, pageFAQSchema: null, pageSchema: null, pageImage: null, pageModified: null, pageType: 'website', pageTitle: null, pageDescription: null, pageLang: 'en' }); %>

@@ -66,7 +66,7 @@ module.exports = {
   personalData: {
     h2: 'Données personnelles',
     p1: 'FGRibreau SARL traite les données personnelles conformément aux réglementations françaises et européennes applicables, notamment le Règlement (UE) 2016/679 (RGPD).',
-    p2Html: 'Pour le détail complet de la collecte, du traitement et de la protection de vos données personnelles, veuillez consulter notre <a href="/fr/privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">Politique de confidentialité</a>.',
+    p2Html: 'Pour le détail complet de la collecte, du traitement et de la protection de vos données personnelles, veuillez consulter notre <a href="./politique-confidentialite" class="text-green-400 hover:text-green-300 transition-colors">Politique de confidentialité</a>.',
   },
   law: {
     h2: 'Droit applicable et juridiction compétente',

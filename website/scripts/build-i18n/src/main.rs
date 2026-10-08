@@ -134,7 +134,7 @@ fn run() -> R<()> {
 
     // Unified multilingual sitemap at dist/sitemap.xml. Replaces both the
     // (removed) parcel-reporter-sitemap and scripts/fix-sitemap.js.
-    write_sitemap(&dist, &site_url(), &locales, &localized)?;
+    write_sitemap(&root, &dist, &site_url(), &locales, &localized)?;
 
     // Stamp the EntityMap's `generated` timestamp to the build date so AI answer
     // engines see current freshness. Best-effort (only if the file ships). The
@@ -244,11 +244,18 @@ fn resolve_site_url(env_value: Option<&str>) -> String {
 // Walk dist/, build one <url> entry per indexable HTML, attach <xhtml:link>
 // hreflang cross-references for every page that ships in multiple locales.
 //
+// <lastmod> is the date of the last commit that touched the page's own sources
+// (see page_sources), so it only moves when that page's content moves. Search
+// engines ignore a lastmod that changes on every URL at every build, which is
+// what stamping the build date did. When git cannot tell (no repository, or a
+// shallow clone that does not reach the commit), the build date is used.
+//
 // Exclusion is page-declared (no hardcoded path list, per CLAUDE.md):
 //   - <meta name="robots" content="...noindex..."> → never indexable
 //   - <meta name="sitemap" content="exclude">      → indexable, but off-sitemap
 //   - 404.html                                     → never a real URL
 fn write_sitemap(
+    root: &Path,
     dist: &Path,
     site_url: &str,
     locales: &[(String, String, String)],
@@ -266,6 +273,7 @@ fn write_sitemap(
 
     let mut urls: Vec<String> = Vec::new();
     let today = today_iso(dist);
+    let shallow = shallow_boundaries(root);
 
     for (lang, dir, _public_url) in locales {
         let ldir = if dir.is_empty() {
@@ -325,8 +333,15 @@ fn write_sitemap(
                 String::new()
             };
 
+            let lastmod = if en_slug.is_empty() {
+                None
+            } else {
+                git_last_commit_date(root, &page_sources(root, lang, &en_slug), &shallow)
+            }
+            .unwrap_or_else(|| today.clone());
+
             urls.push(format!(
-                "  <url>\n    <loc>{loc}</loc>\n    <lastmod>{today}</lastmod>\n{alts}  </url>"
+                "  <url>\n    <loc>{loc}</loc>\n    <lastmod>{lastmod}</lastmod>\n{alts}  </url>"
             ));
         }
     }
@@ -383,6 +398,77 @@ fn hreflang_links(
         "    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"{site_url}/\"/>\n"
     ));
     out
+}
+
+// Files whose content is the page itself: the EN template every locale renders
+// and the locale's strings for it. Shared partials, data.js and _chrome.js are
+// left out on purpose; a footer edit is not a change to every page.
+// If page content starts living somewhere else, add that path here.
+fn page_sources(root: &Path, lang: &str, en_slug: &str) -> Vec<PathBuf> {
+    vec![
+        root.join("src").join(format!("{en_slug}.ejs")),
+        root.join("locales")
+            .join(lang)
+            .join(format!("{en_slug}.js")),
+    ]
+}
+
+// Commits listed in .git/shallow are the cut-off of a shallow clone. git log
+// reports every older file as touched by them, so a date coming from one of
+// them is the clone depth, not the page history. Empty for a full clone or
+// when there is no repository.
+fn shallow_boundaries(root: &Path) -> Vec<String> {
+    let Ok(out) = Command::new("git")
+        .current_dir(root)
+        .args(["rev-parse", "--git-path", "shallow"])
+        .output()
+    else {
+        return Vec::new();
+    };
+    if !out.status.success() {
+        return Vec::new();
+    }
+    let rel = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    fs::read_to_string(root.join(rel))
+        .map(|c| c.lines().map(|l| l.trim().to_string()).collect())
+        .unwrap_or_default()
+}
+
+// YYYY-MM-DD of the last commit touching any of `paths` that exist, or None
+// when git is unavailable, the files are untracked, or the commit found is a
+// shallow-clone boundary.
+fn git_last_commit_date(root: &Path, paths: &[PathBuf], shallow: &[String]) -> Option<String> {
+    let existing: Vec<&PathBuf> = paths.iter().filter(|p| p.exists()).collect();
+    if existing.is_empty() {
+        return None;
+    }
+    let out = Command::new("git")
+        .current_dir(root)
+        .args(["log", "-1", "--format=%H %cs", "--"])
+        .args(&existing)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    parse_commit_date(&String::from_utf8_lossy(&out.stdout), shallow)
+}
+
+// Parse one `git log --format="%H %cs"` line. Rejects empty output, a shallow
+// boundary commit and anything that is not a YYYY-MM-DD date.
+fn parse_commit_date(line: &str, shallow: &[String]) -> Option<String> {
+    let (sha, date) = line.trim().split_once(' ')?;
+    if shallow.iter().any(|b| b == sha) {
+        return None;
+    }
+    let b = date.as_bytes();
+    let well_formed = b.len() == 10
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && b.iter()
+            .enumerate()
+            .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
+    well_formed.then(|| date.to_string())
 }
 
 // htmlnano often strips quotes — match the unquoted form too. We only need to
@@ -713,6 +799,45 @@ mod tests {
     #[test]
     fn site_url_default_when_env_empty() {
         assert_eq!(resolve_site_url(Some("")), "https://www.hook0.com");
+    }
+
+    #[test]
+    fn commit_date_parsed_from_git_log_line() {
+        assert_eq!(
+            parse_commit_date("0123abcd 2026-09-07\n", &[]),
+            Some("2026-09-07".to_string())
+        );
+    }
+
+    #[test]
+    fn commit_date_rejected_on_shallow_boundary() {
+        let shallow = vec!["0123abcd".to_string()];
+        assert_eq!(parse_commit_date("0123abcd 2026-09-07", &shallow), None);
+    }
+
+    #[test]
+    fn commit_date_rejected_when_empty_or_malformed() {
+        assert_eq!(parse_commit_date("", &[]), None);
+        assert_eq!(parse_commit_date("0123abcd", &[]), None);
+        assert_eq!(parse_commit_date("0123abcd 07/09/2026", &[]), None);
+    }
+
+    #[test]
+    fn page_sources_are_template_and_locale_strings() {
+        let root = Path::new("/w");
+        assert_eq!(
+            page_sources(root, "fr", "pricing"),
+            vec![
+                PathBuf::from("/w/src/pricing.ejs"),
+                PathBuf::from("/w/locales/fr/pricing.js")
+            ]
+        );
+    }
+
+    #[test]
+    fn last_commit_date_is_none_for_missing_files() {
+        let missing = vec![PathBuf::from("/nonexistent/hook0/page.ejs")];
+        assert_eq!(git_last_commit_date(Path::new("/"), &missing, &[]), None);
     }
 
     #[test]
