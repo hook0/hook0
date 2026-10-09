@@ -76,7 +76,10 @@ impl HttpServerMetrics {
         let result = next.call(req).await;
 
         // Routing happens inside the chain, so the route template is only known on the
-        // way out, from the request the response carries. On the `Err` path that request
+        // way out, from the request the response carries. A middleware that answered
+        // before the request reached its resource (a rate limiter on a scope) still gets
+        // the template: `match_pattern` then matches the path against the route table.
+        // On the `Err` path that request
         // is gone: the request cannot be cloned beforehand to keep it, because inner
         // middlewares (path normalization) need to be its only owner to rewrite it.
         let (route, status) = match &result {
@@ -204,8 +207,22 @@ mod tests {
                             }),
                         ),
                 )
-                // Stands for the rate limiter, which refuses a request with an `Err`
-                // instead of building the response itself.
+                // Stands for the rate limiter refusing an exceeded quota: it answers from
+                // the scope, before the request is routed to a resource.
+                .service(
+                    web::scope("/limited")
+                        .wrap(from_fn(|req: ServiceRequest, _next: Next<BoxBody>| async {
+                            Ok::<_, actix_web::Error>(
+                                req.into_response(HttpResponse::TooManyRequests().finish()),
+                            )
+                        }))
+                        .route(
+                            "/{id}",
+                            web::get().to(|| async { HttpResponse::Ok().finish() }),
+                        ),
+                )
+                // Stands for the rate limiter when it cannot tell who is calling: it then
+                // refuses the request with an `Err` instead of building the response.
                 .service(
                     web::scope("/refused")
                         .wrap(from_fn(
@@ -355,6 +372,23 @@ mod tests {
                     1
                 ),
             ]
+        );
+    }
+
+    #[actix_web::test]
+    async fn answers_given_before_routing_still_carry_the_route_template() {
+        let (counter, _) = record(vec![http_test::TestRequest::get().uri("/limited/1")]).await;
+
+        assert_eq!(
+            counter,
+            vec![(
+                series(&[
+                    ("method", "GET"),
+                    ("route", "/limited/{id}"),
+                    ("status", "429")
+                ]),
+                1
+            )]
         );
     }
 
