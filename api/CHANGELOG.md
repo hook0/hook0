@@ -115,6 +115,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- HTTP server metrics (api)
+
+  Every answer of the API is now counted in `http.server.requests` and timed in
+  `http.server.request.duration`, exported through the same OTLP pipeline as the other
+  metrics. Both carry the method and the matched route template (never the raw path); the
+  counter carries the exact status code and the histogram its class (`2xx`…`5xx`). Answers
+  produced by middlewares, such as rate limiting, authentication failures or unknown paths,
+  are counted too, so client and server error rates can be graphed and alerted on.
+
 - Subscription health (api)
 
   A probe classifies subscriptions from their recently completed request attempts as healthy,

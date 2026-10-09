@@ -39,6 +39,7 @@ mod materialized_views;
 mod matomo;
 mod middleware_biscuit;
 mod middleware_get_user_ip;
+mod middleware_http_metrics;
 mod object_storage_cleanup;
 mod old_events_cleanup;
 mod onboarding;

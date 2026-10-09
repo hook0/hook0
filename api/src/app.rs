@@ -20,8 +20,8 @@ use uuid::Uuid;
 use crate::client_options::{CLIENT_OPTIONS_HEADER, Hook0RootSpanBuilder};
 use crate::rate_limiting::Hook0RateLimiters;
 use crate::{
-    State, WEBAPP_INDEX_FILE, handlers, middleware_biscuit, middleware_get_user_ip, openapi,
-    openapi_postprocess, problems, quotas,
+    State, WEBAPP_INDEX_FILE, handlers, middleware_biscuit, middleware_get_user_ip,
+    middleware_http_metrics, openapi, openapi_postprocess, problems, quotas,
 };
 
 /// Everything [`build_app`] needs to produce one application instance.
@@ -134,6 +134,11 @@ pub fn build_app(
         .wrap(TracingLogger::<Hook0RootSpanBuilder>::new())
         .wrap(NormalizePath::trim())
         .wrap(sentry_actix::Sentry::new())
+        // Registered last, so it runs first: it has to see the answers every other
+        // middleware produces on its own (429, 401, 404…), not only the handlers' ones.
+        .wrap(middleware::from_fn(
+            middleware_http_metrics::record_http_server_metrics,
+        ))
         .wrap_api_with_spec(spec)
         .with_json_spec_v3_at("/api/v1/swagger.json")
         .service(
