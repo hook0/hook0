@@ -204,8 +204,8 @@ mod tests {
                             }),
                         ),
                 )
-                // Stands for a rate limiter or an authenticator that refuses the request
-                // with an `Err` instead of building the response itself.
+                // Stands for the rate limiter, which refuses a request with an `Err`
+                // instead of building the response itself.
                 .service(
                     web::scope("/refused")
                         .wrap(from_fn(
