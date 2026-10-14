@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import {
+  fromItsOwnAddress,
+  BACKEND_ROUNDTRIP_TIMEOUT,
+  UI_RENDER_TIMEOUT,
+} from "../fixtures/test-setup";
 
 /**
  * Service Tokens E2E tests for Hook0.
@@ -36,21 +40,23 @@ test.describe("Service Tokens", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Navigate to service tokens page
     await page.goto(`/organizations/${organizationId}/service_tokens`);
 
     // Verify service tokens card is visible
-    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
 
     // Step 1: Create a service token via UI (uses Hook0Dialog modal)
     await page.locator('[data-test="service-tokens-create-button"]').click();
@@ -58,13 +64,13 @@ test.describe("Service Tokens", () => {
 
     // Fill the name in the dialog modal
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
-    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await expect(dialogInput).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await dialogInput.fill(tokenName);
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/service_token") && response.request().method() === "POST",
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
 
     // Click confirm button in the dialog
@@ -78,7 +84,7 @@ test.describe("Service Tokens", () => {
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBeGreaterThanOrEqual(1);
-    }).toPass({ timeout: 10000 });
+    }).toPass({ timeout: BACKEND_ROUNDTRIP_TIMEOUT });
 
     // Step 3: Verify first row contains expected token name
     const firstRow = rows.first();
@@ -111,21 +117,23 @@ test.describe("Service Tokens", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Navigate to service tokens page
     await page.goto(`/organizations/${organizationId}/service_tokens`);
 
     // Verify page elements
-    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
     await expect(page.locator('[data-test="service-tokens-create-button"]')).toBeVisible();
   });
 
@@ -156,20 +164,20 @@ test.describe("Service Tokens", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Navigate to service tokens page
     await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-create-button"]')).toBeVisible({
-      timeout: 10000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Step 2: Click create to open Hook0Dialog modal
@@ -178,7 +186,7 @@ test.describe("Service Tokens", () => {
 
     // Fill the name in the dialog modal
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
-    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await expect(dialogInput).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await dialogInput.fill(tokenName);
 
     // Capture response body inside the predicate to avoid race condition with navigation
@@ -196,7 +204,7 @@ test.describe("Service Tokens", () => {
         }
         return false;
       },
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
 
     // Click confirm button in the dialog
@@ -236,20 +244,20 @@ test.describe("Service Tokens", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Navigate to service tokens page
     await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-create-button"]')).toBeVisible({
-      timeout: 10000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Click create button to open the Hook0Dialog modal
@@ -257,12 +265,14 @@ test.describe("Service Tokens", () => {
     await page.waitForURL("**/service_tokens/new");
 
     // Wait for the dialog to appear, then click cancel
-    await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({
+      timeout: UI_RENDER_TIMEOUT,
+    });
     await page.locator('[data-test="dialog-cancel-button"]').click();
 
     // Should still be on the same page
     await expect(page).toHaveURL(/\/service_tokens$/, {
-      timeout: 5000,
+      timeout: UI_RENDER_TIMEOUT,
     });
 
     // Card should still be visible
@@ -299,32 +309,34 @@ test.describe("Service Tokens", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Navigate to service tokens page
     await page.goto(`/organizations/${organizationId}/service_tokens`);
-    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
 
     // Step 1: Create a service token via UI
     await page.locator('[data-test="service-tokens-create-button"]').click();
     await page.waitForURL("**/service_tokens/new");
 
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
-    await expect(dialogInput).toBeVisible({ timeout: 5000 });
+    await expect(dialogInput).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await dialogInput.fill(tokenName);
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/service_token") && response.request().method() === "POST",
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
 
     await page.locator('[data-test="dialog-confirm-button"]').click();
@@ -337,7 +349,7 @@ test.describe("Service Tokens", () => {
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBeGreaterThanOrEqual(1);
-    }).toPass({ timeout: 10000 });
+    }).toPass({ timeout: BACKEND_ROUNDTRIP_TIMEOUT });
 
     await expect(rows.first()).toContainText(tokenName);
 
@@ -347,14 +359,14 @@ test.describe("Service Tokens", () => {
 
     // Wait for the danger confirmation dialog and click confirm
     await expect(page.locator('[data-test="dialog-confirm-button"]')).toBeVisible({
-      timeout: 5000,
+      timeout: UI_RENDER_TIMEOUT,
     });
 
     const deleteResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/service_token") &&
         response.request().method() === "DELETE",
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
 
     await page.locator('[data-test="dialog-confirm-button"]').click();
@@ -366,7 +378,7 @@ test.describe("Service Tokens", () => {
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBe(0);
-    }).toPass({ timeout: 10000 });
+    }).toPass({ timeout: BACKEND_ROUNDTRIP_TIMEOUT });
   });
 
   test("should rename a service token", async ({ page, request }) => {
@@ -397,32 +409,34 @@ test.describe("Service Tokens", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Navigate to service tokens page
     await page.goto(`/organizations/${organizationId}/service_tokens`);
-    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
+    });
 
     // Step 1: Create a service token via UI
     await page.locator('[data-test="service-tokens-create-button"]').click();
     await page.waitForURL("**/service_tokens/new");
 
     const createDialogInput = page.locator('[data-test="service-token-name-input"]');
-    await expect(createDialogInput).toBeVisible({ timeout: 5000 });
+    await expect(createDialogInput).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await createDialogInput.fill(tokenName);
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/service_token") && response.request().method() === "POST",
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
 
     await page.locator('[data-test="dialog-confirm-button"]').click();
@@ -435,7 +449,7 @@ test.describe("Service Tokens", () => {
     await expect(async () => {
       const rowCount = await rows.count();
       expect(rowCount).toBeGreaterThanOrEqual(1);
-    }).toPass({ timeout: 10000 });
+    }).toPass({ timeout: BACKEND_ROUNDTRIP_TIMEOUT });
 
     await expect(rows.first()).toContainText(tokenName);
 
@@ -446,14 +460,14 @@ test.describe("Service Tokens", () => {
 
     // Fill the new name in the edit dialog
     const editDialogInput = page.locator('[data-test="service-token-edit-name-input"]');
-    await expect(editDialogInput).toBeVisible({ timeout: 5000 });
+    await expect(editDialogInput).toBeVisible({ timeout: UI_RENDER_TIMEOUT });
     await editDialogInput.clear();
     await editDialogInput.fill(newTokenName);
 
     const updateResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/service_token") && response.request().method() === "PUT",
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
 
     await page.locator('[data-test="dialog-confirm-button"]').click();
@@ -464,6 +478,6 @@ test.describe("Service Tokens", () => {
     // Step 3: Verify the table now shows the new name
     await expect(async () => {
       await expect(rows.first()).toContainText(newTokenName);
-    }).toPass({ timeout: 10000 });
+    }).toPass({ timeout: BACKEND_ROUNDTRIP_TIMEOUT });
   });
 });
