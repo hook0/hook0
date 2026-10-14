@@ -571,6 +571,8 @@ const HTTP_SERVER_REQUEST_DURATION_BOUNDARIES: &[f64] = &[
     0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0,
 ];
 
+// SDK default cap of 2000 label sets per stream (~1500 worst case: routes × methods × statuses).
+// Raise it with `Stream::with_cardinality_limit` here if `otel.metric.overflow` shows up.
 fn http_server_request_duration_view(instrument: &Instrument) -> Option<Stream> {
     if instrument.name() == crate::middleware_http_metrics::HTTP_SERVER_REQUEST_DURATION {
         Stream::builder()

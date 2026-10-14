@@ -132,13 +132,14 @@ pub fn build_app(
         .wrap(security_headers_condition)
         .wrap(cors)
         .wrap(TracingLogger::<Hook0RootSpanBuilder>::new())
-        .wrap(NormalizePath::trim())
-        .wrap(sentry_actix::Sentry::new())
-        // Registered last, so it runs first: it has to see the answers every other
-        // middleware produces on its own (429, 401, 404…), not only the handlers' ones.
+        // Inside path normalization, so the route is read off the normalized path before the
+        // call and survives an `Err`; outside everything that answers on its own (CORS, rate
+        // limiting, auth, 404s). Neither `NormalizePath::trim()` nor Sentry ever answers by itself.
         .wrap(middleware::from_fn(
             middleware_http_metrics::record_http_server_metrics,
         ))
+        .wrap(NormalizePath::trim())
+        .wrap(sentry_actix::Sentry::new())
         .wrap_api_with_spec(spec)
         .with_json_spec_v3_at("/api/v1/swagger.json")
         .service(
