@@ -39,64 +39,14 @@ to a maintained YAML crate or is replaced.
 # lockfile, which is the authority on whether a vulnerable version has actually
 # left the tree — see the note at the bottom of this file.
 
-# The three rustls-webpki entries below suppress the legacy TLS stack the AWS SDK compiles in
-# beside the one that actually runs, and there are two ways out of them rather than one.
-#
-# No bump lifts them. `rustls-webpki 0.101.7` arrives as
-#   rustls-webpki 0.101.7 <- rustls 0.21.12 <- aws-smithy-http-client 1.4.0
-#   <- aws-smithy-runtime <- aws-runtime <- aws-sdk-s3 1.143.0 <- hook0-api, hook0-output-worker
-# and aws-smithy-http-client 1.4.0 still declares the same optional `rustls ^0.21.8`, so waiting
-# for a release does nothing.
-#
-# The stack is never reached. `aws-sdk-s3`'s default `rustls` feature turns on
-# `aws-smithy-runtime/tls-rustls`, which turns on `aws-smithy-http-client/legacy-rustls-ring`, and
-# nothing here builds the hyper-0.14 connector that stack exists for: both S3 clients are
-# `Client::from_conf` with no HTTP client override, so both take the SDK default, which is
-# `default-https-client` -> `rustls-aws-lc` -> rustls 0.23.43 over rustls-webpki 0.103.14, at or
-# above the fixed line of all three advisories.
-#
-# So this is a feature flag rather than an upstream wait, and it can be turned off today:
-#
-#   aws-sdk-s3 = { version = "1.143.0", default-features = false, features = [
-#       "behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio",
-#   ] }
-#
-# in api/Cargo.toml and output-worker/Cargo.toml, both, since a single member asking for the
-# default feature set brings the legacy stack back for the whole workspace. Resolving that way was
-# measured: rustls 0.23.43 and rustls-webpki 0.103.14, with no 0.101.x left in the tree at all.
-# Doing that is what removes these three entries; the dates below are the fallback, not the plan.
-#
-# Verified 2026-08-21 against Cargo.lock and crates.io.
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0098"
-ignoreUntil = "2026-11-30T00:00:00Z"
-reason = """
-rustls-webpki 0.101.7: a URI name constraint is ignored rather than enforced. Reachable only after
-signature verification and only against a misissued certificate, and the copy carrying it is the
-unreachable legacy stack described above. The S3 clients verify certificates through
-rustls-webpki 0.103.14. Removable today by dropping aws-sdk-s3's default `rustls` feature.
-"""
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0099"
-ignoreUntil = "2026-11-30T00:00:00Z"
-reason = """
-rustls-webpki 0.101.7: a permitted-subtree DNS name constraint is accepted for a certificate
-asserting a wildcard, so `*.example.com` passes a constraint of `accept.example.com`. Same gate and
-same unreachable copy as RUSTSEC-2026-0098, and the same one-line fix.
-"""
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0104"
-ignoreUntil = "2026-11-30T00:00:00Z"
-reason = """
-rustls-webpki 0.101.7: a reachable panic parsing a certificate revocation list, from an empty BIT
-STRING in the `onlySomeReasons` element of an `IssuingDistributionPoint` extension. It is the
-serious one of the three, since the panic lands before the CRL's own signature is checked, but
-nothing here parses a CRL and the copy carrying it is the unreachable legacy stack. Fixed in
-0.103.13, which the reachable stack is already past at 0.103.14.
-"""
+# The three rustls-webpki 0.101.7 entries (RUSTSEC-2026-0098, -0099, -0104) are gone with the
+# legacy TLS stack that carried them. aws-sdk-s3's default `rustls` feature compiled in rustls 0.21
+# beside the stack the S3 clients actually use; api/Cargo.toml and output-worker/Cargo.toml now
+# declare aws-sdk-s3 with `default-features = false` and keep only `default-https-client`
+# (rustls 0.23 over rustls-webpki 0.103). Both members must keep that feature list: a single
+# member asking for the default feature set brings rustls 0.21, rustls-webpki 0.101, hyper 0.14
+# and hyper-rustls 0.24 back for the whole workspace, along with the rustls advisories that have
+# no 0.21.x fix (RUSTSEC-2026-0346, -0349).
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0173"
@@ -164,19 +114,15 @@ h2 0.3.27: empty HTTP/2 DATA frames are queued without limit, so a stream nobody
 memory without bound, or panics if the length overflows. Low severity upstream.
 
 The fix is 0.4.16 and no 0.3 release carries it: 0.3.27 is the last of that line on crates.io. The
-0.4 copies the same advisory covers are at 0.4.18 in this lockfile and in smoke/languages/rust, so
+0.4 copies the same advisory covers are on the patched 0.4 line in this lockfile and in smoke/languages/rust, so
 they are patched rather than ignored, and reqwest, which sends every webhook and every other
 outbound call, is on that line.
 
-The 0.3.27 copy is reachable two ways, neither of them exposed:
-
-  - actix-http 3.13, the API server. actix-web 4 negotiates HTTP/2 only over ALPN under
-    bind_rustls / bind_openssl, or in cleartext under an explicit bind_auto_h2c. None of the three
-    appears anywhere in api/src: the server binds plaintext TCP with TLS terminated upstream, so
-    the frame reader this advisory is about is compiled in and never entered.
-  - hyper 0.14, via aws-smithy-http-client and hyper-rustls 0.24, the S3 client. Triggering it
-    needs the object storage endpoint itself to send the empty frames, and that endpoint is
-    operator configuration rather than attacker input.
+The 0.3.27 copy is reachable only through actix-http 3, the API server, and is not exposed there.
+actix-web 4 negotiates HTTP/2 only over ALPN under bind_rustls / bind_openssl, or in cleartext under
+an explicit bind_auto_h2c. None of the three appears anywhere in api/src: the server binds plaintext
+TCP with TLS terminated upstream, so the frame reader this advisory is about is compiled in and
+never entered. (The S3 client's hyper 0.14 path to this copy left with the legacy TLS stack above.)
 
 It moves when actix-http moves to the 0.4 line, which means actix-web 5, unreleased. If hook0-api
 ever starts terminating TLS itself, drop this entry and reassess the exposure first: the reasoning

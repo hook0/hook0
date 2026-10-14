@@ -20,7 +20,7 @@ actix-governor = "0.10.0"
 actix-web = "4.16.0"
 anyhow = "1.0.104"
 argon2 = "0.6.0"
-aws-sdk-s3 = { version = "1.152.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.152.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 base64 = "0.23.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.45", features = ["serde"] }
