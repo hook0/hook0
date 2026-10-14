@@ -16,6 +16,20 @@ paste. Migration to pastey (drop-in fork) depends on tikv-jemallocator
 upstream — tracked at https://github.com/tikv/jemallocator/issues
 """
 
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0449"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+unsafe-libyaml 0.2.11 is unmaintained (repository archived), with no known
+vulnerability attached to the advisory. It reaches Cargo.lock only through
+serde_yaml 0.9, which the OpenAPI spec generator used by hook0-api requires
+unconditionally, including in its latest release, so no version bump or
+feature flag removes it. No first-party code parses YAML: the spec is built
+from Rust types and served as JSON at /api/v1/swagger.json, so the c2rust
+parser never sees external input. Drop this entry once the generator moves
+to a maintained YAML crate or is replaced.
+"""
+
 # Two migrations this file was waiting on have landed, and their entries are gone
 # with the crates that needed them: `validator` is at 0.21.0, which dropped the
 # five `unic-*` crates (RUSTSEC-2025-0075, -0080, -0081, -0098, -0101), and
