@@ -20,8 +20,8 @@ use uuid::Uuid;
 use crate::client_options::{CLIENT_OPTIONS_HEADER, Hook0RootSpanBuilder};
 use crate::rate_limiting::Hook0RateLimiters;
 use crate::{
-    State, WEBAPP_INDEX_FILE, handlers, middleware_biscuit, middleware_get_user_ip, openapi,
-    openapi_postprocess, problems, quotas,
+    State, WEBAPP_INDEX_FILE, handlers, middleware_biscuit, middleware_get_user_ip,
+    middleware_http_metrics, openapi, openapi_postprocess, problems, quotas,
 };
 
 /// Everything [`build_app`] needs to produce one application instance.
@@ -132,6 +132,12 @@ pub fn build_app(
         .wrap(security_headers_condition)
         .wrap(cors)
         .wrap(TracingLogger::<Hook0RootSpanBuilder>::new())
+        // Inside path normalization, so the route is read off the normalized path before the
+        // call and survives an `Err`; outside everything that answers on its own (CORS, rate
+        // limiting, auth, 404s). Neither `NormalizePath::trim()` nor Sentry ever answers by itself.
+        .wrap(middleware::from_fn(
+            middleware_http_metrics::record_http_server_metrics,
+        ))
         .wrap(NormalizePath::trim())
         .wrap(sentry_actix::Sentry::new())
         .wrap_api_with_spec(spec)
