@@ -25,7 +25,7 @@ url = { version = "2.5.8", features = ["serde"], optional = true }
 uuid = { version = "1.28.0", features = ["serde", "v7"], optional = true }
 
 [dev-dependencies]
-actix-web = { version = "4.16.0", default-features = false, features = ["macros"] }
+actix-web = { version = "4.17.0", default-features = false, features = ["macros"] }
 proptest = "1.12.0"
 # The shared conformance corpus is read by the suites of both features, including the one built
 # without the producer half that pulls this in.

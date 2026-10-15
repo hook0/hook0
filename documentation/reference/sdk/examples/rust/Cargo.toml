@@ -23,7 +23,7 @@ hook0-client = { path = "{{client}}", features = ["producer", "consumer"] }
 # None of these are the client's own dependencies as far as this project is concerned: a page's
 # `use reqwest::Url;` or `use uuid::Uuid;` is a use of this crate, and Rust requires the crate a
 # `use` line names to be a direct dependency, not merely one reached through another crate.
-actix-web = { version = "=4.16.0", default-features = false, features = ["macros"] }
+actix-web = { version = "=4.17.0", default-features = false, features = ["macros"] }
 chrono = { version = "=0.4.45", features = ["serde"] }
 futures = "=0.3.34"
 log = "=0.4.34"
