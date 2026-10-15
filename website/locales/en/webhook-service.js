@@ -13,7 +13,7 @@
 // (HMAC signing, two-phase retries, delivery logs, subscriber portal, SSPL no
 // open-core, hosted in Europe). Nothing beyond that list is claimed.
 // Competitor pricing from the competitor snapshots last checked 2026-07-16:
-// Hookdeck Growth $499/mo, Svix Pro $490/mo, Convoy Premium $999/mo. Hook0 prices
+// Hookdeck Growth $499/mo, Svix Pro $490/mo, Convoy Cloud Pro $99/mo (rechecked 2026-10-15). Hook0 prices
 // verified against src/includes/_pricing.ejs.
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
@@ -24,7 +24,7 @@
 module.exports = {
   "tldr": {
     "h2": "The Short Answer",
-    "body": "Hook0 is a managed webhook service: it signs every payload with HMAC-SHA256, retries in two phases when a receiver is down, logs every attempt so a disputed delivery is a lookup instead of an argument, and gives your customers a drop-in portal to manage their own endpoints. The data plane, meaning payloads, database and backups, runs on Clever Cloud in France on every plan including the free tier, with Cloudflare, Inc. (USA) as the disclosed CDN. It is free up to 100 events/day, with paid plans from €59/month, against a $499/month Growth plan at Hookdeck, $490/month at Svix and $999/month at Convoy as last checked in July 2026. The whole codebase is open-source under SSPL-1.0 with no open-core holdback, so the day a managed service stops being the right answer you self-host the same software and your integration code does not change."
+    "body": "Hook0 is a managed webhook service: it signs every payload with HMAC-SHA256, retries in two phases when a receiver is down, logs every attempt so a disputed delivery is a lookup instead of an argument, and gives your customers a drop-in portal to manage their own endpoints. The data plane, meaning payloads, database and backups, runs on Clever Cloud in France on every plan including the free tier, with Cloudflare, Inc. (USA) as the disclosed CDN. It is free up to 100 events/day, with paid plans from €59/month, against a $499/month Growth plan at Hookdeck, $490/month at Svix (both last checked in July 2026) and $99/month at Convoy Cloud (checked October 2026). The whole codebase is open-source under SSPL-1.0 with no open-core holdback, so the day a managed service stops being the right answer you self-host the same software and your integration code does not change."
   },
   "pageTitle": "Webhook Service: Managed Delivery, With a Way Out | Hook0",
   "pageDescription": "A managed webhook service with HMAC signing, two-phase retries and per-attempt logs. EU data plane on every plan, and the same open-source (SSPL-1.0) codebase self-hosts when you want out.",
@@ -107,8 +107,8 @@ module.exports = {
       {
         "highlight": false,
         "provider": "Convoy",
-        "offerHtml": "Self-hosted Community, or the managed Premium plan.",
-        "priceHtml": "Community is free (Elastic License v2); managed Premium is $999/month"
+        "offerHtml": "Convoy Cloud (Pro, Premium), or self-hosted Community and Premium.",
+        "priceHtml": "Cloud Pro $99/month, Cloud Premium $499/month; self-hosted Community free (Elastic License v2), self-hosted Premium $999/month"
       }
     ],
     "footnote": "Sources: each provider's public pricing pages, last checked on 2026-07-16. Providers move their prices, so check theirs too. Spotted something out of date? Tell us and we will fix it.",
@@ -148,7 +148,7 @@ module.exports = {
       },
       {
         "q": "How much does a webhook service cost?",
-        "a": "Hook0 is free up to 100 events/day, with paid plans from €59/month. Among the other managed providers, as last checked in July 2026, Hookdeck's SLA-backed Growth plan is $499/month, Svix's managed Pro starts at $490/month, and Convoy's managed Premium is $999/month. Self-hosting shifts the cost from a subscription to your own infrastructure and maintenance time."
+        "a": "Hook0 is free up to 100 events/day, with paid plans from €59/month. Among the other managed providers, as last checked in July 2026, Hookdeck's SLA-backed Growth plan is $499/month, Svix's managed Pro starts at $490/month, and Convoy Cloud starts at $99/month (Pro, checked October 2026). Self-hosting shifts the cost from a subscription to your own infrastructure and maintenance time."
       },
       {
         "q": "Where does Hook0 host webhook data?",

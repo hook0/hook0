@@ -1,7 +1,7 @@
 ---
 title: "Svix vs Hookdeck vs Hook0: The Migration Trap You Discover at 50k Webhooks/Day"
 description: "Side-by-side feature matrix for webhook platforms — plus the one thing every comparison hides: what migrating off costs you in 18 months."
-keywords: [best webhook service, best open source webhook tool, webhook comparison, webhook service for startups, best webhook delivery service, Hook0 vs Svix, best webhook management tool, open source webhook server, webhook migration]
+keywords: [best webhook service, best open source webhook tool, webhook comparison, webhook service for startups, best webhook delivery service, Hook0 vs Svix, best webhook management tool, open source webhook server, webhook migration, webhook vs message queue, SQS vs webhooks, EventBridge webhooks]
 ---
 
 import Head from '@docusaurus/Head';
@@ -17,11 +17,16 @@ import Head from '@docusaurus/Head';
       "mainEntity": {
         "@type": "ItemList",
         "itemListElement": [
-          {"@type": "ListItem", "position": 1, "name": "Svix vs Hook0", "url": "https://documentation.hook0.com/comparisons/svix-vs-hook0"},
-          {"@type": "ListItem", "position": 2, "name": "Hookdeck vs Hook0", "url": "https://documentation.hook0.com/comparisons/hookdeck-vs-hook0"},
-          {"@type": "ListItem", "position": 3, "name": "Hostedhooks vs Hook0", "url": "https://documentation.hook0.com/comparisons/hostedhooks-vs-hook0"},
-          {"@type": "ListItem", "position": 4, "name": "Build vs Buy", "url": "https://documentation.hook0.com/comparisons/build-vs-buy"},
-          {"@type": "ListItem", "position": 5, "name": "AWS EventBridge vs Hook0", "url": "https://documentation.hook0.com/comparisons/aws-eventbridge-vs-hook0"}
+          {"@type": "ListItem", "position": 1, "name": "Hook0 vs Svix", "url": "https://www.hook0.com/hook0-vs-svix"},
+          {"@type": "ListItem", "position": 2, "name": "Hook0 vs Hookdeck", "url": "https://www.hook0.com/hook0-vs-hookdeck"},
+          {"@type": "ListItem", "position": 3, "name": "Hook0 vs Convoy", "url": "https://www.hook0.com/hook0-vs-convoy"},
+          {"@type": "ListItem", "position": 4, "name": "Hostedhooks vs Hook0", "url": "https://documentation.hook0.com/comparisons/hostedhooks-vs-hook0"},
+          {"@type": "ListItem", "position": 5, "name": "AWS EventBridge vs Hook0", "url": "https://documentation.hook0.com/comparisons/aws-eventbridge-vs-hook0"},
+          {"@type": "ListItem", "position": 6, "name": "Build vs Buy", "url": "https://documentation.hook0.com/comparisons/build-vs-buy"},
+          {"@type": "ListItem", "position": 7, "name": "Webhook cost comparison", "url": "https://www.hook0.com/webhook-cost-comparison"},
+          {"@type": "ListItem", "position": 8, "name": "Hook0 vs Requeue", "url": "https://www.hook0.com/hook0-vs-requeue"},
+          {"@type": "ListItem", "position": 9, "name": "Hook0 vs Webhook Relay", "url": "https://www.hook0.com/hook0-vs-webhook-relay"},
+          {"@type": "ListItem", "position": 10, "name": "Hook0 vs ngrok", "url": "https://www.hook0.com/hook0-vs-ngrok"}
         ]
       }
     })}
@@ -52,7 +57,7 @@ import Head from '@docusaurus/Head';
           "name": "Is Hookdeck a replacement for Hook0?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. They solve different problems. Hookdeck is a webhook proxy for receiving and routing inbound webhooks. Hook0 is a webhook server for sending outbound webhooks from your application. Many teams use both."
+            "text": "It depends on the Hookdeck product. Its Event Gateway receives and routes inbound webhooks, which Hook0 does not do. Hookdeck Outpost is its outbound delivery product and overlaps with Hook0. Teams that receive webhooks from providers and also send webhooks to their own customers can use the Event Gateway and Hook0 side by side."
           }
         },
         {
@@ -61,6 +66,22 @@ import Head from '@docusaurus/Head';
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Message queues (RabbitMQ, Kafka, SQS) handle internal communication. Webhooks handle external communication: delivering events to your customers' HTTP endpoints. They are complementary, not competing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can SQS or RabbitMQ replace a webhook delivery service?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "They can carry the events, but they stop at consumers you run. To reach customer endpoints you still write the HTTP client, the payload signing, a retry schedule per endpoint, a delivery log, replay, and the screens where customers register their URLs. A webhook service such as Hook0 is that layer, and many teams keep their queue upstream of it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can AWS EventBridge send webhooks to customer endpoints?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, through API destinations. EventBridge calls an HTTP endpoint using a connection that holds an API key, Basic or OAuth credentials, and by default retries for up to 24 hours and 185 attempts. It does not sign the payload for the receiver to verify, keeps no per-attempt response log, and every target is a rule plus a destination in your own AWS account, so your customers cannot manage their endpoints themselves. It fits a few internal or partner endpoints; customer-facing webhooks are what a dedicated service like Hook0 is built for."
           }
         },
         {
@@ -99,7 +120,7 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 | **SaaS (managed)** | ✅ | ✅ | ✅ | ✅ |
 | **Self-hosting** | ✅ Full feature parity | ⚠️ Open-core (limited) | ⚠️ Outpost only (Apache-2.0) | ❌ |
 | **Open-source license** | ✅ SSPL-1.0 | ⚠️ Open-core | ⚠️ Partial (Outpost Apache-2.0, Event Gateway closed) | ❌ Proprietary |
-| **Outbound webhooks** | ✅ | ✅ | ⚠️ Primarily inbound | ✅ |
+| **Outbound webhooks** | ✅ | ✅ | ✅ Outpost (separate product) | ✅ |
 | **Inbound webhook proxy** | ❌ | ❌ | ✅ Core focus | ❌ |
 | **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ | ❌ |
 | **HMAC signatures** | ✅ | ✅ | ✅ | ✅ |
@@ -117,15 +138,38 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 
 ## Detailed comparisons
 
-- [Svix vs Hook0](svix-vs-hook0.mdx): Both focus on outbound webhooks. Difference: open-core vs open-source.
-- [Hookdeck vs Hook0](hookdeck-vs-hook0.mdx): Hookdeck is an inbound webhook proxy. Hook0 is an outbound webhook server. Different problems.
-- [Hostedhooks vs Hook0](hostedhooks-vs-hook0.mdx): Proprietary vs open-source. Hostedhooks has fewer features but simpler setup.
-- [Build vs Buy](build-vs-buy.mdx): What it actually costs to build webhook infrastructure from scratch.
-- [AWS EventBridge vs Hook0](aws-eventbridge-vs-hook0.mdx): Event bus vs dedicated webhook delivery.
+- [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix): both send outbound webhooks and both self-host from public code. Hook0 is SSPL-1.0 with no closed tier and an EU data plane; Svix has an MIT core and keeps supported on-prem for Enterprise.
+- [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck): Hookdeck sells an inbound Event Gateway and a separate outbound product, Outpost. Licensing, self-hosting scope and pricing tiers compared.
+- [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy): Rust and SSPL-1.0 against Go and the Elastic License v2.0, with pricing side by side.
+- [Hostedhooks vs Hook0](hostedhooks-vs-hook0.mdx): proprietary vs open-source. Hostedhooks has fewer features but a simpler setup.
+- [AWS EventBridge vs Hook0](aws-eventbridge-vs-hook0.mdx): an event bus for your own services vs a delivery server for external endpoints.
+- [Build vs Buy](build-vs-buy.mdx): what building webhook infrastructure from scratch actually costs.
+- [Webhook cost comparison](https://www.hook0.com/webhook-cost-comparison): public prices at 100k to 10M events a month, with the self-hosted ops bill.
+
+Tools that receive webhooks rather than send them:
+
+- [Hook0 vs Requeue](https://www.hook0.com/hook0-vs-requeue): Requeue is a dead-letter inbox for webhooks you receive and for failed jobs.
+- [Hook0 vs Webhook Relay](https://www.hook0.com/hook0-vs-webhook-relay): Webhook Relay forwards third-party webhooks to localhost or private servers.
+- [Hook0 vs ngrok](https://www.hook0.com/hook0-vs-ngrok): ngrok tunnels any local service; the Hook0 CLI forwards webhooks to localhost with no account.
+
+## Webhook service vs a message queue (SQS, RabbitMQ, EventBridge)
+
+A queue moves messages between services you run. A webhook service delivers HTTP requests to endpoints your customers run. You can build the second on top of the first, and that build is exactly the work a webhook service saves you.
+
+| What outbound webhooks need | SQS / RabbitMQ | EventBridge (API destinations) | Hook0 |
+|---|---|---|---|
+| HTTP POST to a customer URL | ❌ Your consumer makes the call | ✅ | ✅ |
+| Payload signature the receiver can verify | ❌ Build it | ❌ Auth header only (API key, Basic, OAuth) | ✅ HMAC-SHA256 on every request |
+| Retries while an endpoint is down | ⚠️ Redelivery to your consumer, then a dead-letter queue | ✅ Up to 24 hours and 185 attempts by default | ✅ Up to 24 retries over about 8 days by default, with jitter |
+| Per-attempt log (status code, response body) | ❌ Build it | ❌ Metrics, plus failed events sent to a DLQ | ✅ |
+| Replay a past event | ❌ Build it | ⚠️ Archive and replay, per event bus | ✅ `POST /events/{event_id}/replay`, resent to every matching subscription |
+| Customers manage their own endpoints | ❌ Build it | ❌ One rule and destination per target, in your AWS account | ✅ Subscriptions filtered by event type and labels |
+
+Keep the queue for work between your own services. Put a webhook service at the edge, where events leave for systems you don't control.
 
 ## What matters if you're a startup
 
-**Time to integrate**: Hook0 and Svix both have good APIs. First webhook in under 10 minutes with either. Hookdeck is fast too, but it solves a different problem (receiving webhooks, not sending them).
+**Time to integrate**: Hook0 and Svix both have good APIs. First webhook in under 10 minutes with either. Hookdeck's Event Gateway is fast too, but it handles the receiving side; its sending product is Outpost.
 
 **Cost at scale**: Self-hosting Hook0 costs you nothing beyond your own infrastructure. With Svix's open-source version, you get a subset of features. Hostedhooks has no self-hosting option, and Hookdeck's inbound Event Gateway is cloud-only; only its Outpost delivery engine can be self-hosted.
 
@@ -149,11 +193,19 @@ Yes. Both use similar REST API patterns. The main work is mapping Svix's "endpoi
 
 ### Is Hookdeck a replacement for Hook0?
 
-No. They solve different problems. Hookdeck is a webhook *proxy* for receiving and routing inbound webhooks. Hook0 is a webhook *server* for sending outbound webhooks from your application. Many teams use both.
+It depends on the Hookdeck product. Its Event Gateway receives and routes inbound webhooks, which Hook0 does not do. Hookdeck Outpost is its outbound delivery product and overlaps with Hook0. Teams that receive webhooks from providers and also send webhooks to their own customers can use the Event Gateway and Hook0 side by side. [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck) compares licensing, self-hosting and pricing.
 
 ### Do I need a webhook service if I use message queues?
 
 Message queues (RabbitMQ, Kafka, SQS) handle internal communication. Webhooks handle external communication: delivering events to your customers' HTTP endpoints. They're complementary, not competing.
+
+### Can SQS or RabbitMQ replace a webhook delivery service?
+
+They can carry the events, but they stop at consumers you run. To reach customer endpoints you still write the HTTP client, the payload signing, a retry schedule per endpoint, a delivery log, replay, and the screens where customers register their URLs. A webhook service such as Hook0 is that layer, and many teams keep their queue upstream of it.
+
+### Can AWS EventBridge send webhooks to customer endpoints?
+
+Yes, through API destinations. EventBridge calls an HTTP endpoint using a connection that holds an API key, Basic or OAuth credentials, and by default retries for up to 24 hours and 185 attempts. It does not sign the payload for the receiver to verify, keeps no per-attempt response log, and every target is a rule plus a destination in your own AWS account, so your customers cannot manage their endpoints themselves. It fits a few internal or partner endpoints; customer-facing webhooks are what a dedicated service like Hook0 is built for. See [AWS EventBridge vs Hook0](aws-eventbridge-vs-hook0.mdx).
 
 ### What is the best open-source webhook management tool?
 

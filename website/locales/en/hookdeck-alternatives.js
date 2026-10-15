@@ -48,7 +48,7 @@ module.exports = {
     sub: 'Hookdeck does one thing well: receiving and routing webhooks. But there are clear cases where it falls short.',
     cards: [
       { title: 'You Need to Send Webhooks', body: "Hookdeck's Event Gateway doesn't send webhooks. That job belongs to Outpost, a separate product with its own plans. If you want one platform that publishes events and delivers them with retries, HMAC signatures, and delivery logs, look at Hook0, Svix, or Convoy.", color: 'green' },
-      { title: 'You Want to Self-Host', body: 'Hookdeck opens only its Outpost component, published under Apache-2.0 and self-hostable. The Event Gateway stays closed-source and cloud-only. Hook0 and Convoy both self-host the whole product at no licence cost, and with Hook0 the self-hosted code is the code that runs the managed cloud.', color: 'indigo' },
+      { title: 'You Want to Self-Host', body: 'Hookdeck opens only its Outpost component, published under Apache-2.0 and self-hostable. The Event Gateway stays closed-source and cloud-only. Hook0 and Convoy both self-host end to end; Hook0 charges no licence for any feature, Convoy licenses its Premium features at $999/month, and with Hook0 the self-hosted code is the code that runs the managed cloud.', color: 'indigo' },
       { title: 'You Need European Data Hosting', body: "Hookdeck is Canada-based, with an EU region available on managed Outpost. Hook0 Cloud is hosted in Europe with GDPR compliance built in. If you're an EU company handling sensitive data, the choice is straightforward.", color: 'green' },
       { title: 'You Want to Audit the Source Code', body: "Outpost is Apache-2.0, so Hookdeck's delivery code is readable, but the Event Gateway that ingests your webhooks stays closed. Hook0's entire codebase is open-source under SSPL-1.0, and the managed cloud runs that same code, so you can read and audit every line.", color: 'indigo' },
     ],
@@ -75,7 +75,7 @@ module.exports = {
       { label: 'Hookdeck Outpost source and license on GitHub', url: 'https://github.com/hookdeck/outpost', consulted: '2026-09-29' },
       { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-10-08' },
       { label: 'Convoy releases on GitHub', url: 'https://github.com/frain-dev/convoy/releases', consulted: '2026-09-29' },
-      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-10-04', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
+      { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-10-15', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
       { label: 'AWS EventBridge pricing', url: 'https://aws.amazon.com/eventbridge/pricing/', consulted: '2026-09-29' },
     ],
     updated: '2026-10-08',
