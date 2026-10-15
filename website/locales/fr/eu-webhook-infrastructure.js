@@ -88,8 +88,8 @@ module.exports = {
       {
         "highlight": false,
         "provider": "Convoy",
-        "residencyHtml": "Pas de résidence géographique managée ; choisir sa région impose de s'auto-héberger.",
-        "priceHtml": "La version Community auto-hébergée est gratuite (licence Elastic v2) ; l'offre managée Premium est à 999 $/mois"
+        "residencyHtml": "Région US ou UE choisie à l'inscription sur le cloud managé ; options de résidence des données sur Enterprise.",
+        "priceHtml": "Cloud Pro 99 $/mois, Premium 499 $/mois ; Community auto-hébergé gratuit (licence Elastic v2), Premium auto-hébergé 999 $/mois"
       }
     ],
     "footnote": "Sources : pages de tarifs et documentations publiques de chaque fournisseur, vérifiées le 16 juillet 2026. Un chiffre a bougé ? Dis-le-nous, on corrige."
@@ -150,7 +150,7 @@ module.exports = {
       },
       {
         "q": "Quels fournisseurs de webhooks proposent une résidence EU sur leur cloud managé ?",
-        "a": "En juillet 2026 : Hook0 héberge son data plane en France sur chaque offre. Hookdeck affiche des régions US, EU et Asie sur sa plateforme managée, sans publier les régions EU exactes. Svix affiche des régions UE et US sur sa plateforme managée, avec des régions sur mesure en Enterprise. Convoy ne propose pas de résidence géographique managée — tu choisis ta région en t'auto-hébergeant. Les offres évoluent, vérifie aussi leur documentation à jour."
+        "a": "En juillet 2026 : Hook0 héberge son data plane en France sur chaque offre. Hookdeck affiche des régions US, EU et Asie sur sa plateforme managée, sans publier les régions EU exactes. Svix affiche des régions UE et US sur sa plateforme managée, avec des régions sur mesure en Enterprise. Convoy Cloud propose une région US ou UE à l'inscription (relevé d'octobre 2026). Les offres évoluent, vérifie aussi leur documentation à jour."
       }
     ]
   },

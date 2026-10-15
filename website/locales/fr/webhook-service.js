@@ -4,11 +4,11 @@
 // (CCT 2021 + analyse d'impact + DPF le cas échéant) ; jamais « 100 % souverain » ; RGPD =
 // « conçu pour », jamais « certifié » ; licence « open source (SSPL-1.0) », jamais « open source » nu.
 // Prix concurrents relevés le 2026-07-16 (Hookdeck Growth 499 $/mois, Svix Pro 490 $/mois,
-// Convoy Premium 999 $/mois). Les réponses faq.items[].a doivent rester identiques au texte visible.
+// Convoy Cloud Pro 99 $/mois, relu le 2026-10-15). Les réponses faq.items[].a doivent rester identiques au texte visible.
 module.exports = {
   "tldr": {
     "h2": "En bref",
-    "body": "Hook0 est un webhook service managé : il signe chaque payload en HMAC-SHA256, relance en deux temps quand un destinataire est hors service, journalise chaque tentative pour qu'une livraison contestée devienne une simple recherche, et donne à tes clients un portail prêt à l'emploi pour gérer leurs propres endpoints. Le data plane, c'est-à-dire les payloads, la base et les sauvegardes, tourne chez Clever Cloud en France sur chaque offre, tier gratuit compris, avec Cloudflare, Inc. (USA) comme CDN divulgué. C'est gratuit jusqu'à 100 events par jour, avec des offres payantes à partir de 59 €/mois, face à une offre Growth à 499 $/mois chez Hookdeck, 490 $/mois chez Svix et 999 $/mois chez Convoy au dernier relevé de juillet 2026. Tout le code est open source (SSPL-1.0), sans rétention pour un palier entreprise, donc le jour où un service managé n'est plus la bonne réponse tu héberges le même logiciel toi-même et ton code d'intégration ne change pas."
+    "body": "Hook0 est un webhook service managé : il signe chaque payload en HMAC-SHA256, relance en deux temps quand un destinataire est hors service, journalise chaque tentative pour qu'une livraison contestée devienne une simple recherche, et donne à tes clients un portail prêt à l'emploi pour gérer leurs propres endpoints. Le data plane, c'est-à-dire les payloads, la base et les sauvegardes, tourne chez Clever Cloud en France sur chaque offre, tier gratuit compris, avec Cloudflare, Inc. (USA) comme CDN divulgué. C'est gratuit jusqu'à 100 events par jour, avec des offres payantes à partir de 59 €/mois, face à une offre Growth à 499 $/mois chez Hookdeck, 490 $/mois chez Svix (relevés de juillet 2026) et 99 $/mois chez Convoy Cloud (relevé d'octobre 2026). Tout le code est open source (SSPL-1.0), sans rétention pour un palier entreprise, donc le jour où un service managé n'est plus la bonne réponse tu héberges le même logiciel toi-même et ton code d'intégration ne change pas."
   },
   "pageTitle": "Webhook service managé, avec une porte de sortie | Hook0",
   "pageDescription": "Un webhook service managé avec signatures HMAC, relances en deux phases et journaux par tentative. Data plane européen sur chaque offre, et le même code open source (SSPL-1.0) s'auto-héberge quand tu veux partir.",
@@ -91,8 +91,8 @@ module.exports = {
       {
         "highlight": false,
         "provider": "Convoy",
-        "offerHtml": "Community auto-hébergé, ou l'offre managée Premium.",
-        "priceHtml": "Community gratuit (Elastic License v2) ; le Premium managé est à 999 $/mois"
+        "offerHtml": "Convoy Cloud (Pro, Premium), ou Community et Premium auto-hébergés.",
+        "priceHtml": "Cloud Pro 99 $/mois, Cloud Premium 499 $/mois ; Community auto-hébergé gratuit (Elastic License v2), Premium auto-hébergé 999 $/mois"
       }
     ],
     "footnote": "Sources : les pages de tarifs publiques de chaque fournisseur, dernier relevé le 2026-07-16. Les fournisseurs bougent leurs prix, alors vérifie les leurs aussi. Un chiffre périmé ? Dis-le-nous et on corrige.",
@@ -132,7 +132,7 @@ module.exports = {
       },
       {
         "q": "Combien coûte un webhook service ?",
-        "a": "Hook0 est gratuit jusqu'à 100 events/jour, avec des offres payantes à partir de 59 €/mois. Parmi les autres fournisseurs managés, au dernier relevé de juillet 2026, l'offre Growth avec SLA de Hookdeck est à 499 $/mois, le Pro managé de Svix démarre à 490 $/mois, et le Premium managé de Convoy est à 999 $/mois. L'auto-hébergement déplace le coût d'un abonnement vers ta propre infrastructure et ton temps de maintenance."
+        "a": "Hook0 est gratuit jusqu'à 100 events/jour, avec des offres payantes à partir de 59 €/mois. Parmi les autres fournisseurs managés, au dernier relevé de juillet 2026, l'offre Growth avec SLA de Hookdeck est à 499 $/mois, le Pro managé de Svix démarre à 490 $/mois, et Convoy Cloud démarre à 99 $/mois (Pro, relevé d'octobre 2026). L'auto-hébergement déplace le coût d'un abonnement vers ta propre infrastructure et ton temps de maintenance."
       },
       {
         "q": "Où Hook0 héberge-t-il les données webhook ?",

@@ -41,7 +41,7 @@ module.exports = {
           items: [
             { enSlug: 'hook0-vs-svix',         icon: 'compare', label: 'Hook0 vs Svix',         description: 'Feature-by-feature' },
             { enSlug: 'hook0-vs-hookdeck',     icon: 'compare', label: 'Hook0 vs Hookdeck',     description: 'EU-native comparison' },
-            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',       description: 'Managed vs self-host' },
+            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',       description: 'Event quotas vs throughput tiers' },
             { enSlug: 'hook0-vs-requeue',      icon: 'compare', label: 'Hook0 vs Requeue',     description: 'Outbound vs inbound replay' },
             { enSlug: 'hook0-vs-ngrok',        icon: 'compare', label: 'Hook0 vs ngrok',        description: 'Local webhook tunnel' },
             { enSlug: 'hook0-vs-webhook-relay', icon: 'compare', label: 'Hook0 vs Webhook Relay', description: 'Sending vs receiving' },

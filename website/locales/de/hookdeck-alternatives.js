@@ -50,7 +50,7 @@ module.exports = {
     sub: 'Hookdeck macht eine Sache gut, eingehende Webhooks empfangen und routen. Aber es gibt klare Fälle, in denen das nicht reicht.',
     cards: [
       { title: 'Du musst Webhooks senden', body: 'Hookdecks Event Gateway sendet keine Webhooks. Das übernimmt Outpost, ein separates Produkt mit eigenen Tarifen. Wenn du eine einzige Plattform willst, die deine Events publiziert und mit Wiederholungen, HMAC-Signaturen und Zustelllogs ausliefert, schau dir Hook0, Svix oder Convoy an.', color: 'green' },
-      { title: 'Du willst selbst hosten', body: 'Hookdeck öffnet nur seine Outpost-Komponente, veröffentlicht unter Apache-2.0 und selbst-hostbar. Das Event Gateway bleibt Closed Source und nur Cloud. Hook0 und Convoy lassen sich beide vollständig ohne Lizenzkosten selbst hosten, und bei Hook0 ist der selbst gehostete Code derselbe, der in der Managed Cloud läuft.', color: 'indigo' },
+      { title: 'Du willst selbst hosten', body: 'Hookdeck öffnet nur seine Outpost-Komponente, veröffentlicht unter Apache-2.0 und selbst-hostbar. Das Event Gateway bleibt Closed Source und nur Cloud. Hook0 und Convoy lassen sich beide vollständig selbst hosten; Hook0 verlangt keine Lizenz, Convoy lizenziert seine Premium-Funktionen für 999 $/Monat, und bei Hook0 ist der selbst gehostete Code derselbe, der in der Managed Cloud läuft.', color: 'indigo' },
       { title: 'Du brauchst europäisches Datenhosting', body: 'Hookdeck sitzt in Kanada, mit einer EU-Region bei Outpost managed. Die Datenebene von Hook0 Cloud läuft in Frankreich bei Clever Cloud, auf DSGVO-Konformität ausgelegt (CDN Cloudflare USA im <a href="/de/auftragsverarbeitungsvertrag">DPA</a> offengelegt). Wenn du ein EU-Unternehmen bist, das sensible Daten verarbeitet, ist die Wahl unkompliziert.', color: 'green' },
       { title: 'Du willst den Quellcode auditieren', body: 'Outpost steht unter Apache-2.0, Hookdecks Zustellungscode ist also lesbar. Das Event Gateway, das deine Webhooks entgegennimmt, bleibt aber geschlossen. Hook0\'s gesamter Codebase ist Open Source unter SSPL-1.0 und die Managed Cloud läuft auf genau diesem Code, du kannst jede Zeile lesen und auditieren.', color: 'indigo' },
     ],
@@ -77,7 +77,7 @@ module.exports = {
       { label: "Hookdeck Outpost Quellcode und Lizenz auf GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
       { label: "Svix Preise", url: "https://www.svix.com/pricing/", consulted: "2026-10-08" },
       { label: "Convoy Releases auf GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
-      { label: "Convoy Preise", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
+      { label: "Convoy Preise", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-15", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
       { label: "AWS EventBridge Preise", url: "https://aws.amazon.com/eventbridge/pricing/", consulted: "2026-09-29" },
     ],
     updated: "2026-10-08",

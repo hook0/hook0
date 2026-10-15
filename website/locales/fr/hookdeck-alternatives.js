@@ -50,7 +50,7 @@ module.exports = {
     sub: 'Hookdeck fait une chose et la fait bien, recevoir et router les webhooks. Mais il y a des cas clairs où ça ne suffit pas.',
     cards: [
       { title: 'Tu dois envoyer des webhooks', body: 'L\'Event Gateway de Hookdeck n\'envoie pas de webhooks, c\'est Outpost qui s\'en charge, un second produit avec ses propres paliers. Si tu veux une seule plateforme qui publie tes events et les livre avec relances, signatures HMAC et logs de livraison, regarde Hook0, Svix ou Convoy.', color: 'green' },
-      { title: 'Tu veux auto-héberger', body: 'Hookdeck n\'ouvre que son composant Outpost, publié sous Apache-2.0 et auto-hébergeable. L\'Event Gateway, lui, reste en code fermé et cloud uniquement. Hook0 et Convoy s\'auto-hébergent en entier sans coût de licence, et chez Hook0 le code auto-hébergé est celui qui tourne dans le cloud managé.', color: 'indigo' },
+      { title: 'Tu veux auto-héberger', body: 'Hookdeck n\'ouvre que son composant Outpost, publié sous Apache-2.0 et auto-hébergeable. L\'Event Gateway, lui, reste en code fermé et cloud uniquement. Hook0 et Convoy s\'auto-hébergent de bout en bout ; Hook0 ne facture aucune licence, Convoy licencie ses fonctions Premium à 999 $/mois, et chez Hook0 le code auto-hébergé est celui qui tourne dans le cloud managé.', color: 'indigo' },
       { title: 'Tu as besoin d\'un hébergement européen', body: 'Hookdeck est une société canadienne, avec une région UE disponible sur Outpost managé. Le plan de données de Hook0 Cloud tourne en France chez Clever Cloud, conçu pour la conformité RGPD dès le départ (CDN Cloudflare US divulgué dans le <a href="/fr/accord-traitement-donnees">DPA</a>). Si tu es une boîte UE qui manipule des données sensibles, le choix est limpide.', color: 'green' },
       { title: 'Tu veux auditer le code source', body: 'Outpost est sous Apache-2.0, donc le code de livraison de Hookdeck est lisible. Mais l\'Event Gateway qui ingère tes webhooks reste fermé. Tout le code de Hook0 est ouvert sous SSPL-1.0 et le cloud managé fait tourner ce même code, donc tu peux lire et auditer chaque ligne.', color: 'indigo' },
     ],
@@ -77,7 +77,7 @@ module.exports = {
       { label: "Code source et licence de Hookdeck Outpost sur GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-09-29" },
       { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-10-08" },
       { label: "Releases de Convoy sur GitHub", url: "https://github.com/frain-dev/convoy/releases", consulted: "2026-09-29" },
-      { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-04", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
+      { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-15", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
       { label: "Tarifs AWS EventBridge", url: "https://aws.amazon.com/eventbridge/pricing/", consulted: "2026-09-29" },
     ],
     updated: "2026-10-08",

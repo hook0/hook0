@@ -9,8 +9,8 @@
 // Competitor facts sourced from the 2026-07-08 business.md snapshots
 // (~/.claude/shared/orgs/hook0/competitors/*): Hookdeck Growth $499/mo,
 // multi-region US/EU/Asia with exact regions unpublished; Svix Pro $490/mo, EU and
-// US regions listed (svix.com/pricing, rechecked 2026-10-08); Convoy Premium $999/mo, no managed
-// geographic residency. Managed on-prem pricing verified against
+// US regions listed (svix.com/pricing, rechecked 2026-10-08); Convoy Cloud Pro $99/mo with a US or EU region at signup (rechecked 2026-10-15),
+// data residency options on Enterprise. Managed on-prem pricing verified against
 // src/includes/_pricing.ejs (Pro On-Premise: €1,000 setup + €500/mo excl. VAT,
 // or €0 setup + €6,000/yr excl. VAT).
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
@@ -94,8 +94,8 @@ module.exports = {
       {
         "highlight": false,
         "provider": "Convoy",
-        "residencyHtml": "No managed geographic residency; choosing your region requires self-hosting.",
-        "priceHtml": "Self-hosted Community is free (Elastic License v2); the managed Premium plan is $999/month"
+        "residencyHtml": "US or EU region picked at signup on the managed cloud; data residency options on Enterprise.",
+        "priceHtml": "Cloud Pro $99/month, Premium $499/month; self-hosted Community is free (Elastic License v2), self-hosted Premium $999/month"
       }
     ],
     "footnote": "Sources: each provider's public pricing and documentation pages, last checked on 2026-07-16. Spotted something out of date? Tell us and we will fix it."
@@ -156,7 +156,7 @@ module.exports = {
       },
       {
         "q": "Which webhook providers offer EU data residency on their managed cloud?",
-        "a": "As of July 2026: Hook0 hosts its data plane in France on every plan. Hookdeck advertises US, EU and Asia regions on its managed platform, without publishing exact EU regions. Svix lists EU and US regions on its managed platform, with custom regions on Enterprise. Convoy offers no managed geographic residency — you pick your region by self-hosting. Providers change their offerings, so check their current documentation too."
+        "a": "As of July 2026: Hook0 hosts its data plane in France on every plan. Hookdeck advertises US, EU and Asia regions on its managed platform, without publishing exact EU regions. Svix lists EU and US regions on its managed platform, with custom regions on Enterprise. Convoy Cloud offers a US or an EU region at signup (checked October 2026). Providers change their offerings, so check their current documentation too."
       }
     ]
   },

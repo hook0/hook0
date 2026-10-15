@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Build vs Buy webhooks, prod en 30 min | Hook0',
   pageDescription: 'Construire un système webhook coûte 3 sprints. Relances, signatures, monitoring : prends Hook0 et livre en 30 minutes.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-10-15',
   breadcrumb: 'Build vs Buy webhooks',
   tldr: {
     h2: 'En bref',
@@ -62,6 +62,7 @@ module.exports = {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
     items: [
+      { q: 'Construire ou acheter son infrastructure webhook : qu\'est-ce qui coûte le moins cher ?', a: 'Acheter, sauf si la livraison de webhooks est ton produit. L\'argent ne part pas dans la première version mais dans l\'entretien : relances et file des échecs, rotation des clés de signature, logs de livraison que ton support peut fouiller, et une astreinte pour un système que tes clients remarquent dès qu\'il cale. Côté achat, Hook0 Cloud démarre à 59 €/mois (Startup, jusqu\'à 30 000 events par jour), Pro coûte 190 €/mois jusqu\'à 100 000 events par jour, et auto-héberger le code open source (SSPL-1.0) ne coûte que ton infrastructure et ton temps d\'exploitation. Notre comparatif de coût webhook donne les prix publics des autres éditeurs de 100k à 10M events par mois.' },
       { q: 'Combien de temps pour construire des webhooks de zéro ?', a: 'Compte au minimum 3 sprints d\'ingénierie. Logique de relances, dead letter queues, signatures HMAC, monitoring de livraison, gestion des abonnés, health checking des endpoints. Et c\'est avant que ton premier client trouve un bug.' },
       { q: 'Quel est le coût caché de construire le tien ?', a: 'Maintenance de la queue de relances, gestion des cas limites (timeouts, redirections, erreurs de certificat), dashboards de monitoring, limitation de débit, stockage des logs, intégration des abonnés. Rien de tout ça ne s\'arrête après la v1. Ça s\'accumule.' },
       { q: 'En combien de temps puis-je intégrer Hook0 ?', a: 'Moins de 30 minutes. Un seul appel API pour déclencher un event. SDKs pour Python, Node.js et d\'autres si tu préfères.' },
@@ -75,6 +76,7 @@ module.exports = {
       { enSlug: 'hook0-vs-svix', label: 'Hook0 vs Svix' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'self-hosted-webhooks', label: 'Webhooks auto-hébergés' },
+      { enSlug: 'webhook-cost-comparison', label: 'Comparatif de coût webhook' },
     ],
   },
 };

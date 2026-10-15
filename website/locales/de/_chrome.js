@@ -32,7 +32,7 @@ module.exports = {
           items: [
             { enSlug: 'hook0-vs-svix',         icon: 'compare', label: 'Hook0 vs Svix',           description: 'Feature-für-Feature' },
             { enSlug: 'hook0-vs-hookdeck',     icon: 'compare', label: 'Hook0 vs Hookdeck',       description: 'EU-nativer Vergleich' },
-            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',         description: 'Verwaltet vs. selbst-gehostet' },
+            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',         description: 'Event-Kontingente vs Durchsatz-Tarife' },
             { enSlug: 'hook0-vs-requeue',      icon: 'compare', label: 'Hook0 vs Requeue',       description: 'Ausgehend vs. eingehendes Replay' },
             { enSlug: 'hook0-vs-ngrok',        icon: 'compare', label: 'Hook0 vs ngrok',        description: 'Lokaler Webhook-Tunnel' },
             { enSlug: 'hook0-vs-webhook-relay', icon: 'compare', label: 'Hook0 vs Webhook Relay', description: 'Senden vs. empfangen' },

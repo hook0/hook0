@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Build vs Buy Webhooks: Produktion in 30 Min | Hook0',
   pageDescription: 'Webhooks von Grund auf zu bauen kostet 3+ Sprints. Wiederholungen, Signaturen, Monitoring: nimm Hook0 und liefere in 30 Minuten.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-10-15',
   breadcrumb: 'Build vs Buy: Webhooks',
   tldr: {
     h2: 'Kurz gesagt',
@@ -62,6 +62,7 @@ module.exports = {
     eyebrow: 'FAQ',
     h2: 'Häufige Fragen',
     items: [
+      { q: 'Ist es günstiger, Webhook-Infrastruktur selbst zu bauen oder zu kaufen?', a: 'Kaufen, außer die Webhook-Zustellung ist dein Produkt. Das Geld fließt nicht in die erste Version, sondern in den Betrieb: Wiederholungen und Dead-Letter-Behandlung, Rotation der Signaturschlüssel, Zustellungslogs, die dein Support durchsuchen kann, und eine Rufbereitschaft für ein System, das deine Kunden bemerken, sobald es hängt. Beim Kauf startet Hook0 Cloud bei 59 €/Monat (Startup, bis zu 30.000 Events pro Tag), Pro kostet 190 €/Monat für bis zu 100.000 Events pro Tag, und das Selbsthosten des Open-Source-Codes (SSPL-1.0) kostet nur deine eigene Infrastruktur und Betriebszeit. Unser Webhook-Kostenvergleich (auf Englisch) listet die öffentlichen Preise anderer Anbieter von 100k bis 10M Events pro Monat.' },
       { q: 'Wie lange dauert es, Webhooks von Grund auf zu bauen?', a: 'Plan mindestens 3 Engineering-Sprints ein. Wiederholungslogik, Dead Letter Queues, HMAC-Signaturen, Zustell-Monitoring, Abonnenten-Verwaltung, Endpoint-Health-Checks. Und das ist, bevor dein erster Kunde einen Bug findet.' },
       { q: 'Was sind die versteckten Kosten beim Selbstbau?', a: 'Pflege der Wiederholungs-Queue, Handhabung von Grenzfällen (Timeouts, Weiterleitungen, Zertifikatsfehler), Monitoring-Dashboards, Rate-Limiting, Log-Speicherung, Abonnenten-Onboarding. Nichts davon hört nach v1 auf. Es summiert sich.' },
       { q: 'Wie schnell kann ich Hook0 integrieren?', a: 'Unter 30 Minuten. Ein API-Aufruf, um ein Event zu triggern. SDKs für Python, Node.js und weitere, falls du das bevorzugst.' },
@@ -75,6 +76,7 @@ module.exports = {
       { enSlug: 'hook0-vs-svix', label: 'Hook0 vs Svix' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'self-hosted-webhooks', label: 'Selbst-gehostete Webhooks' },
+      { enSlug: 'webhook-cost-comparison', label: 'Webhook-Kostenvergleich (auf Englisch)' },
     ],
   },
 };

@@ -3,6 +3,7 @@
 module.exports = {
   pageTitle: 'Build vs Buy Webhooks: Ship in 30 Min | Hook0',
   pageDescription: 'Building webhooks from scratch costs 3+ sprints. Retries, signatures, monitoring, dead letter queues: or use Hook0 and ship in 30 minutes.',
+  pageModified: '2026-10-15',
   breadcrumb: 'Build vs Buy webhooks',
   tldr: {
     h2: 'The Short Answer',
@@ -60,6 +61,7 @@ module.exports = {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
     items: [
+      { q: 'Is it cheaper to build or buy webhook infrastructure?', a: 'Buying is cheaper unless webhook delivery is your product. The first version is not where the money goes. The upkeep is: retry and dead-letter handling, signing-key rotation, delivery logs your support team can search, and an on-call rotation for a system your customers notice the minute it stalls. On the buy side, Hook0 Cloud starts at €59/month (Startup, up to 30,000 events a day), Pro is €190/month for up to 100,000 events a day, and self-hosting the SSPL-1.0 code costs only your own infrastructure and ops time. Our webhook cost comparison lists other vendors\' public prices from 100k to 10M events a month.' },
       { q: 'How long does it take to build webhooks from scratch?', a: 'Plan for 3+ engineering sprints minimum. Retry logic, dead letter queues, HMAC signatures, delivery monitoring, subscriber management, endpoint health checking. And that is before your first customer finds a bug.' },
       { q: 'What is the hidden cost of building your own?', a: 'Retry queue maintenance, edge case handling (timeouts, redirects, certificate errors), monitoring dashboards, rate limiting, log storage, subscriber onboarding. None of this stops after v1 ships. It compounds.' },
       { q: 'How quickly can I integrate Hook0?', a: 'Under 30 minutes. One API call to trigger an event. SDKs for Python, Node.js, and others if you prefer.' },
@@ -74,6 +76,7 @@ module.exports = {
       { enSlug: 'hook0-vs-svix', label: 'Hook0 vs Svix' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'self-hosted-webhooks', label: 'Self-Hosted Webhooks' },
+      { enSlug: 'webhook-cost-comparison', label: 'Webhook Cost Comparison' },
     ],
   },
 };
