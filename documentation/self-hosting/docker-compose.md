@@ -57,6 +57,14 @@ Hook0 sends a verification email before you can log in. In local development, em
 Clicking the verification link signs you in and lands you on the dashboard at
 `http://localhost:8001`. Later on, log in there directly.
 
+## Receiving Webhooks on Localhost
+
+This stack delivers straight to `localhost`, so a subscription can target a handler on your machine.
+If you only need to receive webhooks on a local port, from Hook0 Cloud or any other sender, you do
+not need the stack at all: [`hook0 listen 3000`](../reference/cli.mdx) prints a public URL and
+forwards each request to port 3000. See
+[how the Hook0 CLI compares to an ngrok tunnel for local webhook testing](https://www.hook0.com/hook0-vs-ngrok).
+
 ## Data Storage
 
 Docker volumes include:
