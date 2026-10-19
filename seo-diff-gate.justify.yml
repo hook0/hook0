@@ -1,0 +1,3 @@
+- page: documentation/comparisons/hookdeck-vs-hook0.mdx
+  exception: correction-factuelle
+  reason: Title, meta description and JSON-LD still called Hookdeck an inbound webhook proxy, contradicting the page body and hookdeck.com, which describe two products (Event Gateway inbound, Outpost outbound).
