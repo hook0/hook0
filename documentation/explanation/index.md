@@ -111,7 +111,7 @@ Webhooks that just work.
 - Straightforward API
 - Documentation with working examples
 - Multiple SDKs
-- Local development support
+- Local development support: `hook0 listen` forwards webhooks to a port on your machine ([Hook0 CLI vs ngrok for receiving webhooks on localhost](https://www.hook0.com/hook0-vs-ngrok))
 
 ## Mental models
 
