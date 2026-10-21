@@ -4,7 +4,7 @@ use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{
-    Compression, ExporterBuildError, LogExporter, MetricExporter, Protocol, SpanExporter,
+    ExporterBuildError, LogExporter, MetricExporter, Protocol, SpanExporter,
     WithExportConfig, WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
@@ -88,7 +88,6 @@ pub fn init(
         let mut builder = MetricExporter::builder()
             .with_http()
             .with_protocol(Protocol::HttpBinary)
-            .with_compression(Compression::Gzip)
             .with_endpoint(metrics_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
         if let Some(auth) = &auth_header {
@@ -116,7 +115,6 @@ pub fn init(
         let mut builder = SpanExporter::builder()
             .with_http()
             .with_protocol(Protocol::HttpBinary)
-            .with_compression(Compression::Gzip)
             .with_endpoint(traces_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
         if let Some(auth) = auth_header {
@@ -151,7 +149,7 @@ pub fn init(
 /// are being shipped is emitted later, by [`init`].
 ///
 /// The exporter mirrors the metrics and traces ones.
-/// Protocol, compression, `Resource` and `Authorization` header are shared.
+/// Protocol, `Resource` and `Authorization` header are shared.
 /// All three signals share correlation attributes in the backend.
 pub fn init_logs(
     version: &str,
@@ -165,7 +163,6 @@ pub fn init_logs(
     let mut builder = LogExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
-        .with_compression(Compression::Gzip)
         .with_endpoint(logs_endpoint.as_str())
         .with_timeout(Duration::from_secs(10));
     if let Some(auth) = otlp_authorization {
