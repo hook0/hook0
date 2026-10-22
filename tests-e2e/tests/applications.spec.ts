@@ -1,6 +1,6 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import { fromItsOwnAddress, loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Application management E2E tests for Hook0.
@@ -520,30 +520,11 @@ test.describe("Applications", () => {
     page,
     request,
   }) => {
-    const timestamp = Date.now();
-    const email = `test-apps-refresh-reload-${timestamp}@hook0.local`;
-    const password = `TestPassword123!${timestamp}`;
-
-    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-      headers: fromItsOwnAddress(),
-      data: { email, first_name: "Test", last_name: "User", password },
-    });
-    expect(registerResponse.status()).toBeLessThan(400);
-
-    const verificationResult = await verifyEmailViaMailpit(request, email);
-    const organizationId = verificationResult.organizationId;
-    expect(organizationId).toBeTruthy();
-
-    await page.goto("/login");
-    await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
-    });
-    await page.locator('[data-test="login-email-input"]').fill(email);
-    await page.locator('[data-test="login-password-input"]').fill(password);
-    await page.locator('[data-test="login-submit-button"]').click();
-    await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
-    });
+    const { organizationId, timestamp } = await loginAsNewUser(
+      page,
+      request,
+      "apps-refresh-reload"
+    );
 
     // Let the forced refresh reach the API (which rotates the token), then
     // hold its response so the page never sees the new pair.
@@ -592,7 +573,7 @@ function isRefreshResponse(response: { url(): string; request(): { method(): str
 /** Fill and submit the application form, and wait for the creation to succeed. */
 async function createApplicationViaUi(
   page: Page,
-  organizationId: string | null,
+  organizationId: string,
   name: string
 ): Promise<void> {
   await page.goto(`/organizations/${organizationId}/applications/new`);
