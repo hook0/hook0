@@ -209,15 +209,29 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-name-input"]').fill(originalName);
 
     // Submit and wait for API response to get the application ID
+    // Creating, renaming or deleting an application makes the frontend rotate
+    // the session (POST /auth/refresh) so the org/app selector picks up the
+    // change. The server revokes the old refresh token as soon as it answers,
+    // so leaving the page with page.goto() while that call is in flight drops
+    // the new token pair: the next forced refresh then sends a revoked token,
+    // gets a 403 and the app logs the user out. Each step below therefore
+    // waits for the refresh and for the redirect that follows it.
     const createResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    const createRefreshPromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/auth/refresh") && response.request().method() === "POST",
       { timeout: 15000 }
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
     const app = await createResponse.json();
+    expect((await createRefreshPromise).status()).toBeLessThan(400);
+    await expect(page).not.toHaveURL(/\/applications\/new/, { timeout: 10000 });
 
     // Navigate to settings
     await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
@@ -231,13 +245,10 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-name-input"]').clear();
     await page.locator('[data-test="application-name-input"]').fill(updatedName);
 
-    // Submit and wait for response.
-    // Only the status is read here, never the body: on success the page calls
-    // router.back(), and because this page was opened with page.goto() the
-    // previous history entry belongs to another document. That cross-document
-    // navigation can discard the response body before the test reads it, even
-    // from inside the waitForResponse predicate. Persistence is checked by
-    // reloading the settings page instead.
+    // Submit and wait for the PUT, then for the session refresh it triggers.
+    // Only the status of the PUT is read: on success the page calls
+    // router.back(), which can leave the document before its body is read.
+    // Persistence is checked by reloading the settings page instead.
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes(`/api/v1/applications/${app.application_id}`) &&
@@ -245,10 +256,17 @@ test.describe("Applications", () => {
       { timeout: 15000 }
     );
 
+    const updateRefreshPromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/auth/refresh") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+
     await page.locator('[data-test="application-submit-button"]').click();
 
     const response = await responsePromise;
     expect(response.status()).toBeLessThan(400);
+    expect((await updateRefreshPromise).status()).toBeLessThan(400);
 
     await expect(page).not.toHaveURL(/\/settings$/, { timeout: 10000 });
 
