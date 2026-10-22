@@ -4,8 +4,10 @@ use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{
-    ExporterBuildError, LogExporter, MetricExporter, Protocol, SpanExporter,
-    WithExportConfig, WithHttpConfig,
+    Compression, ExporterBuildError, LogExporter, MetricExporter, OTEL_EXPORTER_OTLP_COMPRESSION,
+    OTEL_EXPORTER_OTLP_LOGS_COMPRESSION, OTEL_EXPORTER_OTLP_METRICS_COMPRESSION,
+    OTEL_EXPORTER_OTLP_TRACES_COMPRESSION, Protocol, SpanExporter, WithExportConfig,
+    WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::logs::SdkLoggerProvider;
@@ -62,6 +64,15 @@ fn resource(version: &str) -> Resource {
         .build()
 }
 
+/// zstd by default, unless the standard `OTEL_EXPORTER_OTLP_{SIGNAL}_COMPRESSION` or
+/// `OTEL_EXPORTER_OTLP_COMPRESSION` env var is set
+fn default_compression(signal_env_var: &str) -> Option<Compression> {
+    let configured = [signal_env_var, OTEL_EXPORTER_OTLP_COMPRESSION]
+        .into_iter()
+        .any(|name| std::env::var_os(name).is_some());
+    (!configured).then_some(Compression::Zstd)
+}
+
 pub fn init(
     version: &str,
     otlp_authorization: &Option<String>,
@@ -90,6 +101,9 @@ pub fn init(
             .with_protocol(Protocol::HttpBinary)
             .with_endpoint(metrics_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
+        if let Some(compression) = default_compression(OTEL_EXPORTER_OTLP_METRICS_COMPRESSION) {
+            builder = builder.with_compression(compression);
+        }
         if let Some(auth) = &auth_header {
             builder = builder.with_headers(auth.clone());
         }
@@ -117,6 +131,9 @@ pub fn init(
             .with_protocol(Protocol::HttpBinary)
             .with_endpoint(traces_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
+        if let Some(compression) = default_compression(OTEL_EXPORTER_OTLP_TRACES_COMPRESSION) {
+            builder = builder.with_compression(compression);
+        }
         if let Some(auth) = auth_header {
             builder = builder.with_headers(auth);
         }
@@ -165,6 +182,9 @@ pub fn init_logs(
         .with_protocol(Protocol::HttpBinary)
         .with_endpoint(logs_endpoint.as_str())
         .with_timeout(Duration::from_secs(10));
+    if let Some(compression) = default_compression(OTEL_EXPORTER_OTLP_LOGS_COMPRESSION) {
+        builder = builder.with_compression(compression);
+    }
     if let Some(auth) = otlp_authorization {
         builder = builder.with_headers(HashMap::from_iter([(
             "Authorization".to_owned(),
