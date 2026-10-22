@@ -110,9 +110,16 @@ fn resource(config: &Config, version: &str) -> Resource {
 /// zstd by default, unless the standard `OTEL_EXPORTER_OTLP_{SIGNAL}_COMPRESSION` or
 /// `OTEL_EXPORTER_OTLP_COMPRESSION` env var is set
 fn default_compression(signal_env_var: &str) -> Option<Compression> {
+    pick_default_compression(signal_env_var, |name| std::env::var_os(name).is_some())
+}
+
+fn pick_default_compression(
+    signal_env_var: &str,
+    is_set: impl Fn(&str) -> bool,
+) -> Option<Compression> {
     let configured = [signal_env_var, OTEL_EXPORTER_OTLP_COMPRESSION]
         .into_iter()
-        .any(|name| std::env::var_os(name).is_some());
+        .any(is_set);
     (!configured).then_some(Compression::Zstd)
 }
 
@@ -880,6 +887,42 @@ mod tests {
 
         assert!(Uuid::parse_str(&first).is_ok());
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn compression_defaults_to_zstd_when_no_env_var_is_set() {
+        assert_eq!(
+            pick_default_compression(OTEL_EXPORTER_OTLP_METRICS_COMPRESSION, |_| false),
+            Some(Compression::Zstd)
+        );
+    }
+
+    #[test]
+    fn compression_env_vars_override_the_zstd_default() {
+        // Leaving compression unset on the builder hands resolution to the exporter,
+        // which reads these env vars (e.g. `gzip` for Prometheus' OTLP receiver).
+        for configured in [
+            OTEL_EXPORTER_OTLP_METRICS_COMPRESSION,
+            OTEL_EXPORTER_OTLP_COMPRESSION,
+        ] {
+            assert_eq!(
+                pick_default_compression(OTEL_EXPORTER_OTLP_METRICS_COMPRESSION, |name| {
+                    name == configured
+                }),
+                None,
+                "{configured} should override the zstd default"
+            );
+        }
+    }
+
+    #[test]
+    fn another_signals_compression_env_var_keeps_the_zstd_default() {
+        assert_eq!(
+            pick_default_compression(OTEL_EXPORTER_OTLP_TRACES_COMPRESSION, |name| {
+                name == OTEL_EXPORTER_OTLP_METRICS_COMPRESSION
+            }),
+            Some(Compression::Zstd)
+        );
     }
 
     #[test]
