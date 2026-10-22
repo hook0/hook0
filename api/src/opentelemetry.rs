@@ -4,8 +4,10 @@ use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{
-    Compression, ExporterBuildError, LogExporter, MetricExporter, Protocol, SpanExporter,
-    WithExportConfig, WithHttpConfig,
+    Compression, ExporterBuildError, LogExporter, MetricExporter, OTEL_EXPORTER_OTLP_COMPRESSION,
+    OTEL_EXPORTER_OTLP_LOGS_COMPRESSION, OTEL_EXPORTER_OTLP_METRICS_COMPRESSION,
+    OTEL_EXPORTER_OTLP_TRACES_COMPRESSION, Protocol, SpanExporter, WithExportConfig,
+    WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::logs::SdkLoggerProvider;
@@ -62,6 +64,22 @@ fn resource(version: &str) -> Resource {
         .build()
 }
 
+/// zstd by default, unless the standard `OTEL_EXPORTER_OTLP_{SIGNAL}_COMPRESSION` or
+/// `OTEL_EXPORTER_OTLP_COMPRESSION` env var is set
+fn default_compression(signal_env_var: &str) -> Option<Compression> {
+    pick_default_compression(signal_env_var, |name| std::env::var_os(name).is_some())
+}
+
+fn pick_default_compression(
+    signal_env_var: &str,
+    is_set: impl Fn(&str) -> bool,
+) -> Option<Compression> {
+    let configured = [signal_env_var, OTEL_EXPORTER_OTLP_COMPRESSION]
+        .into_iter()
+        .any(is_set);
+    (!configured).then_some(Compression::Zstd)
+}
+
 pub fn init(
     version: &str,
     otlp_authorization: &Option<String>,
@@ -88,9 +106,11 @@ pub fn init(
         let mut builder = MetricExporter::builder()
             .with_http()
             .with_protocol(Protocol::HttpBinary)
-            .with_compression(Compression::Zstd)
             .with_endpoint(metrics_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
+        if let Some(compression) = default_compression(OTEL_EXPORTER_OTLP_METRICS_COMPRESSION) {
+            builder = builder.with_compression(compression);
+        }
         if let Some(auth) = &auth_header {
             builder = builder.with_headers(auth.clone());
         }
@@ -116,9 +136,11 @@ pub fn init(
         let mut builder = SpanExporter::builder()
             .with_http()
             .with_protocol(Protocol::HttpBinary)
-            .with_compression(Compression::Zstd)
             .with_endpoint(traces_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
+        if let Some(compression) = default_compression(OTEL_EXPORTER_OTLP_TRACES_COMPRESSION) {
+            builder = builder.with_compression(compression);
+        }
         if let Some(auth) = auth_header {
             builder = builder.with_headers(auth);
         }
@@ -150,7 +172,7 @@ pub fn init(
 /// No subscriber exists yet while this runs, so the startup line confirming where logs
 /// are being shipped is emitted later, by [`init`].
 ///
-/// The exporter mirrors the metrics/traces ones (HTTP binary, zstd, shared
+/// The exporter mirrors the metrics/traces ones (HTTP binary, shared
 /// `Resource` and `Authorization` header) so all three signals land in the configured
 /// OTLP backend with the same correlation attributes.
 pub fn init_logs(
@@ -165,9 +187,11 @@ pub fn init_logs(
     let mut builder = LogExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
-        .with_compression(Compression::Zstd)
         .with_endpoint(logs_endpoint.as_str())
         .with_timeout(Duration::from_secs(10));
+    if let Some(compression) = default_compression(OTEL_EXPORTER_OTLP_LOGS_COMPRESSION) {
+        builder = builder.with_compression(compression);
+    }
     if let Some(auth) = otlp_authorization {
         builder = builder.with_headers(HashMap::from_iter([(
             "Authorization".to_owned(),
@@ -690,6 +714,42 @@ mod tests {
 
         assert!(Uuid::parse_str(&first).is_ok());
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn compression_defaults_to_zstd_when_no_env_var_is_set() {
+        assert_eq!(
+            pick_default_compression(OTEL_EXPORTER_OTLP_METRICS_COMPRESSION, |_| false),
+            Some(Compression::Zstd)
+        );
+    }
+
+    #[test]
+    fn compression_env_vars_override_the_zstd_default() {
+        // Leaving compression unset on the builder hands resolution to the exporter,
+        // which reads these env vars (e.g. `gzip` for Prometheus' OTLP receiver).
+        for configured in [
+            OTEL_EXPORTER_OTLP_METRICS_COMPRESSION,
+            OTEL_EXPORTER_OTLP_COMPRESSION,
+        ] {
+            assert_eq!(
+                pick_default_compression(OTEL_EXPORTER_OTLP_METRICS_COMPRESSION, |name| {
+                    name == configured
+                }),
+                None,
+                "{configured} should override the zstd default"
+            );
+        }
+    }
+
+    #[test]
+    fn another_signals_compression_env_var_keeps_the_zstd_default() {
+        assert_eq!(
+            pick_default_compression(OTEL_EXPORTER_OTLP_TRACES_COMPRESSION, |name| {
+                name == OTEL_EXPORTER_OTLP_METRICS_COMPRESSION
+            }),
+            Some(Compression::Zstd)
+        );
     }
 
     #[test]
