@@ -103,6 +103,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function removeFromStorage(): void {
     window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+    // A marker left by a page that went away mid-refresh would otherwise keep
+    // a copy of the refresh token in storage after the session is gone.
+    window.localStorage.removeItem(PENDING_REFRESH_STORAGE_KEY);
   }
 
   // Token refresh
