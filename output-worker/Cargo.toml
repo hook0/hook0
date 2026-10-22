@@ -15,7 +15,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.104"
-aws-sdk-s3 = { version = "1.152.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
+aws-sdk-s3 = { version = "1.155.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.7", features = ["derive", "env", "cargo", "wrap_help"] }
@@ -34,7 +34,7 @@ opentelemetry-otlp = { version = "0.33.1", default-features = false, features = 
 opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio"] }
 opentelemetry-appender-tracing = "0.33.1"
 papaya = "0.2.5"
-pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.9.1", default-features = false, features = ["tokio-rustls-runtime"] }
 rand = "0.10"
 reqwest = { version = "0.13.5", features = ["hickory-dns", "json"] }
 rustls = { version = "0.23.46", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
@@ -44,7 +44,7 @@ sha2 = "0.11.1"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.21"
-tokio = { version = "1.53.3", features = ["rt-multi-thread", "macros", "time", "signal"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.20", features = ["rt"] }
 url = "2.5.8"
 uuid = { version = "1.28.0", features = ["v4", "v7"] }

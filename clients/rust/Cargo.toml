@@ -20,7 +20,7 @@ serde = { version = "1.0.229", features = ["derive"], optional = true }
 serde_json = { version = "1.0.154", optional = true }
 sha2 = { version = "0.11.1", optional = true }
 thiserror = "2.0.21"
-tokio = { version = "1.53.3", features = ["time"], optional = true }
+tokio = { version = "1.54.1", features = ["time"], optional = true }
 url = { version = "2.5.8", features = ["serde"], optional = true }
 uuid = { version = "1.28.0", features = ["serde", "v7"], optional = true }
 

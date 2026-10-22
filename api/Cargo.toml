@@ -15,12 +15,12 @@ publish = false
 
 [dependencies]
 actix-cors = "0.7.2"
-actix-files = "0.7.0"
+actix-files = "0.7.2"
 actix-governor = "0.10.0"
 actix-web = "4.17.0"
 anyhow = "1.0.104"
 argon2 = "0.6.0"
-aws-sdk-s3 = { version = "1.152.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
+aws-sdk-s3 = { version = "1.155.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 base64 = "0.23.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.45", features = ["serde"] }
@@ -30,7 +30,7 @@ futures-util = "0.3.34"
 hook0-client = { path = "../clients/rust", version = "3.0.0", default-features = false, features = ["producer"] }
 hook0-protobuf = { path = "../protobuf", version = "0.1.0" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
-html2text = "0.17.3"
+html2text = "0.17.4"
 http-api-problem = { version = "0.60.0", features = ["actix-web"] }
 http-serde = "2.1.1"
 humantime = "2.4.0"
@@ -45,7 +45,7 @@ opentelemetry-otlp = { version = "0.33.1", default-features = false, features = 
 opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio", "spec_unstable_metrics_views"] }
 opentelemetry-appender-tracing = "0.33.1"
 paperclip = { version = "0.9.7", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.9.1", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.13.1"
 reqwest = { version = "0.13.5", features = ["hickory-dns", "form", "json"] }
 rustls = { version = "0.23.46", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
@@ -56,7 +56,7 @@ sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio
 strum = { version = "0.28.0", features = ["derive"] }
 subtle = "2.6.1"
 thiserror = "2.0.21"
-tokio = { version = "1.53.3" }
+tokio = { version = "1.54.1" }
 url = "2.5.8"
 uuid = { version = "1.28.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.21.0", features = ["derive"] }
