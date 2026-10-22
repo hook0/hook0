@@ -4048,11 +4048,13 @@ mod refresh_rotation_tests {
 
     /// The deadline stored for a token, and the database clock it compares to.
     async fn deadline(pool: &PgPool, token_id: Uuid) -> (DateTime<Utc>, DateTime<Utc>) {
-        sqlx::query_as("SELECT expired_at, statement_timestamp() FROM iam.token WHERE token__id = $1")
-            .bind(token_id)
-            .fetch_one(pool)
-            .await
-            .expect("read token deadline")
+        sqlx::query_as(
+            "SELECT expired_at, statement_timestamp() FROM iam.token WHERE token__id = $1",
+        )
+        .bind(token_id)
+        .fetch_one(pool)
+        .await
+        .expect("read token deadline")
     }
 
     /// The reported bug: the page goes away while the refresh is in flight, so
