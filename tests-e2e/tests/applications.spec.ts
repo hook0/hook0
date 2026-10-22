@@ -231,32 +231,33 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-name-input"]').clear();
     await page.locator('[data-test="application-name-input"]').fill(updatedName);
 
-    // Submit and wait for response
-    // Capture response body inside the predicate to avoid race condition with navigation
-    let responseBody: { name?: string } = {};
+    // Submit and wait for response.
+    // Only the status is read here, never the body: on success the page calls
+    // router.back(), and because this page was opened with page.goto() the
+    // previous history entry belongs to another document. That cross-document
+    // navigation can discard the response body before the test reads it, even
+    // from inside the waitForResponse predicate. Persistence is checked by
+    // reloading the settings page instead.
     const responsePromise = page.waitForResponse(
-      async (response) => {
-        if (
-          response.url().includes(`/api/v1/applications/${app.application_id}`) &&
-          response.request().method() === "PUT"
-        ) {
-          if (response.status() < 400) {
-            responseBody = await response.json();
-          }
-          return true;
-        }
-        return false;
-      },
+      (response) =>
+        response.url().includes(`/api/v1/applications/${app.application_id}`) &&
+        response.request().method() === "PUT",
       { timeout: 15000 }
     );
 
     await page.locator('[data-test="application-submit-button"]').click();
 
     const response = await responsePromise;
-
-    // Verify
     expect(response.status()).toBeLessThan(400);
-    expect(responseBody.name).toBe(updatedName);
+
+    await expect(page).not.toHaveURL(/\/settings$/, { timeout: 10000 });
+
+    // Verify the new name persisted
+    await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
+    await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-test="application-name-input"]')).toHaveValue(updatedName);
   });
 
   test("should show disabled submit when name is empty", async ({ page, request }) => {
