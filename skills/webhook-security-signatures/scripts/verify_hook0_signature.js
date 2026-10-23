@@ -87,6 +87,11 @@ function check(body, headers, signatureHeader, secret, now, tolerance = DEFAULT_
     expected = codes.v0;
   }
 
+  // An empty secret (an unset variable, a missing setting) is one anyone can sign with, so a
+  // code that matches it proves nothing about who sent the delivery.
+  if (!secret) {
+    throw new Refused("code_mismatch", "no subscription secret was given");
+  }
   const computed = crypto
     .createHmac("sha256", secret)
     .update(prefix)
@@ -139,9 +144,10 @@ const SELFTEST_VECTORS = [
     "t=1800000001,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe"],
   ["a moment older than the tolerance", "refused", "outside_tolerance",
     "t=1799999000,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe"],
-].map(([name, verdict, refusal, signature]) => ({
-  name, verdict, refusal, signature,
-  secret: "a-subscription-secret",
+  ["an empty secret verifies nothing", "refused", "code_mismatch",
+    "t=1800000000,h=x-event-id x-delivery-id,v1=5888ae5269a0f9f2cfcffe0f5bbe2760c054c57550578cdc475024fbd74434ff", ""],
+].map(([name, verdict, refusal, signature, secret = "a-subscription-secret"]) => ({
+  name, verdict, refusal, signature, secret,
   payload: '{"event":"user.created"}',
   headers: [["x-event-id", "evt-1"], ["x-delivery-id", "dlv-1"], ["content-type", "application/json"]],
   current_time: 1800000000,

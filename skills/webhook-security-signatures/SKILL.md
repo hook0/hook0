@@ -112,10 +112,11 @@ way. Details: https://documentation.hook0.com/tutorials/webhook-authentication
 
 ## Validate it works
 
-`--selftest` runs six vectors taken from the conformance corpus every Hook0 SDK
+`--selftest` runs seven vectors taken from the conformance corpus every Hook0 SDK
 is held to (codes computed outside any implementation): valid `v1` and `v0`
 signatures are accepted; a reordered `h`, a missing covered header, a replayed
-code under another timestamp and a stale timestamp are each refused with their
+code under another timestamp, a stale timestamp and a code computed with an
+empty secret (an unset variable must never verify anything) are each refused with their
 reason. Inside the Hook0 repository, `--conformance clients/conformance/signature.json`
 runs the full corpus. Then point a real Hook0 subscription at your endpoint and
 confirm live deliveries verify and a hand-edited body is refused.

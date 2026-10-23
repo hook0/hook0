@@ -611,6 +611,28 @@ fn text(
     subject: &str,
     limits: &CorpusLimits,
 ) -> Result<String, ConformanceError> {
+    let read = possibly_empty_text(document, holder, subject, limits)?;
+    if read.trim().is_empty() {
+        return Err(ConformanceError::Empty {
+            document: document.to_owned(),
+            subject: subject.to_owned(),
+        });
+    }
+
+    Ok(read)
+}
+
+/// One string of a document that may be empty, bounded by what the corpus may carry.
+///
+/// Only a vector's secret reads through here. An empty one is not a slip in the corpus but a
+/// case the contract pins: a receiver whose secret resolved to nothing must refuse, and the
+/// vectors that say so have to be able to carry that nothing.
+fn possibly_empty_text(
+    document: &str,
+    holder: &Value,
+    subject: &str,
+    limits: &CorpusLimits,
+) -> Result<String, ConformanceError> {
     let read = holder.get(subject).and_then(Value::as_str).ok_or_else(|| {
         ConformanceError::Unreadable {
             document: document.to_owned(),
@@ -625,12 +647,6 @@ fn text(
             subject: subject.to_owned(),
             size: read.len(),
             limit: limits.max_text_bytes,
-        });
-    }
-    if read.trim().is_empty() {
-        return Err(ConformanceError::Empty {
-            document: document.to_owned(),
-            subject: subject.to_owned(),
         });
     }
 
@@ -952,7 +968,7 @@ fn vectors(
         };
 
         read.push(Vector {
-            secret: text(document, entry, "secret", limits)?,
+            secret: possibly_empty_text(document, entry, "secret", limits)?,
             payload: text(document, entry, "payload", limits)?,
             headers: headers(document, entry, &name, limits)?,
             signature: text(document, entry, "signature", limits)?,

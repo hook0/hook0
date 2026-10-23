@@ -101,6 +101,10 @@ def check(body, headers, signature_header, secret, now=None,
         message = f"{timestamp}.".encode() + body
         expected = codes["v0"]
 
+    # An empty secret (an unset variable, a missing setting) is one anyone can sign with, so a
+    # code that matches it proves nothing about who sent the delivery.
+    if not secret:
+        raise Refused("code_mismatch", "no subscription secret was given")
     computed = hmac.new(secret.encode(), message, hashlib.sha256).digest()
     if not hmac.compare_digest(computed, expected):
         raise Refused("code_mismatch", "the code does not match this body and these headers")
@@ -147,10 +151,13 @@ SELFTEST_VECTORS = [
      "signature": "t=1800000001,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe"},
     {"name": "a moment older than the tolerance", "verdict": "refused", "refusal": "outside_tolerance",
      "signature": "t=1799999000,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe"},
+    {"name": "an empty secret verifies nothing", "verdict": "refused", "refusal": "code_mismatch", "secret": "",
+     "signature": "t=1800000000,h=x-event-id x-delivery-id,v1=5888ae5269a0f9f2cfcffe0f5bbe2760c054c57550578cdc475024fbd74434ff"},
 ]
 for _v in SELFTEST_VECTORS:
-    _v.update(secret="a-subscription-secret", payload='{"event":"user.created"}', headers=_HEADERS,
-              current_time=1800000000, tolerance_seconds=300)
+    for _key, _value in dict(secret="a-subscription-secret", payload='{"event":"user.created"}', headers=_HEADERS,
+                             current_time=1800000000, tolerance_seconds=300).items():
+        _v.setdefault(_key, _value)
 
 
 if __name__ == "__main__":

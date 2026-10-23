@@ -154,7 +154,14 @@ func ParseSignature(signature string) (*Signature, error) {
 // The stronger scheme wins when both are offered, and the comparison is made in constant time: one
 // that gave up at the first differing byte would say, by how long it took, how much of a guess was
 // right.
+//
+// An empty secret never verifies. A secret that resolved to nothing (an unset variable, a missing
+// setting) is one anyone can key the same code with, so a delivery that matches it proves nothing
+// about who sent it.
 func (s *Signature) Verify(payload []byte, coveredValues []string, subscriptionSecret string) bool {
+	if subscriptionSecret == "" {
+		return false
+	}
 	code := hmac.New(sha256.New, []byte(subscriptionSecret))
 	code.Write([]byte(strconv.FormatInt(s.Timestamp, 10)))
 	code.Write([]byte(messageSeparator))

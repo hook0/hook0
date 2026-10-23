@@ -102,12 +102,20 @@ impl Signature {
     /// is returned instead, as the same [`Hook0ClientError::InvalidSignature`] a signature that does
     /// not verify answers with: a secret this client cannot key an HMAC with is one it cannot
     /// establish anything about the webhook under, so it establishes nothing.
+    ///
+    /// An empty secret never verifies. A secret that resolved to nothing (an unset variable, a
+    /// missing setting) is one anyone can key the same code with, so a delivery that matches it
+    /// proves nothing about who sent it.
     pub fn verify(
         &self,
         payload: &[u8],
         ordered_header_values: &[String],
         secret: &str,
     ) -> Result<bool, Hook0ClientError> {
+        if secret.is_empty() {
+            return Ok(false);
+        }
+
         let timestamp_str = self.timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
