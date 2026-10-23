@@ -1,6 +1,6 @@
 ---
 title: "Go webhook SDK: hook0 client"
-description: "Send Hook0 events and verify webhook signatures from Go. Standard library only, context on every call, retries and payload bounds built in. Go 1.24 or later."
+description: "Send Hook0 events and verify webhook signatures from Go. Standard library only, context on every call, retries and payload bounds built in. Go 1.25.13 or later."
 keywords: [Go webhook SDK, Hook0 Go client, verify webhook signature Go, send webhook event Go, golang webhook library, HMAC signature Go]
 sdkTarget: go
 ---
@@ -17,7 +17,15 @@ The module declares no requirements at all. Everything it does it does with the 
 go get github.com/hook0/hook0-go/v3
 ```
 
-Go 1.24 or later is required. The package is named `hook0` while the module path ends in the major it is at, so import it under an alias:
+If that answers `no matching versions`, the 3.0.0 release this page describes has not reached the Go module proxy yet. The latest published release is then v2, which installs with:
+
+```bash
+go get github.com/hook0/hook0-go/v2@v2.0.3
+```
+
+Import it as `github.com/hook0/hook0-go/v2`. Every function, type and error on this page exists under that path with the same signature, so the examples below work once their import says `/v2`.
+
+Go 1.25.13 or later is required, which is the floor `go.mod` declares. The package is named `hook0` while the module path ends in the major it is at, so import it under an alias:
 
 ```go example=import
 import hook0 "github.com/hook0/hook0-go/v3"
