@@ -1,0 +1,79 @@
+# Agent Skills: checked here, published as a read-only GitHub mirror whose root is this directory,
+# the way each SDK under `clients/` is. The mirror is a derived artefact: nothing is merged back from
+# it, and nothing here writes to GitLab.
+
+skills.check:
+  stage: test
+  dependencies: []
+  needs: []
+  # Node for the JavaScript verifier; the Debian image also carries the python3 the Python verifier,
+  # the manifest check and the shell scripts' JSON building run on.
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
+  # Every check below is local and finishes in seconds; past this the job is stuck, not slow.
+  timeout: 10m
+  rules:
+    - changes:
+        - skills/**/*
+        - ci/check-skills.py
+        # The verifiers are held to the corpus every SDK reads, so a verdict edited there has to face
+        # them as well.
+        - clients/conformance/signature.json
+        - .gitlab-ci.yml
+  script:
+    - python3 ci/check-skills.py skills
+    - for script in skills/*/scripts/*.sh; do bash -n "$script"; done
+    # The embedded vectors are what a user of the mirror can run; the full corpus is what proves the
+    # verifiers agree with every SDK.
+    - python3 skills/webhook-security-signatures/scripts/verify_hook0_signature.py --selftest
+    - python3 skills/webhook-security-signatures/scripts/verify_hook0_signature.py --conformance clients/conformance/signature.json
+    - node skills/webhook-security-signatures/scripts/verify_hook0_signature.js --selftest
+    - node skills/webhook-security-signatures/scripts/verify_hook0_signature.js --conformance clients/conformance/signature.json
+
+skills.mirror:
+  stage: release
+  dependencies: []
+  needs:
+    - job: skills.check
+      artifacts: false
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
+  timeout: 15m
+  # The push writes to another repository, so a run that timed out mid-push is not retried blindly;
+  # only a runner that never started the script is.
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+  rules:
+    # The default branch only: what the mirror shows is what was merged. It also waits for the
+    # target repository to be named, so the job does not exist until that repository has been
+    # created and `GITHUB_MIRROR_TOKEN` may write to it.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $SKILLS_MIRROR_REPOSITORY
+      changes:
+        - skills/**/*
+        - .gitlab-ci.yml
+  variables:
+    # `git subtree split` reads every commit that ever touched the prefix; a shallow clone would
+    # mirror a truncated history.
+    GIT_DEPTH: "0"
+    MIRROR_PUSH_TIMEOUT_SECONDS: "300"
+    MIRROR_BRANCH: main
+    MIRROR_SPLIT_REF: refs/heads/mirror-split
+  before_script:
+    - apk add --no-cache git git-subtree
+    - git config user.email "ci@hook0.com"
+    - git config user.name "Hook0 CI"
+    # Same reason as `sdk-release.mirrors`: the runner's Git LFS pre-push hook finds no git-lfs in
+    # this image and would fail the push, and nothing under `skills` is LFS-tracked.
+    - git config core.hooksPath /dev/null
+  script:
+    - |
+      set -eu
+      git update-ref -d "$MIRROR_SPLIT_REF" || true
+      git subtree split --prefix=skills --branch "${MIRROR_SPLIT_REF#refs/heads/}"
+      head="$(git rev-parse "$MIRROR_SPLIT_REF")"
+      remote="https://oauth2:${GITHUB_MIRROR_TOKEN}@github.com/${SKILLS_MIRROR_REPOSITORY}.git"
+      # Forced for the reason the SDK mirrors are: the branch overwritten is one this job derived on
+      # its previous run, in a repository nobody commits to by hand, and every commit it held is
+      # re-derivable from the monorepo. GitLab, which holds the work, is never pushed to from here.
+      timeout "$MIRROR_PUSH_TIMEOUT_SECONDS" git push --force "$remote" "$head:refs/heads/$MIRROR_BRANCH"
+      echo "=== skills mirrored to $SKILLS_MIRROR_REPOSITORY at $head ==="

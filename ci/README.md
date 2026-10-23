@@ -16,7 +16,8 @@ The manual release jobs (`release:patch`, `release:minor`, `release:major`) and 
 | `DOCKERHUB_TOKEN` | Docker Hub access token | Container release |
 | `GITHUB_USERNAME` | GitHub username for GHCR | Container release |
 | `GITHUB_TOKEN` | GitHub PAT with `packages:write` scope | Container + GitHub release |
-| `GITHUB_MIRROR_TOKEN` | GitHub PAT with `contents:write` on every `hook0/hook0-<language>` mirror. Held apart from `GITHUB_TOKEN` because it may write to repositories rather than to a package registry, and because the mirrors are the only thing it may write to. | SDK release (mirrors) |
+| `GITHUB_MIRROR_TOKEN` | GitHub PAT with `contents:write` on every `hook0/hook0-<language>` mirror and on the skills mirror. Held apart from `GITHUB_TOKEN` because it may write to repositories rather than to a package registry, and because the mirrors are the only thing it may write to. | SDK release (mirrors) |
+| `SKILLS_MIRROR_REPOSITORY` | `owner/name` of the GitHub repository `skills/` is mirrored to. Not a secret. Until it is set, `skills.mirror` does not run, so the repository has to exist and `GITHUB_MIRROR_TOKEN` has to reach it first. | Skills mirror |
 | `PACKAGIST_USERNAME` | Packagist account name, passed as a query parameter to the update API. | SDK release (Packagist) |
 | `PACKAGIST_API_TOKEN` | Packagist API token of that account. It only asks Packagist to re-read a repository it already knows, so registering `hook0/hook0-php` once by hand is what has to happen before the first release. | SDK release (Packagist) |
 
