@@ -746,7 +746,7 @@ pub async fn edit_role(
     // `revoke_user_session_tokens`).
     let mut tx = state.db.begin().await?;
 
-    query!(
+    let updated = query!(
         "
             UPDATE iam.user__organization
             SET role = $1
@@ -759,6 +759,14 @@ pub async fn edit_role(
     )
     .execute(&mut *tx)
     .await?;
+
+    // The revocation below spans every organization of the target, so it is only
+    // legitimate for an actual member of this one: without this check, an editor of
+    // any organization could log out an arbitrary user by naming their id. Returning
+    // drops the transaction, which rolls it back.
+    if updated.rows_affected() == 0 {
+        return Err(Hook0Problem::NotFound);
+    }
 
     // A user access token carries the role frozen at emission, so the new role is
     // not honored until the old token dies. Force its immediate re-derivation.
@@ -1220,6 +1228,80 @@ mod role_revocation_tests {
             after.status(),
             actix_web::http::StatusCode::FORBIDDEN,
             "the pre-demotion token must be rejected after the role change"
+        );
+    }
+
+    /// `edit_role` revokes every session of the target, across all their
+    /// organizations. Naming a user who is not a member of the caller's
+    /// organization must therefore be refused and leave that user's sessions alone,
+    /// or any editor could log out anyone whose id they know.
+    #[sqlx::test]
+    async fn edit_role_on_a_non_member_is_refused_and_revokes_nothing(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let admin = seed_user(&pool).await;
+        let org = seed_org(&pool, admin).await;
+        seed_membership(&pool, admin, org, "editor").await;
+        let admin_token = issue_user_token(&pool, &private_key, admin, org, "editor").await;
+
+        // The outsider belongs to another organization only.
+        let outsider = seed_user(&pool).await;
+        let other_org = seed_org(&pool, outsider).await;
+        seed_membership(&pool, outsider, other_org, "editor").await;
+        let outsider_token =
+            issue_user_token(&pool, &private_key, outsider, other_org, "editor").await;
+
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/organizations")
+                        .wrap(biscuit_auth)
+                        .route("/{organization_id}/invite", web::post().to(super::invite))
+                        .route(
+                            "/{organization_id}/edit_role",
+                            web::post().to(super::edit_role),
+                        ),
+                ),
+            ),
+        )
+        .await;
+
+        let edit = test::TestRequest::post()
+            .uri(&format!("/api/v1/organizations/{org}/edit_role"))
+            .insert_header(("Authorization", format!("Bearer {admin_token}")))
+            .set_json(serde_json::json!({"user_id": outsider, "role": "viewer"}))
+            .to_request();
+        let edit_res = test::call_service(&app, edit).await;
+        assert_eq!(
+            edit_res.status(),
+            actix_web::http::StatusCode::NOT_FOUND,
+            "editing the role of a non-member must be refused"
+        );
+
+        // The outsider's token is still accepted on their own organization.
+        let invitee = seed_user(&pool).await;
+        let invite = test::TestRequest::post()
+            .uri(&format!("/api/v1/organizations/{other_org}/invite"))
+            .insert_header(("Authorization", format!("Bearer {outsider_token}")))
+            .set_json(serde_json::json!({
+                "email": format!("e2e-{invitee}@example.com"),
+                "role": "viewer",
+            }))
+            .to_request();
+        let invite_res = test::call_service(&app, invite).await;
+        assert!(
+            invite_res.status().is_success(),
+            "the outsider's session must survive a refused edit_role, got {}",
+            invite_res.status()
         );
     }
 }
