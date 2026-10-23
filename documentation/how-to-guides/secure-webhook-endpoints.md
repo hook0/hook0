@@ -765,6 +765,7 @@ app.set('trust proxy', 1);
 // Hook0 signature verification (v1 format)
 // See tutorials/webhook-authentication.md for detailed explanation
 function verifyHook0Signature(payload, signature, headers, secret) {
+  if (!secret) return false; // an unset secret is one anyone can sign with
   const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')));
   const headerNames = parts.h ? parts.h.split(' ') : [];
   const headerValues = headerNames.map(h => headers[h] || '').join('.');

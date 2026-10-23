@@ -117,6 +117,8 @@ import hmac
 import hashlib
 
 def verify_hook0_signature(raw_body: bytes, headers, secret: str, signature_header: str) -> bool:
+    if not secret:  # an unset secret is one anyone can sign with
+        return False
     parts = dict(p.split("=", 1) for p in signature_header.split(","))
     names = parts.get("h", "")
     if names:

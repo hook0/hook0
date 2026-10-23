@@ -115,6 +115,8 @@ app.use('/webhooks', express.json({
 }));
 
 function verifyHook0Signature(rawBody, signature, headers, secret) {
+  // An unset secret is one anyone can sign with: never let it verify anything
+  if (!secret) return false;
   const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')));
   const headerNames = parts.h ? parts.h.split(' ') : [];
   const headerValues = headerNames.map(h => headers[h] || '').join('.');
@@ -182,6 +184,9 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 def verify_hook0_signature(body: bytes, signature: str, headers: dict, secret: str) -> bool:
+    # An unset secret is one anyone can sign with: never let it verify anything
+    if not secret:
+        return False
     parts = dict(p.split('=') for p in signature.split(','))
     header_names = parts.get('h', '').split(' ') if parts.get('h') else []
     header_values = '.'.join(headers.get(h, '') for h in header_names)
@@ -225,6 +230,11 @@ import (
 )
 
 func verifyHook0Signature(body []byte, signature, secret string, headers http.Header) bool {
+	// os.Getenv answers "" for an unset variable, and anyone can sign with that
+	if secret == "" {
+		return false
+	}
+
 	parts := make(map[string]string)
 	for _, p := range strings.Split(signature, ",") {
 		kv := strings.SplitN(p, "=", 2)
@@ -299,6 +309,7 @@ The timestamp (`t`) in the signature prevents replay attacks. To enforce a time 
 
 ```javascript
 function verifyHook0Signature(payload, signature, headers, secret, toleranceSec = 300) {
+  if (!secret) return false; // an unset secret must never verify anything
   const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')));
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - parseInt(parts.t)) > toleranceSec) return false;
