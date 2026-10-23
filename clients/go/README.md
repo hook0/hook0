@@ -52,6 +52,11 @@ The package is `hook0` while the module path ends in `go`, so import it under it
 tooling does not fill that in: `import hook0 "github.com/hook0/hook0-go/v3"`. Go 1.25.13 or later,
 which is the floor `go.mod` declares.
 
+If `go get` answers `no matching versions`, the release this README describes has not reached the
+Go module proxy yet. The latest published release is then v2:
+`go get github.com/hook0/hook0-go/v2@v2.0.3`, imported as `github.com/hook0/hook0-go/v2`, with the
+same functions, types and errors as below.
+
 ### 2. Send an event
 
 ```go
