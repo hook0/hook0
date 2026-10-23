@@ -392,9 +392,7 @@ def test_every_request_says_which_sdk_at_which_version_is_reaching_the_api(answe
 def test_a_redirection_is_an_answer_and_the_token_goes_nowhere_else(answering: Any, reaching: Any) -> None:
     """Following a `Location` would re-send the bearer token to a host nobody configured."""
     elsewhere = answering(_answer("HTTP/1.1 200 OK\nContent-Length: 2\n\n", b"{}"))
-    served = answering(
-        _answer(f"HTTP/1.1 302 Found\nLocation: {elsewhere.base_url}/stolen\nContent-Length: 0\n\n")
-    )
+    served = answering(_answer(f"HTTP/1.1 302 Found\nLocation: {elsewhere.base_url}/stolen\nContent-Length: 0\n\n"))
 
     status, headers, _ = reaching(served.base_url)()
 
