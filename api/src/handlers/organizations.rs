@@ -647,59 +647,49 @@ pub async fn revoke(
         state.debug_authorizer,
     )?;
 
-    let user_role = query_scalar!(
+    // Removing the membership and revoking the member's in-flight tokens must
+    // commit together: otherwise a removed member keeps acting on the
+    // organization until their frozen-role token expires on its own.
+    let mut tx = state.db.begin().await?;
+
+    let deleted = query!(
         "
-            SELECT role
-            FROM iam.user__organization
+            DELETE FROM iam.user__organization
             WHERE user__id = $1
                 AND organization__id = $2
         ",
         &body.user_id,
         &organization_id,
     )
-    .fetch_optional(&state.db)
+    .execute(&mut *tx)
     .await?;
 
-    match user_role {
-        Some(_) => {
-            // Removing the membership and revoking the member's in-flight tokens
-            // must commit together: otherwise a removed member keeps acting on the
-            // organization until their frozen-role token expires on its own.
-            let mut tx = state.db.begin().await?;
+    // The revocation below spans every organization of the target, so it only runs
+    // for an actual member of this one. Reading the DELETE's own count, rather than
+    // a SELECT beforehand, leaves no window for the membership to change in between.
+    // The refused branch drops the transaction, which rolls it back.
+    if deleted.rows_affected() > 0 {
+        revoke_user_session_tokens(&mut *tx, &body.user_id).await?;
 
-            query!(
-                "
-                    DELETE FROM iam.user__organization
-                    WHERE user__id = $1
-                    AND organization__id = $2
-                ",
-                &body.user_id,
-                &organization_id,
-            )
-            .execute(&mut *tx)
-            .await?;
+        tx.commit().await?;
 
-            revoke_user_session_tokens(&mut *tx, &body.user_id).await?;
-
-            tx.commit().await?;
-
-            if let Some(hook0_client) = state.hook0_client.as_ref() {
-                let hook0_client_event: Hook0ClientEvent = EventOrganizationRevoked {
-                    organization_id,
-                    user_id: body.user_id,
-                }
-                .into();
-                if let Err(e) = hook0_client
-                    .send_event(&hook0_client_event.mk_hook0_event())
-                    .await
-                {
-                    error!("Hook0ClientError: {e}");
-                };
+        if let Some(hook0_client) = state.hook0_client.as_ref() {
+            let hook0_client_event: Hook0ClientEvent = EventOrganizationRevoked {
+                organization_id,
+                user_id: body.user_id,
             }
-
-            Ok(body)
+            .into();
+            if let Err(e) = hook0_client
+                .send_event(&hook0_client_event.mk_hook0_event())
+                .await
+            {
+                error!("Hook0ClientError: {e}");
+            };
         }
-        None => Err(Hook0Problem::NotFound),
+
+        Ok(body)
+    } else {
+        Err(Hook0Problem::NotFound)
     }
 }
 
@@ -762,19 +752,19 @@ pub async fn edit_role(
 
     // The revocation below spans every organization of the target, so it is only
     // legitimate for an actual member of this one: without this check, an editor of
-    // any organization could log out an arbitrary user by naming their id. Returning
-    // drops the transaction, which rolls it back.
-    if updated.rows_affected() == 0 {
-        return Err(Hook0Problem::NotFound);
+    // any organization could log out an arbitrary user by naming their id. The
+    // refused branch drops the transaction, which rolls it back.
+    if updated.rows_affected() > 0 {
+        // A user access token carries the role frozen at emission, so the new role is
+        // not honored until the old token dies. Force its immediate re-derivation.
+        revoke_user_session_tokens(&mut *tx, &body.user_id).await?;
+
+        tx.commit().await?;
+
+        Ok(body)
+    } else {
+        Err(Hook0Problem::NotFound)
     }
-
-    // A user access token carries the role frozen at emission, so the new role is
-    // not honored until the old token dies. Force its immediate re-derivation.
-    revoke_user_session_tokens(&mut *tx, &body.user_id).await?;
-
-    tx.commit().await?;
-
-    Ok(body)
 }
 
 #[api_v2_operation(
@@ -1136,8 +1126,47 @@ mod role_revocation_tests {
     use crate::google_ads::test_support::{
         issue_user_token, seed_membership, seed_org, seed_user, test_state,
     };
+    use actix_web::body::MessageBody;
+    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::{App, test, web};
     use sqlx::PgPool;
+
+    /// The organization membership endpoints behind the real Biscuit middleware,
+    /// routed as `app.rs` routes them.
+    ///
+    /// Nothing is borrowed from the arguments past this call (`use<>`), so the
+    /// application is `'static`, as `test::init_service` requires.
+    async fn test_app(
+        pool: &PgPool,
+        private_key: &biscuit_auth::PrivateKey,
+    ) -> App<
+        impl ServiceFactory<
+            ServiceRequest,
+            Config = (),
+            Response = ServiceResponse<impl MessageBody + use<>>,
+            Error = actix_web::Error,
+            InitError = (),
+        > + use<>,
+    > {
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        App::new().app_data(web::Data::new(state)).service(
+            web::scope("/api/v1").service(
+                web::scope("/organizations").wrap(biscuit_auth).service(
+                    web::resource("/{organization_id}/invite")
+                        .route(web::post().to(super::invite))
+                        .route(web::delete().to(super::revoke))
+                        .route(web::put().to(super::edit_role)),
+                ),
+            ),
+        )
+    }
 
     /// Demoting a member must not leave their pre-demotion token usable on
     /// Editor-only endpoints (HOO-1741: a Biscuit freezes the role at emission,
@@ -1165,28 +1194,7 @@ mod role_revocation_tests {
         let invitee_before = seed_user(&pool).await;
         let invitee_after = seed_user(&pool).await;
 
-        let state = test_state(pool.clone(), private_key.clone(), None).await;
-        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
-            db: pool.clone(),
-            biscuit_private_key: private_key.clone(),
-            master_api_key: None,
-            enable_application_secret_compatibility: true,
-        };
-
-        let app = test::init_service(
-            App::new().app_data(web::Data::new(state)).service(
-                web::scope("/api/v1").service(
-                    web::scope("/organizations")
-                        .wrap(biscuit_auth)
-                        .route("/{organization_id}/invite", web::post().to(super::invite))
-                        .route(
-                            "/{organization_id}/edit_role",
-                            web::post().to(super::edit_role),
-                        ),
-                ),
-            ),
-        )
-        .await;
+        let app = test::init_service(test_app(&pool, &private_key).await).await;
 
         let invite = |token: &str, invitee: uuid::Uuid| {
             test::TestRequest::post()
@@ -1209,8 +1217,8 @@ mod role_revocation_tests {
         );
 
         // The admin demotes the victim to Viewer.
-        let demote = test::TestRequest::post()
-            .uri(&format!("/api/v1/organizations/{org}/edit_role"))
+        let demote = test::TestRequest::put()
+            .uri(&format!("/api/v1/organizations/{org}/invite"))
             .insert_header(("Authorization", format!("Bearer {admin_token}")))
             .set_json(serde_json::json!({"user_id": victim, "role": "viewer"}))
             .to_request();
@@ -1252,31 +1260,10 @@ mod role_revocation_tests {
         let outsider_token =
             issue_user_token(&pool, &private_key, outsider, other_org, "editor").await;
 
-        let state = test_state(pool.clone(), private_key.clone(), None).await;
-        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
-            db: pool.clone(),
-            biscuit_private_key: private_key.clone(),
-            master_api_key: None,
-            enable_application_secret_compatibility: true,
-        };
+        let app = test::init_service(test_app(&pool, &private_key).await).await;
 
-        let app = test::init_service(
-            App::new().app_data(web::Data::new(state)).service(
-                web::scope("/api/v1").service(
-                    web::scope("/organizations")
-                        .wrap(biscuit_auth)
-                        .route("/{organization_id}/invite", web::post().to(super::invite))
-                        .route(
-                            "/{organization_id}/edit_role",
-                            web::post().to(super::edit_role),
-                        ),
-                ),
-            ),
-        )
-        .await;
-
-        let edit = test::TestRequest::post()
-            .uri(&format!("/api/v1/organizations/{org}/edit_role"))
+        let edit = test::TestRequest::put()
+            .uri(&format!("/api/v1/organizations/{org}/invite"))
             .insert_header(("Authorization", format!("Bearer {admin_token}")))
             .set_json(serde_json::json!({"user_id": outsider, "role": "viewer"}))
             .to_request();
@@ -1302,6 +1289,132 @@ mod role_revocation_tests {
             invite_res.status().is_success(),
             "the outsider's session must survive a refused edit_role, got {}",
             invite_res.status()
+        );
+    }
+
+    /// `revoke` revokes every session of the target, across all their
+    /// organizations. Naming a user who is not a member of the caller's
+    /// organization must therefore be refused and leave that user's sessions alone.
+    #[sqlx::test]
+    async fn revoke_on_a_non_member_is_refused_and_revokes_nothing(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let admin = seed_user(&pool).await;
+        let org = seed_org(&pool, admin).await;
+        seed_membership(&pool, admin, org, "editor").await;
+        let admin_token = issue_user_token(&pool, &private_key, admin, org, "editor").await;
+
+        // The outsider belongs to another organization only.
+        let outsider = seed_user(&pool).await;
+        let other_org = seed_org(&pool, outsider).await;
+        seed_membership(&pool, outsider, other_org, "editor").await;
+        let outsider_token =
+            issue_user_token(&pool, &private_key, outsider, other_org, "editor").await;
+
+        let app = test::init_service(test_app(&pool, &private_key).await).await;
+
+        let revoke = test::TestRequest::delete()
+            .uri(&format!("/api/v1/organizations/{org}/invite"))
+            .insert_header(("Authorization", format!("Bearer {admin_token}")))
+            .set_json(serde_json::json!({"user_id": outsider}))
+            .to_request();
+        let revoke_res = test::call_service(&app, revoke).await;
+        assert_eq!(
+            revoke_res.status(),
+            actix_web::http::StatusCode::NOT_FOUND,
+            "revoking a non-member must be refused"
+        );
+
+        // The outsider's token is still accepted on their own organization.
+        let invitee = seed_user(&pool).await;
+        let invite = test::TestRequest::post()
+            .uri(&format!("/api/v1/organizations/{other_org}/invite"))
+            .insert_header(("Authorization", format!("Bearer {outsider_token}")))
+            .set_json(serde_json::json!({
+                "email": format!("e2e-{invitee}@example.com"),
+                "role": "viewer",
+            }))
+            .to_request();
+        let invite_res = test::call_service(&app, invite).await;
+        assert!(
+            invite_res.status().is_success(),
+            "the outsider's session must survive a refused revoke, got {}",
+            invite_res.status()
+        );
+    }
+
+    /// Revoking a member must remove their membership and their in-flight token
+    /// with it: a Biscuit freezes the role at emission, so the removed member would
+    /// otherwise keep acting on the organization until the token expires.
+    #[sqlx::test]
+    async fn revoke_removes_the_member_and_their_in_flight_token(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let admin = seed_user(&pool).await;
+        let org = seed_org(&pool, admin).await;
+        seed_membership(&pool, admin, org, "editor").await;
+        let admin_token = issue_user_token(&pool, &private_key, admin, org, "editor").await;
+
+        let victim = seed_user(&pool).await;
+        seed_membership(&pool, victim, org, "editor").await;
+        let victim_token = issue_user_token(&pool, &private_key, victim, org, "editor").await;
+
+        // Distinct invitees for the before/after probes: reusing one would let a
+        // duplicate-membership error masquerade as the post-revocation refusal.
+        let invitee_before = seed_user(&pool).await;
+        let invitee_after = seed_user(&pool).await;
+
+        let app = test::init_service(test_app(&pool, &private_key).await).await;
+
+        let invite = |token: &str, invitee: uuid::Uuid| {
+            test::TestRequest::post()
+                .uri(&format!("/api/v1/organizations/{org}/invite"))
+                .insert_header(("Authorization", format!("Bearer {token}")))
+                .set_json(serde_json::json!({
+                    "email": format!("e2e-{invitee}@example.com"),
+                    "role": "viewer",
+                }))
+                .to_request()
+        };
+
+        // Positive control: the victim's token really is accepted before the
+        // revocation, so a later refusal can only come from the revocation.
+        let before = test::call_service(&app, invite(&victim_token, invitee_before)).await;
+        assert!(
+            before.status().is_success(),
+            "victim's Editor token should be accepted before revocation, got {}",
+            before.status()
+        );
+
+        let revoke = test::TestRequest::delete()
+            .uri(&format!("/api/v1/organizations/{org}/invite"))
+            .insert_header(("Authorization", format!("Bearer {admin_token}")))
+            .set_json(serde_json::json!({"user_id": victim}))
+            .to_request();
+        let revoke_res = test::call_service(&app, revoke).await;
+        assert!(
+            revoke_res.status().is_success(),
+            "the revocation itself should succeed, got {}",
+            revoke_res.status()
+        );
+
+        let still_member: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM iam.user__organization WHERE user__id = $1 AND organization__id = $2)",
+        )
+        .bind(victim)
+        .bind(org)
+        .fetch_one(&pool)
+        .await
+        .expect("read membership");
+        assert!(!still_member, "the membership must be gone");
+
+        let after = test::call_service(&app, invite(&victim_token, invitee_after)).await;
+        assert_eq!(
+            after.status(),
+            actix_web::http::StatusCode::FORBIDDEN,
+            "the revoked member's token must be rejected"
         );
     }
 }
