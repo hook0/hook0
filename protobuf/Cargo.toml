@@ -21,7 +21,7 @@ pulsar = { version = "6.9.1", default-features = false, features = ["tokio-rustl
 serde = "1.0.229"
 serde_json = "1.0.154"
 thiserror = "2.0.21"
-uuid = "1.28.0"
+uuid = "1.29.0"
 
 [build-dependencies]
 prost-build = "0.14.4"

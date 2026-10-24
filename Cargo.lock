@@ -207,9 +207,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web"
-version = "4.17.0"
+version = "4.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67756b0fc99e07b8702b9a856e3d6ec036387243c2ce6310070d1e8f02680bb0"
+checksum = "81f8da0d2ae4200dde8773d72ba47a65c220b251ba7b9248db5bd263c247e959"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -251,9 +251,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web-codegen"
-version = "4.4.0"
+version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b96b09c4878563f8ab4a5fd0c59f9f0d6e0e9f60eb9b748526a0b9604fd89c50"
+checksum = "f7c9f4c52b954a73c76757a3952d3437fca00a2fbcb49704f8a6ea9f767e73f0"
 dependencies = [
  "actix-router",
  "proc-macro2",
@@ -616,7 +616,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "tracing",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -1065,7 +1065,7 @@ dependencies = [
  "sha2 0.9.9",
  "thiserror 1.0.69",
  "time",
- "uuid 1.28.0",
+ "uuid 1.29.0",
  "zeroize",
 ]
 
@@ -1399,9 +1399,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877bf67ac8e52449eb2f9e98a344ea163beb70dd1f9eebe3cc5357dcfeaee4df"
+checksum = "86e055fa6e3e40ad6187ba25b6855eeb635d5271f8e0f0e1e9a5826b8d75bea0"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -2001,7 +2001,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
 dependencies = [
  "serde",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -3114,7 +3114,7 @@ dependencies = [
  "tracing",
  "tracing-actix-web",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
  "validator",
 ]
 
@@ -3158,7 +3158,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
  "windows-native-keyring-store",
 ]
 
@@ -3182,7 +3182,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -3250,7 +3250,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -3278,7 +3278,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
  "zeroize",
 ]
 
@@ -3296,7 +3296,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -4273,7 +4273,7 @@ dependencies = [
  "portable-atomic",
  "smallvec",
  "tagptr",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -4980,7 +4980,7 @@ dependencies = [
  "serde_yaml",
  "thiserror 1.0.69",
  "uuid 0.8.2",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -5842,8 +5842,8 @@ dependencies = [
  "tokio-rustls",
  "tokio-util",
  "url",
- "uuid 1.28.0",
- "webpki-roots 1.0.10",
+ "uuid 1.29.0",
+ "webpki-roots 1.0.11",
 ]
 
 [[package]]
@@ -6166,9 +6166,9 @@ dependencies = [
 
 [[package]]
 name = "redis"
-version = "1.7.1"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed5b98ae99461e02895c3a96a25dbe4d852a3d5e5b815d31d5d9e4b5344d99e9"
+checksum = "7acd809e80afa754c63f586955699d8990efe1c4b6613183ee5f027a11fbc8b5"
 dependencies = [
  "arc-swap",
  "arcstr",
@@ -6383,7 +6383,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -6771,7 +6771,7 @@ dependencies = [
  "thiserror 2.0.21",
  "time",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -7070,9 +7070,9 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "smallvec"
-version = "1.16.3"
+version = "1.16.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b3dc8af474f516a851ff4bd12db780f948b9250ad37211e4eec0bccea54e01b"
+checksum = "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8"
 dependencies = [
  "serde",
 ]
@@ -7191,8 +7191,8 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
- "uuid 1.28.0",
- "webpki-roots 1.0.10",
+ "uuid 1.29.0",
+ "webpki-roots 1.0.11",
 ]
 
 [[package]]
@@ -7259,7 +7259,7 @@ dependencies = [
  "sqlx-core",
  "thiserror 2.0.21",
  "tracing",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -7296,7 +7296,7 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.21",
  "tracing",
- "uuid 1.28.0",
+ "uuid 1.29.0",
  "whoami",
 ]
 
@@ -7323,7 +7323,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tracing",
  "url",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -7447,7 +7447,7 @@ dependencies = [
  "debugid",
  "memmap2",
  "stable_deref_trait",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -7548,7 +7548,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.5",
  "windows-sys 0.61.2",
@@ -8031,7 +8031,7 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -8068,7 +8068,7 @@ dependencies = [
  "mutually_exclusive_features",
  "pin-project-lite",
  "tracing",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -8334,7 +8334,7 @@ dependencies = [
  "rustls-pki-types",
  "ureq-proto",
  "utf8-zero",
- "webpki-roots 1.0.10",
+ "webpki-roots 1.0.11",
 ]
 
 [[package]]
@@ -8388,9 +8388,9 @@ checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"
-version = "1.28.0"
+version = "1.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cc1186384beb7dd8eedea376413fd654937285ea6c9cfbb928dc3043ea4b606"
+checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
 dependencies = [
  "atomic",
  "getrandom 0.4.3",
@@ -8617,9 +8617,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-root-certs"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ec80e73fd8baf57bf0d9615554c75348bda990d6d5bbeab964dd068319fecb"
+checksum = "e49d0e65abc00c142e8f9428da991da9f1a250c39be97459901eb12b9b49f62a"
 dependencies = [
  "rustls-pki-types",
 ]
@@ -8630,14 +8630,14 @@ version = "0.26.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
 dependencies = [
- "webpki-roots 1.0.10",
+ "webpki-roots 1.0.11",
 ]
 
 [[package]]
 name = "webpki-roots"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c1c8e20c8a38fc7d65abfe74eb7280e4aa667e8eec8bc84996d2874810748d9"
+checksum = "f5f280bbb2b287bc8e7de7e3852945a0ff50d1bbcb5ed42b6c7a568c546df171"
 dependencies = [
  "rustls-pki-types",
 ]
@@ -8662,7 +8662,7 @@ dependencies = [
  "mac_address",
  "sha2 0.10.9",
  "thiserror 1.0.69",
- "uuid 1.28.0",
+ "uuid 1.29.0",
 ]
 
 [[package]]
