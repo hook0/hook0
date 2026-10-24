@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import { fromItsOwnAddress, loginAsNewUser } from "../fixtures/test-setup";
 
 /**
  * Application management E2E tests for Hook0.
@@ -508,4 +508,85 @@ test.describe("Applications", () => {
     // Application form should still be visible
     await expect(page.locator('[data-test="application-form"]')).toBeVisible();
   });
+
+  /**
+   * Creating an application forces a token refresh, and the API rotates the
+   * refresh token as soon as it answers. When the page goes away before that
+   * answer arrives, the browser keeps the refresh token the API just spent.
+   * The session must survive: the reloaded page replays the refresh at once,
+   * and the next mutation (which refreshes again) keeps the user logged in.
+   */
+  test("should keep the session when the page reloads during the post-mutation refresh", async ({
+    page,
+    request,
+  }) => {
+    const { organizationId, timestamp } = await loginAsNewUser(
+      page,
+      request,
+      "apps-refresh-reload"
+    );
+
+    // Let the forced refresh reach the API (which rotates the token), then
+    // hold its response so the page never sees the new pair.
+    let heldRefresh: Route | null = null;
+    let markRotated!: () => void;
+    const rotated = new Promise<void>((resolve) => (markRotated = resolve));
+    await page.route(
+      "**/api/v1/auth/refresh",
+      async (route) => {
+        const response = await route.fetch();
+        expect(response.status()).toBe(201);
+        heldRefresh = route;
+        markRotated();
+      },
+      { times: 1 }
+    );
+
+    await createApplicationViaUi(page, organizationId, `Interrupted Refresh App ${timestamp}`);
+    await rotated;
+
+    // The page goes away mid-refresh. Once reloaded, it must replay the
+    // refresh right away rather than wait for the usual timer, which would
+    // fire minutes later, long after the API stopped accepting the token.
+    const replayedRefresh = page.waitForResponse(isRefreshResponse, { timeout: 15000 });
+    await page.reload();
+    await (heldRefresh as Route | null)?.abort().catch(() => {});
+    expect((await replayedRefresh).status()).toBe(201);
+
+    // A new mutation refreshes the token again and must keep the session.
+    const nextRefresh = page.waitForResponse(isRefreshResponse, { timeout: 15000 });
+    await createApplicationViaUi(page, organizationId, `After Reload App ${timestamp}`);
+    expect((await nextRefresh).status()).toBe(201);
+
+    await page.goto(`/organizations/${organizationId}/applications`);
+    await expect(page.locator('[data-test="applications-card"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-test="login-form"]')).toHaveCount(0);
+  });
 });
+
+function isRefreshResponse(response: { url(): string; request(): { method(): string } }): boolean {
+  return response.url().includes("/api/v1/auth/refresh") && response.request().method() === "POST";
+}
+
+/** Fill and submit the application form, and wait for the creation to succeed. */
+async function createApplicationViaUi(
+  page: Page,
+  organizationId: string,
+  name: string
+): Promise<void> {
+  await page.goto(`/organizations/${organizationId}/applications/new`);
+  await expect(page.locator('[data-test="application-form"]')).toBeVisible({
+    timeout: 10000,
+  });
+  await page.locator('[data-test="application-name-input"]').fill(name);
+
+  const createResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/applications") && response.request().method() === "POST",
+    { timeout: 15000 }
+  );
+  await page.locator('[data-test="application-submit-button"]').click();
+  expect((await createResponse).status()).toBeLessThan(400);
+}

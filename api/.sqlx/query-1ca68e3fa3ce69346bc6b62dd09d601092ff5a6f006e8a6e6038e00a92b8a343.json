@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE iam.token\n                SET expired_at = LEAST(expired_at, statement_timestamp() + make_interval(secs => $2))\n                WHERE token__id = $1\n                    AND type = 'refresh'\n                    AND expired_at > statement_timestamp()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1ca68e3fa3ce69346bc6b62dd09d601092ff5a6f006e8a6e6038e00a92b8a343"
+}

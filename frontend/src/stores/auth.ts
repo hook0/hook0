@@ -23,6 +23,11 @@ type AuthState = {
 };
 
 const LOCAL_STORAGE_KEY = 'auth';
+// Holds the refresh token a `/auth/refresh` call is spending, until that call
+// settles. Still present at startup means the page went away mid-refresh: the
+// API has already rotated the token, and only accepts it again for a short
+// grace window, so the refresh must be replayed right away.
+const PENDING_REFRESH_STORAGE_KEY = 'auth-refresh-pending';
 const REFRESH_MARGIN_MINUTES = 2;
 
 export const useAuthStore = defineStore('auth', () => {
@@ -98,6 +103,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function removeFromStorage(): void {
     window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+    // A marker left by a page that went away mid-refresh would otherwise keep
+    // a copy of the refresh token in storage after the session is gone.
+    window.localStorage.removeItem(PENDING_REFRESH_STORAGE_KEY);
   }
 
   // Token refresh
@@ -214,6 +222,7 @@ export const useAuthStore = defineStore('auth', () => {
       return Promise.resolve();
     }
 
+    window.localStorage.setItem(PENDING_REFRESH_STORAGE_KEY, state.value.refreshToken);
     refreshInProgress = http.withRefreshToken
       .post<LoginResponse>('/auth/refresh')
       .then((res) => {
@@ -230,6 +239,7 @@ export const useAuthStore = defineStore('auth', () => {
         void clearTokens();
       })
       .finally(() => {
+        window.localStorage.removeItem(PENDING_REFRESH_STORAGE_KEY);
         refreshInProgress = null;
       });
 
@@ -273,9 +283,17 @@ export const useAuthStore = defineStore('auth', () => {
     initializeFormbricks().catch(console.warn);
 
     const storedState = readFromStorage();
+    const interruptedRefresh = window.localStorage.getItem(PENDING_REFRESH_STORAGE_KEY);
     if (storedState) {
       state.value = storedState;
-      scheduleAutoRefresh().catch(console.error);
+      if (interruptedRefresh === storedState.refreshToken) {
+        // The stored refresh token was already spent by a request whose
+        // response this page never received: waiting for the usual timer
+        // would outlast the API's grace window and end the session.
+        refresh().catch(console.error);
+      } else {
+        scheduleAutoRefresh().catch(console.error);
+      }
     } else {
       removeFromStorage();
       if (window.formbricks) {

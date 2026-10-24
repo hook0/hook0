@@ -422,6 +422,12 @@ async fn do_login<'a, A: Acquire<'a, Database = Postgres>>(
     }))
 }
 
+/// How long a refresh token stays usable after it has been exchanged for a new
+/// pair. Long enough for a reloaded page to replay an interrupted refresh,
+/// short enough that a token leaked after use is worth next to nothing.
+/// Logging out still revokes it immediately.
+const REFRESH_TOKEN_REUSE_GRACE: Duration = Duration::from_secs(30);
+
 #[api_v2_operation(
     summary = "Refresh access token",
     description = "Get a new access token in exchange of a refresh token.",
@@ -439,15 +445,22 @@ pub async fn refresh(
 
     let mut tx = state.db.begin().await?;
 
+    // Rotation: the presented refresh token stops working shortly after it is
+    // used, not at once. If the response carrying the new pair never reaches
+    // the client (page reloaded or closed mid-request), the client still holds
+    // only this token; the grace window lets it replay the refresh instead of
+    // being logged out. `LEAST` keeps replays from pushing the deadline back,
+    // so the window opens at the first use and never grows.
     query!(
         "
                 UPDATE iam.token
-                SET expired_at = statement_timestamp()
+                SET expired_at = LEAST(expired_at, statement_timestamp() + make_interval(secs => $2))
                 WHERE token__id = $1
                     AND type = 'refresh'
                     AND expired_at > statement_timestamp()
             ",
         &token.token_id,
+        REFRESH_TOKEN_REUSE_GRACE.as_secs_f64(),
     )
     .execute(&mut *tx)
     .await?;
@@ -3941,5 +3954,191 @@ mod password_reset_link_tests {
                 "replaying every used link must leave the account exactly as it was, after {plan:?}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod refresh_rotation_tests {
+    use crate::google_ads::test_support::{seed_user, test_state};
+    use actix_web::http::StatusCode;
+    use actix_web::{App, test, web};
+    use chrono::{DateTime, Utc};
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    /// Spin up the real refresh and logout endpoints behind the real biscuit
+    /// auth middleware, over the test database. A macro rather than a function
+    /// because the type of an initialized actix test service is not nameable
+    /// here.
+    macro_rules! init_api {
+        ($pool:expr, $private_key:expr) => {{
+            let state = test_state($pool.clone(), $private_key.clone(), None).await;
+            let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+                db: $pool.clone(),
+                biscuit_private_key: $private_key.clone(),
+                master_api_key: None,
+                enable_application_secret_compatibility: true,
+            };
+
+            test::init_service(
+                App::new().app_data(web::Data::new(state)).service(
+                    web::scope("/api/v1/auth")
+                        .service(
+                            web::resource("/refresh")
+                                .wrap(biscuit_auth.clone())
+                                .route(web::post().to(super::refresh)),
+                        )
+                        .service(
+                            web::resource("/logout")
+                                .wrap(biscuit_auth)
+                                .route(web::post().to(super::logout)),
+                        ),
+                ),
+            )
+            .await
+        }};
+    }
+
+    /// POST to an auth endpoint with `$token` and return the status with the
+    /// parsed body (`Null` when the response has none).
+    macro_rules! post_with {
+        ($app:expr, $path:expr, $token:expr) => {{
+            let request = test::TestRequest::post()
+                .uri($path)
+                .insert_header(("Authorization", format!("Bearer {}", $token)))
+                .to_request();
+            let response = test::call_service(&$app, request).await;
+            let status = response.status();
+            let body = test::read_body(response).await;
+            let body = serde_json::from_slice::<serde_json::Value>(&body)
+                .unwrap_or(serde_json::Value::Null);
+            (status, body)
+        }};
+    }
+
+    /// Mint a refresh token for a fresh session of `user` and persist its
+    /// `iam.token` row, as a login would. Returns the token and its id.
+    async fn issue_refresh_token(
+        pool: &PgPool,
+        private_key: &biscuit_auth::PrivateKey,
+        user: Uuid,
+    ) -> (String, Uuid) {
+        let token_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let token = crate::iam::create_refresh_token(private_key, token_id, session_id, user)
+            .expect("mint refresh token");
+
+        sqlx::query(
+            "
+                INSERT INTO iam.token (token__id, type, revocation_id, expired_at, user__id, session_id)
+                VALUES ($1, 'refresh', $2, $3, $4, $5)
+            ",
+        )
+        .bind(token_id)
+        .bind(&token.revocation_id)
+        .bind(token.expired_at)
+        .bind(user)
+        .bind(session_id)
+        .execute(pool)
+        .await
+        .expect("persist refresh token");
+
+        (token.serialized_biscuit, token_id)
+    }
+
+    /// The deadline stored for a token, and the database clock it compares to.
+    async fn deadline(pool: &PgPool, token_id: Uuid) -> (DateTime<Utc>, DateTime<Utc>) {
+        sqlx::query_as(
+            "SELECT expired_at, statement_timestamp() FROM iam.token WHERE token__id = $1",
+        )
+        .bind(token_id)
+        .fetch_one(pool)
+        .await
+        .expect("read token deadline")
+    }
+
+    /// The reported bug: the page goes away while the refresh is in flight, so
+    /// the client never stores the new pair and replays the token it still
+    /// holds. That replay must succeed, and the pair it returns must work too.
+    #[sqlx::test]
+    async fn a_refresh_whose_response_was_lost_can_be_replayed(pool: PgPool) {
+        let private_key = biscuit_auth::KeyPair::new().private();
+        let user = seed_user(&pool).await;
+        let (refresh_token, _) = issue_refresh_token(&pool, &private_key, user).await;
+        let app = init_api!(pool, private_key);
+
+        let (status, _lost) = post_with!(app, "/api/v1/auth/refresh", refresh_token);
+        assert_eq!(status, StatusCode::CREATED, "first refresh");
+
+        let (status, replayed) = post_with!(app, "/api/v1/auth/refresh", refresh_token);
+        assert_eq!(
+            status,
+            StatusCode::CREATED,
+            "replaying the refresh right after its response was lost must keep the session"
+        );
+
+        let next = replayed["refresh_token"]
+            .as_str()
+            .expect("refresh_token in the replayed response");
+        let (status, _) = post_with!(app, "/api/v1/auth/refresh", next);
+        assert_eq!(
+            status,
+            StatusCode::CREATED,
+            "the pair obtained by the replay must be usable"
+        );
+    }
+
+    /// The grace window is bounded: it opens at the first use, lasts at most
+    /// `REFRESH_TOKEN_REUSE_GRACE`, and replaying the token does not push it back.
+    #[sqlx::test]
+    async fn the_reuse_window_opens_at_first_use_and_never_grows(pool: PgPool) {
+        let private_key = biscuit_auth::KeyPair::new().private();
+        let user = seed_user(&pool).await;
+        let (refresh_token, token_id) = issue_refresh_token(&pool, &private_key, user).await;
+        let app = init_api!(pool, private_key);
+
+        let (status, _) = post_with!(app, "/api/v1/auth/refresh", refresh_token);
+        assert_eq!(status, StatusCode::CREATED, "first refresh");
+        let (first_deadline, now) = deadline(&pool, token_id).await;
+        let grace = chrono::Duration::from_std(super::REFRESH_TOKEN_REUSE_GRACE)
+            .expect("grace fits a chrono duration");
+        assert!(
+            first_deadline > now && first_deadline <= now + grace,
+            "a used refresh token must expire within the grace window, got {first_deadline} at {now}"
+        );
+
+        let (status, _) = post_with!(app, "/api/v1/auth/refresh", refresh_token);
+        assert_eq!(status, StatusCode::CREATED, "replay within the window");
+        let (replayed_deadline, _) = deadline(&pool, token_id).await;
+        assert_eq!(
+            replayed_deadline, first_deadline,
+            "replaying a used refresh token must not extend its window"
+        );
+    }
+
+    /// Logging out ends the session at once, grace window included: a refresh
+    /// token that was just rotated must not outlive an explicit logout.
+    #[sqlx::test]
+    async fn logging_out_revokes_a_token_still_inside_its_window(pool: PgPool) {
+        let private_key = biscuit_auth::KeyPair::new().private();
+        let user = seed_user(&pool).await;
+        let (refresh_token, _) = issue_refresh_token(&pool, &private_key, user).await;
+        let app = init_api!(pool, private_key);
+
+        let (status, rotated) = post_with!(app, "/api/v1/auth/refresh", refresh_token);
+        assert_eq!(status, StatusCode::CREATED, "first refresh");
+        let access_token = rotated["access_token"]
+            .as_str()
+            .expect("access_token in the refresh response");
+
+        let (status, _) = post_with!(app, "/api/v1/auth/logout", access_token);
+        assert_eq!(status, StatusCode::NO_CONTENT, "logout");
+
+        let (status, _) = post_with!(app, "/api/v1/auth/refresh", refresh_token);
+        assert_eq!(
+            status,
+            StatusCode::FORBIDDEN,
+            "a rotated refresh token must not survive a logout"
+        );
     }
 }
