@@ -185,11 +185,17 @@ module Hook0
     # one that gave up at the first differing byte would say, by how long it took, how much of a
     # guess was right.
     #
+    # An empty or nil secret never verifies. A secret that resolved to nothing (an unset variable,
+    # a missing setting) is one anyone can key the same code with, so a delivery that matches it
+    # proves nothing about who sent it.
+    #
     # @param payload [String] the raw body of the webhook request
     # @param covered_values [Array<String>] the values of the covered headers, in order
     # @param subscription_secret [String]
     # @return [Boolean]
     def matches?(payload, covered_values, subscription_secret)
+      return false if subscription_secret.to_s.empty?
+
       code = OpenSSL::HMAC.new(subscription_secret.to_s, DIGEST)
       code << @timestamp.to_s
       code << MESSAGE_SEPARATOR

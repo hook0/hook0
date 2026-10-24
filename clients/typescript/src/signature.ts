@@ -115,6 +115,14 @@ class Signature {
       return value;
     });
 
+    // An empty secret never verifies. A secret that resolved to nothing (an unset variable, a
+    // missing setting) is one anyone can key the same code with, so a delivery that matches it
+    // proves nothing about who sent it. Plain JavaScript callers can also hand in null or
+    // undefined, which `createHmac` would otherwise reject with an unrelated error.
+    if (!secret) {
+      return false;
+    }
+
     const timestampStr = this.timestamp.toString();
 
     const hmac = crypto.createHmac('sha256', secret);

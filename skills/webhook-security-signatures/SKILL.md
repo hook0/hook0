@@ -92,6 +92,9 @@ node scripts/verify_hook0_signature.js --selftest
   in production and don't prove authenticity. Sign.
 - **No replay window.** Without a `t` tolerance, a captured valid request works
   forever. Also dedupe on the event id for at-least-once senders.
+- **Empty secret.** An unset `WEBHOOK_SECRET` read as `""` keys HMAC with a
+  value anyone knows, so forged deliveries verify. Refuse an empty secret before
+  computing anything, as both scripts do.
 
 ## Secret rotation
 
@@ -112,10 +115,11 @@ way. Details: https://documentation.hook0.com/tutorials/webhook-authentication
 
 ## Validate it works
 
-`--selftest` runs six vectors taken from the conformance corpus every Hook0 SDK
+`--selftest` runs seven vectors taken from the conformance corpus every Hook0 SDK
 is held to (codes computed outside any implementation): valid `v1` and `v0`
 signatures are accepted; a reordered `h`, a missing covered header, a replayed
-code under another timestamp and a stale timestamp are each refused with their
-reason. Inside the Hook0 repository, `--conformance clients/conformance/signature.json`
+code under another timestamp, a stale timestamp and a code computed with an
+empty secret (an unset variable must never verify anything) are each refused
+with their reason. Inside the Hook0 repository, `--conformance clients/conformance/signature.json`
 runs the full corpus. Then point a real Hook0 subscription at your endpoint and
 confirm live deliveries verify and a hand-edited body is refused.

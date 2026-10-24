@@ -236,12 +236,18 @@ fn delivered(headers: []const Header, name: []const u8) ?[]const u8 {
 /// The stronger scheme wins when both are offered, and the comparison is made in constant time: one
 /// that gave up at the first differing byte would say, by how long it took, how much of a guess was
 /// right.
+///
+/// An empty secret never verifies. A secret that resolved to nothing (an unset variable, a missing
+/// setting) is one anyone can key the same code with, so a delivery that matches it proves nothing
+/// about who sent it. The refusal is folded into the final answer rather than taken up front, so a
+/// covered header that never arrived is still reported as such.
 pub fn matches(
     read: *const Signature,
     payload: []const u8,
     headers: []const Header,
     subscription_secret: []const u8,
 ) SignatureError!bool {
+    const keyed = subscription_secret.len > 0;
     var code: Hmac = .init(subscription_secret);
 
     var moment: [32]u8 = undefined;
@@ -263,14 +269,14 @@ pub fn matches(
         code.update(&.{message_separator});
         code.update(payload);
         code.final(&out);
-        return std.crypto.timing_safe.eql([Hmac.mac_length]u8, out, offered);
+        return keyed and std.crypto.timing_safe.eql([Hmac.mac_length]u8, out, offered);
     }
 
     // A signature carrying neither code is refused while it is being read, so what is left here is
     // the body-only scheme.
     code.update(payload);
     code.final(&out);
-    return std.crypto.timing_safe.eql([Hmac.mac_length]u8, out, read.body_code.?);
+    return keyed and std.crypto.timing_safe.eql([Hmac.mac_length]u8, out, read.body_code.?);
 }
 
 /// Verifies a webhook against a moment the caller names.

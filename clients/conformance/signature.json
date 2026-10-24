@@ -209,6 +209,38 @@
       "tolerance_seconds": 300,
       "verdict": "accepted",
       "reason": "the tolerance is the width a delivery is accepted within, so its own edge is inside it"
+    },
+    {
+      "name": "an empty secret verifies nothing under the header scheme",
+      "secret": "",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-event-id x-delivery-id,v1=5888ae5269a0f9f2cfcffe0f5bbe2760c054c57550578cdc475024fbd74434ff",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "code_mismatch",
+      "reason": "a secret that resolved to nothing is known to anyone, so a code computed with it proves nothing about who sent the delivery"
+    },
+    {
+      "name": "an empty secret verifies nothing under the body scheme",
+      "secret": "",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,v0=382db3c1d76d542adfc6f8d5bd8a4ac8fc157d329bf22e6687a498245c0ffe0f",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "code_mismatch",
+      "reason": "the older scheme is keyed by the same secret, so an empty one is refused there too"
     }
   ]
 }

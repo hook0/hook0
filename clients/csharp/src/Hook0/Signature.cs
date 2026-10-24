@@ -172,6 +172,11 @@ public sealed class Signature
     /// The stronger scheme wins when both are offered, and the comparison is made in constant time:
     /// one that gave up at the first differing byte would say, by how long it took, how much of a
     /// guess was right.
+    /// <para>
+    /// An empty or null secret never verifies. A secret that resolved to nothing (an unset
+    /// variable, a missing setting) is one anyone can key the same code with, so a delivery that
+    /// matches it proves nothing about who sent it.
+    /// </para>
     /// </remarks>
     /// <param name="payload">The raw body of the webhook request.</param>
     /// <param name="coveredValues">The values of the covered headers, in order.</param>
@@ -182,9 +187,14 @@ public sealed class Signature
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(coveredValues);
 
+        if (string.IsNullOrEmpty(subscriptionSecret))
+        {
+            return false;
+        }
+
         using IncrementalHash code = IncrementalHash.CreateHMAC(
             HashAlgorithmName.SHA256,
-            Encoding.UTF8.GetBytes(subscriptionSecret ?? string.Empty));
+            Encoding.UTF8.GetBytes(subscriptionSecret));
 
         Fed(code, Timestamp.ToString(CultureInfo.InvariantCulture));
         Fed(code, MessageSeparator);

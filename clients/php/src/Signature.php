@@ -223,10 +223,18 @@ final class Signature
      * one that gave up at the first differing byte would say, by how long it took, how much of a
      * guess was right.
      *
+     * An empty secret never verifies. A secret that resolved to nothing (an unset variable, a
+     * missing setting) is one anyone can key the same code with, so a delivery that matches it
+     * proves nothing about who sent it.
+     *
      * @param list<string> $coveredValues the values of the covered headers, in order
      */
     public function matches(string $payload, array $coveredValues, string $subscriptionSecret): bool
     {
+        if ($subscriptionSecret === '') {
+            return false;
+        }
+
         $message = $this->timestamp . self::MESSAGE_SEPARATOR;
 
         if ($this->headersCode !== null) {

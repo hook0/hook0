@@ -231,12 +231,20 @@ end
 ---
 --- The stronger scheme wins when both are offered.
 ---
+--- An empty or nil secret never verifies. A secret that resolved to nothing (an unset variable,
+--- a missing setting) is one anyone can key the same code with, so a delivery that matches it
+--- proves nothing about who sent it.
+---
 --- @param parsed table what `Signature.parse` answered
 --- @param payload string the raw body of the webhook request
 --- @param covered_values table the values of the covered headers, in order
 --- @param subscription_secret string
 --- @return boolean
 function Signature.matches(parsed, payload, covered_values, subscription_secret)
+  if subscription_secret == nil or subscription_secret == "" then
+    return false
+  end
+
   local separator = Signature.MESSAGE_SEPARATOR
   local moment = string.format("%d", parsed.timestamp)
 

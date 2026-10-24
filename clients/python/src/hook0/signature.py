@@ -133,7 +133,13 @@ class Signature:
         The stronger scheme wins when both are offered, and the comparison is made in constant
         time: one that gave up at the first differing byte would say, by how long it took, how much
         of a guess was right.
+
+        An empty secret never verifies. A secret that resolved to nothing (an unset variable, a
+        missing setting) is one anyone can key the same code with, so a delivery that matches it
+        proves nothing about who sent it.
         """
+        if not subscription_secret:
+            return False
         code = hmac.new(subscription_secret.encode("utf-8"), digestmod=DIGEST)
         code.update(str(self.timestamp).encode("utf-8"))
         code.update(MESSAGE_SEPARATOR.encode("utf-8"))

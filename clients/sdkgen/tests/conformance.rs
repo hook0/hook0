@@ -466,6 +466,45 @@ fn a_vector_refused_under_an_undeclared_name_is_refused() {
     );
 }
 
+/// A secret that resolved to nothing is a case the corpus pins, so a vector may carry an empty one
+/// and must then be refused; any other field left empty on that same vector is still a slip.
+#[test]
+fn only_the_secret_of_a_vector_may_be_empty() {
+    let empty_secrets: Vec<_> = corpus()
+        .vectors
+        .into_iter()
+        .filter(|vector| vector.secret.is_empty())
+        .collect();
+    assert!(
+        !empty_secrets.is_empty(),
+        "no vector pins what an empty secret verifies"
+    );
+    for vector in &empty_secrets {
+        assert!(
+            !vector.verifies(),
+            "`{}` accepts a delivery under an empty secret",
+            vector.name
+        );
+    }
+
+    for field in ["payload", "signature", "reason"] {
+        let mut documents = committed();
+        let vector = list(&mut documents, "vectors")
+            .iter_mut()
+            .find(|vector| vector["secret"] == json!(""))
+            .expect("the corpus carries a vector with an empty secret");
+        vector[field] = json!("");
+
+        assert!(
+            matches!(
+                read(&laid_out(&documents)),
+                Err(ConformanceError::Empty { ref subject, .. }) if subject == field
+            ),
+            "an empty `{field}` was read as if it were an empty secret"
+        );
+    }
+}
+
 /// A corpus where nothing verifies pins every way a delivery is refused and no way one is accepted,
 /// which a client refusing everything would satisfy.
 #[test]
