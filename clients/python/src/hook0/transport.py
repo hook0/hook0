@@ -194,6 +194,22 @@ def _reachable(url: str) -> None:
         raise TransportError("the API URL names no host", transient=False)
 
 
+class _Unredirected(urllib.request.HTTPRedirectHandler):
+    """Hands a redirection back as the answer it is instead of following it.
+
+    The standard library follows a redirection by re-sending the request's headers, the bearer
+    token among them, to whatever the `Location` names, another host included. A client that
+    follows no redirection cannot carry the token anywhere it was not configured to reach, and this
+    is what the awaiting transport, which follows none either, already does.
+    """
+
+    def redirect_request(self, *_: Any, **__: Any) -> None:
+        return None
+
+
+_OPENER = urllib.request.build_opener(_Unredirected)
+
+
 class HttpTransport:
     """Issues one request and waits for the answer."""
 
@@ -248,7 +264,7 @@ class HttpTransport:
             request.add_header("Content-Type", JSON_MEDIA_TYPE)
 
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as answer:  # noqa: S310
+            with _OPENER.open(request, timeout=self._timeout) as answer:
                 return answer.status, _carried(answer.headers.items()), self._read(answer)
         except urllib.error.HTTPError as refused:
             # A refusal is an answer: the status and the body are what say whether repeating the

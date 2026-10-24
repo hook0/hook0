@@ -1,3 +1,5 @@
+import { constrainIdParams } from '@/utils/routeIdParams';
+
 export const routes = {
   Home: 'Home',
 
@@ -58,7 +60,7 @@ export const routes = {
 
 export type RouteName = keyof typeof routes;
 
-export default [
+const records = [
   {
     name: routes.Home,
     path: '/',
@@ -393,3 +395,5 @@ export default [
     meta: { fullScreen: true, title: 'Not Found' },
   },
 ];
+
+export default records.map((record) => ({ ...record, path: constrainIdParams(record.path) }));
