@@ -49,6 +49,20 @@ to a maintained YAML crate or is replaced.
 # no 0.21.x fix (RUSTSEC-2026-0346, -0349).
 
 [[IgnoredVulns]]
+id = "RUSTSEC-2026-0387"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+crypto-bigint 0.5.5 (constant-time timing variability, fixed in 0.7.6) is the
+copy pinned by elliptic-curve 0.13 / p256 0.13 (biscuit-auth) and by aws-sigv4
+(sigv4a). No 0.5.x or 0.7.x release is semver-compatible with those parents, so
+the fix is not reachable by a lockfile bump. The 0.7.x copy in Cargo.lock is
+already on 0.7.6. Biscuit keys are Ed25519 (api/src/main.rs), so the p256 path is
+never exercised for signing; sigv4a only signs outgoing S3 requests with no
+attacker-observable timing channel. Drop this entry once biscuit-auth and the
+AWS SDK move to elliptic-curve 0.14 / a patched crypto-bigint.
+"""
+
+[[IgnoredVulns]]
 id = "RUSTSEC-2026-0173"
 ignoreUntil = "2026-12-31T00:00:00Z"
 reason = """
