@@ -3,16 +3,16 @@
 module.exports = {
   "tldr": {
     "h2": "The Short Answer",
-    "body": "Hook0 is an open-source webhook platform that sends events to your subscribers with HMAC-SHA256 signatures, two-phase retries that back off over days, and a dead letter queue when an endpoint stays down. Every delivery is logged with request, response, status code and latency, and you can replay any event from the dashboard. A drop-in subscriber portal lets your users manage their own endpoints, secrets and event filters, so support stops fielding secret-rotation tickets. Run it self-hosted on Docker or Kubernetes, or on the cloud, free for 100 events a day with no credit card. Same SSPL-1.0 code both ways, with no enterprise tier hiding the useful parts."
+    "body": "Hook0 is an open-source webhook platform that sends events to your subscribers with HMAC-SHA256 signatures, two-phase retries that back off over days, and failed attempts kept with their response when an endpoint stays down. Every delivery is logged with request, response, status code and latency, and you can replay any event from the dashboard. A drop-in subscriber portal lets your users manage their own endpoints, secrets and event filters, so support stops fielding secret-rotation tickets. Run it self-hosted on Docker or Kubernetes, or on the cloud, free for 100 events a day with no credit card. Same SSPL-1.0 code both ways, with no enterprise tier hiding the useful parts."
   },
   "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
-  "pageDescription": "Open-source webhook platform delivering events with HMAC signatures, retries, dead letter queues and a subscriber portal. Free forever, no credit card.",
+  "pageDescription": "Open-source webhook platform delivering events with HMAC signatures, retries, event replay and a subscriber portal. Free forever, no credit card.",
   "track": "webhook-platform",
   "hero": {
     "eyebrow": "Webhook Platform",
     "titleLine1": "The Open-Source Webhook Platform",
     "titleLine2": "Built for Production",
-    "subtitle": "Hook0 handles the parts you keep putting off. HMAC-SHA256 signing on every payload. Retries that actually back off properly. A DLQ when a customer's endpoint has been 502'ing for six hours. And a subscriber portal so your users stop opening tickets to rotate a secret. Self-host it or use the cloud. No vendor lock-in either way.",
+    "subtitle": "Hook0 handles the parts you keep putting off. HMAC-SHA256 signing on every payload. Retries that actually back off properly. Logged failures and one-call replay when a customer's endpoint has been 502'ing for six hours. And a subscriber portal so your users stop opening tickets to rotate a secret. Self-host it or use the cloud. No vendor lock-in either way.",
     "ctaPrimary": "Start Free",
     "ctaSecondary": "Try the Playground",
     "microcopy": "100 events/day free. No credit card. Open-source."
@@ -29,7 +29,7 @@ module.exports = {
       },
       {
         "title": "Two-phase retries",
-        "body": "Fast retries for flaky endpoints, slow retries over days for real outages. Tunable per subscription, with a DLQ at the end."
+        "body": "Fast retries for flaky endpoints, slow retries over days for real outages. When the last one fails, the attempt stays logged with its response and you replay the event."
       },
       {
         "title": "Delivery logs",
@@ -114,6 +114,10 @@ module.exports = {
         "a": "A webhook platform is the production infrastructure that sits between your application and your customers' endpoints. It signs payloads with HMAC, retries on failures with configurable backoff, stores delivery logs, and exposes a subscriber portal so your users can manage their own endpoints. Hook0 ships all of this as a managed service or a self-hosted Docker stack."
       },
       {
+        "q": "Which platforms support webhooks?",
+        "a": "Most SaaS APIs that developers integrate with send webhooks: Stripe and PayPal for payments, GitHub and GitLab for repository events, Shopify for orders, Slack for workspace events, Twilio for SMS and calls, HubSpot for CRM changes. Each one signs its payloads, retries failed deliveries and lets customers register their own endpoints. A webhook platform like Hook0 gives your product that same layer, so you can add webhooks to your API without building the delivery side yourself."
+      },
+      {
         "q": "Why use a webhook platform instead of building your own?",
         "a": "Building a production-grade webhook system means 3+ engineering sprints for retries, dead letter queues, HMAC signatures, monitoring, and a subscriber UI, plus ongoing maintenance forever. A webhook platform like Hook0 lets you ship in 30 minutes and reclaim that engineering time for product work."
       },
@@ -142,6 +146,10 @@ module.exports = {
   "related": {
     "h2": "Related",
     "links": [
+      {
+        "label": "How Webhooks Work",
+        "href": "./how-webhooks-work"
+      },
       {
         "label": "Webhook API",
         "href": "./webhook-api"

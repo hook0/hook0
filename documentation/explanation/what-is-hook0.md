@@ -89,7 +89,7 @@ flowchart TD
 
     subgraph H0["Hook0"]
         EP["Event Processing<br/>- Validation<br/>- Storage"]:::hook0
-        WDE["Webhook Delivery Engine<br/>- Automatic retries<br/>- Fixed retry schedule<br/>- Signature generation<br/>- Rate limiting<br/>- Dead letter queues"]:::hook0
+        WDE["Webhook Delivery Engine<br/>- Automatic retries<br/>- Fixed retry schedule<br/>- Signature generation<br/>- Rate limiting<br/>- Failed attempts kept for replay"]:::hook0
         OD["Observability Dashboard<br/>- All delivery attempts<br/>- Failure analytics<br/>- Debug tools"]:::hook0
         EP --> WDE --> OD
     end
@@ -160,7 +160,7 @@ Hook0 tracks every delivery attempt:
 - Open source (SSPL v1), self-hostable, or use the [cloud version](https://www.hook0.com/)
 - Written in Rust, scales horizontally
 - RESTful API with [official SDKs](../reference/sdk/index.md) for eleven languages
-- Automatic retries, dead letter queues, rate limiting
+- Automatic retries, failed deliveries kept for [replay](webhook-dead-letter-queue.md), rate limiting
 - Full delivery visibility in the dashboard
 
 ## Use cases

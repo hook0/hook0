@@ -132,6 +132,7 @@ const sidebars = {
         "explanation/security-model",
         "explanation/webhook-retry-logic",
         "explanation/webhook-retry-strategies",
+        "explanation/webhook-dead-letter-queue",
         "explanation/webhook-delivery-guarantees",
         "explanation/webhook-vs-polling",
       ],

@@ -3,10 +3,10 @@
 module.exports = {
   "tldr": {
     "h2": "Kurz gesagt",
-    "body": "Hook0 ist eine quelloffene Webhook-Plattform, die deine Events mit HMAC-SHA256-Signaturen an deine Abonnenten sendet, mit zweistufigen Wiederholungen, die sich über Tage strecken, und einer Dead-Letter-Queue, wenn ein Endpunkt ausfällt. Jede Zustellung wird mit Anfrage, Antwort, Statuscode und Latenz protokolliert, und du kannst jedes Event über das Dashboard erneut abspielen. Ein einsatzfertiges Abonnenten-Portal lässt deine Nutzer ihre eigenen Endpunkte, Secrets und Event-Filter verwalten, sodass der Support keine Tickets zur Secret-Rotation mehr bearbeitet. Betreibe es selbst-gehostet auf Docker oder Kubernetes oder in der Cloud, kostenlos für 100 Events pro Tag ohne Kreditkarte. Derselbe SSPL-1.0-Code in beiden Fällen, ohne Enterprise-Stufe, die die nützlichen Teile versteckt."
+    "body": "Hook0 ist eine quelloffene Webhook-Plattform, die deine Events mit HMAC-SHA256-Signaturen an deine Abonnenten sendet, mit zweistufigen Wiederholungen, die sich über Tage strecken, und fehlgeschlagenen Versuchen, die samt Antwort gespeichert bleiben, wenn ein Endpunkt ausfällt. Jede Zustellung wird mit Anfrage, Antwort, Statuscode und Latenz protokolliert, und du kannst jedes Event über das Dashboard erneut abspielen. Ein einsatzfertiges Abonnenten-Portal lässt deine Nutzer ihre eigenen Endpunkte, Secrets und Event-Filter verwalten, sodass der Support keine Tickets zur Secret-Rotation mehr bearbeitet. Betreibe es selbst-gehostet auf Docker oder Kubernetes oder in der Cloud, kostenlos für 100 Events pro Tag ohne Kreditkarte. Derselbe SSPL-1.0-Code in beiden Fällen, ohne Enterprise-Stufe, die die nützlichen Teile versteckt."
   },
   pageTitle: 'Webhook-Plattform in Europa, DSGVO-konform betrieben',
-  pageDescription: 'Open-Source-Webhook-Plattform (SSPL-1.0): HMAC, Retries, Failed-Queue, Subscriber-Portal. Daten in Frankreich (Clever Cloud).',
+  pageDescription: 'Open-Source-Webhook-Plattform (SSPL-1.0): HMAC, Retries, Event-Replay, Subscriber-Portal. Daten in Frankreich (Clever Cloud).',
   "pageModified": "2026-06-25",
   "track": "de-webhook-plattform",
   "hero": {
@@ -30,7 +30,7 @@ module.exports = {
       },
       {
         "title": "Zwei-Phasen-Retries",
-        "body": "Schnelle Wiederholungen für kurzzeitige Aussetzer, langsame über Tage bei echten Ausfällen. Pro Subscription einstellbar, mit Dead-Letter-Queue am Ende."
+        "body": "Schnelle Wiederholungen für kurzzeitige Aussetzer, langsame über Tage bei echten Ausfällen. Scheitert der letzte, bleibt der Versuch mit seiner Antwort protokolliert und du spielst das Event erneut ab."
       },
       {
         "title": "Zustellprotokolle",
@@ -135,6 +135,10 @@ module.exports = {
         "a": "Eine Webhook-Plattform ist die produktionsreife Infrastruktur zwischen deiner Anwendung und den Endpoints deiner Kunden. Sie signiert Payloads per HMAC, wiederholt fehlgeschlagene Zustellungen mit konfigurierbarem Backoff, speichert Zustellprotokolle und stellt ein Subscriber-Portal bereit, in dem deine Nutzer ihre Endpoints selbst verwalten. Hook0 liefert all das als Managed Service oder als selbst gehosteten Docker-Stack."
       },
       {
+        "q": "Welche Plattformen unterstützen Webhooks?",
+        "a": "Die meisten SaaS-APIs, die Entwickler anbinden, verschicken Webhooks: Stripe und PayPal für Zahlungen, GitHub und GitLab für Repository-Events, Shopify für Bestellungen, Slack für Aktivitäten im Workspace, Twilio für SMS und Anrufe, HubSpot für Änderungen im CRM. Jede davon signiert ihre Payloads, wiederholt fehlgeschlagene Zustellungen und lässt Kunden eigene Endpoints registrieren. Eine Webhook-Plattform wie Hook0 gibt deinem Produkt genau diese Schicht, damit du deiner API Webhooks hinzufügst, ohne die Zustellung selbst zu bauen."
+      },
+      {
         "q": "Warum eine Webhook-Plattform nutzen, statt selbst zu bauen?",
         "a": "Ein produktionsreifes Webhook-System bedeutet mehr als drei Entwicklungs-Sprints für Retries, Dead-Letter-Queues, HMAC-Signaturen, Monitoring und eine Subscriber-Oberfläche, dazu die laufende Wartung. Mit einer Webhook-Plattform wie Hook0 bist du in 30 Minuten startklar und gewinnst diese Entwicklungszeit für dein Produkt zurück."
       },
@@ -182,6 +186,10 @@ module.exports = {
       {
         "label": "Preise",
         "href": "/pricing"
+      },
+      {
+        "label": "How Webhooks Work",
+        "href": "/how-webhooks-work"
       }
     ]
   },

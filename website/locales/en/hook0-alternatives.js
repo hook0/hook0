@@ -25,7 +25,7 @@ module.exports = {
     rows: [
       { criteria: 'Open-Source', hook0Html: 'Yes (SSPL-1.0, full source)', svixHtml: 'Partial (open-core, enterprise closed)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0)' },
       { criteria: 'Self-Hosting', hook0Html: 'Free (Docker / K8s)', svixHtml: 'MIT server, self-managed; supported on-prem on Enterprise', hookdeckHtml: 'Outpost yes; Event Gateway cloud-only', convoyHtml: 'Yes (self-managed)' },
-      { criteria: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', hookdeckHtml: 'Yes (10,000 events/mo)', convoyHtml: 'Community edition only' },
+      { criteria: 'Free Tier', hook0Html: 'Yes, no credit card (<a href="./webhook-free" class="underline hover:text-green-300">free webhook options</a>)', svixHtml: 'Yes', hookdeckHtml: 'Yes (10,000 events/mo)', convoyHtml: 'Community edition only' },
       { criteria: 'Pricing Model', hook0Html: 'Per-event, transparent', svixHtml: 'Per-event + enterprise tiers', hookdeckHtml: 'Per-event managed; Outpost self-host free', convoyHtml: 'Flat cloud tiers by throughput (from $99/month); self-hosted Premium $999/month' },
       { criteria: 'HMAC Signatures', hook0Html: 'Included (all plans)', svixHtml: 'Included', hookdeckHtml: 'Verification only', convoyHtml: 'Included' },
       { criteria: 'Retry Logic', hook0Html: 'Configurable per subscription (fast + slow phases)', svixHtml: 'Automatic retries', hookdeckHtml: 'Automatic retries', convoyHtml: 'Automatic retries' },

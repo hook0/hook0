@@ -27,12 +27,13 @@ head body, and the default fallback would just create a duplicate tag. -->
 
 <!-- hreflang alternates (localized versions). Self-referential link is intentionally
      omitted: it would duplicate the canonical URL and Parcel rewrites the colliding
-     canonical href into a bundle hash. Cross-language reciprocity + x-default are kept.
+     canonical href into a bundle hash. Cross-language reciprocity is kept; x-default
+     follows the rule in the code below.
      Bleed defense: pageHreflang from the previously-rendered page can leak into a
      non-converted page (one mutable `locals` across a Parcel run). If pageCanonical
      doesn't appear in pageHreflang, the set must have bled — skip emission entirely.
-     Also skip any single entry whose href equals own canonical (homepage x-default
-     case, or future self-referent leak). -->
+     Also skip any single entry whose href equals own canonical (EN x-default case,
+     or future self-referent leak). -->
 <% if (locals.pageHreflang && locals.pageCanonical) {
      var __curLang = locals.pageLang || 'en';
      var __own = locals.pageCanonical;
@@ -41,8 +42,15 @@ head body, and the default fallback would just create a duplicate tag. -->
        locals.pageHreflang.forEach(function(alt){ if (alt.lang !== __curLang && alt.href !== __own) { %>
 <link rel="alternate" hreflang="<%= alt.lang %>" href="<%= locals.seo.siteUrl %><%= alt.href %>">
 <%     } });
-       if (__own !== '/') { %>
-<link rel="alternate" hreflang="x-default" href="<%= locals.seo.siteUrl %>/">
+       // x-default = the English page of this same cluster, never the homepage:
+       // a homepage x-default on every page puts / in every cluster with no
+       // return link, and search engines discard the annotation. On an EN page
+       // x-default equals the canonical, which Parcel would hash (see above), so
+       // the head omits it there; dist/sitemap.xml carries the full set,
+       // x-default included, for every URL.
+       var __en = locals.pageHreflang.filter(function(alt){ return alt.lang === 'en'; })[0];
+       if (__en && __en.href !== __own) { %>
+<link rel="alternate" hreflang="x-default" href="<%= locals.seo.siteUrl %><%= __en.href %>">
 <%     }
      }
 } %>

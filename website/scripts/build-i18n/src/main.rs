@@ -363,7 +363,10 @@ fn write_sitemap(
     Ok(())
 }
 
-// Per-URL hreflang block: every locale this page ships in + x-default → root EN.
+// Per-URL hreflang block: every locale this page ships in + x-default. x-default
+// points at the EN URL of the same page (the version for unmatched languages),
+// not at the site root: a root x-default on every entry puts / in clusters that
+// it does not link back to, and search engines drop the annotation.
 fn hreflang_links(
     site_url: &str,
     en_slug: &str,
@@ -371,6 +374,7 @@ fn hreflang_links(
     localized: &HashMap<String, HashMap<String, String>>,
 ) -> String {
     let mut out = String::new();
+    let mut x_default = format!("{site_url}/");
     for (lang, dir, _) in locales {
         let slug = if lang == "en" {
             Some(en_slug.to_string())
@@ -392,10 +396,13 @@ fn hreflang_links(
             out.push_str(&format!(
                 "    <xhtml:link rel=\"alternate\" hreflang=\"{lang}\" href=\"{href}\"/>\n"
             ));
+            if lang == "en" {
+                x_default = href;
+            }
         }
     }
     out.push_str(&format!(
-        "    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"{site_url}/\"/>\n"
+        "    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"{x_default}\"/>\n"
     ));
     out
 }
@@ -838,6 +845,58 @@ mod tests {
     fn last_commit_date_is_none_for_missing_files() {
         let missing = vec![PathBuf::from("/nonexistent/hook0/page.ejs")];
         assert_eq!(git_last_commit_date(Path::new("/"), &missing, &[]), None);
+    }
+
+    fn test_locales() -> Vec<(String, String, String)> {
+        [("en", ""), ("fr", "fr"), ("de", "de")]
+            .iter()
+            .map(|(l, d)| (l.to_string(), d.to_string(), String::new()))
+            .collect()
+    }
+
+    #[test]
+    fn hreflang_x_default_points_to_en_page_not_root() {
+        let mut localized = HashMap::new();
+        localized.insert(
+            "webhook-platform".to_string(),
+            HashMap::from([
+                ("fr".to_string(), "plateforme-webhook".to_string()),
+                ("de".to_string(), "webhook-plattform".to_string()),
+            ]),
+        );
+        let out = hreflang_links(
+            "https://www.hook0.com",
+            "webhook-platform",
+            &test_locales(),
+            &localized,
+        );
+        assert!(
+            out.contains("hreflang=\"x-default\" href=\"https://www.hook0.com/webhook-platform\"")
+        );
+        assert!(!out.contains("hreflang=\"x-default\" href=\"https://www.hook0.com/\""));
+        assert!(
+            out.contains("hreflang=\"fr\" href=\"https://www.hook0.com/fr/plateforme-webhook\"")
+        );
+    }
+
+    #[test]
+    fn hreflang_x_default_is_root_for_homepage() {
+        let mut localized = HashMap::new();
+        localized.insert(
+            "index".to_string(),
+            HashMap::from([
+                ("fr".to_string(), "index".to_string()),
+                ("de".to_string(), "index".to_string()),
+            ]),
+        );
+        let out = hreflang_links(
+            "https://www.hook0.com",
+            "index",
+            &test_locales(),
+            &localized,
+        );
+        assert!(out.contains("hreflang=\"x-default\" href=\"https://www.hook0.com/\""));
+        assert!(out.contains("hreflang=\"fr\" href=\"https://www.hook0.com/fr/\""));
     }
 
     #[test]

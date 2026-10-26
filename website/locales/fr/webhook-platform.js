@@ -3,10 +3,10 @@
 module.exports = {
   "tldr": {
     "h2": "En bref",
-    "body": "Hook0 est une plateforme de webhooks open source qui envoie tes events à tes abonnés avec des signatures HMAC-SHA256, des relances en deux temps qui s'espacent sur plusieurs jours, et une file de messages morts quand un endpoint reste hors service. Chaque livraison est journalisée avec la requête, la réponse, le code de statut et la latence, et tu peux rejouer n'importe quel event depuis le tableau de bord. Un portail abonné prêt à l'emploi laisse tes utilisateurs gérer leurs endpoints, leurs secrets et leurs filtres d'events, donc le support arrête de traiter les tickets de rotation de secret. Fais-le tourner en auto-hébergé sur Docker ou Kubernetes, ou sur le cloud, gratuit jusqu'à 100 events par jour sans carte bancaire. Le même code SSPL-1.0 dans les deux cas, sans palier entreprise qui cache les fonctions utiles."
+    "body": "Hook0 est une plateforme de webhooks open source qui envoie tes events à tes abonnés avec des signatures HMAC-SHA256, des relances en deux temps qui s'espacent sur plusieurs jours, et des tentatives en échec conservées avec leur réponse quand un endpoint reste hors service. Chaque livraison est journalisée avec la requête, la réponse, le code de statut et la latence, et tu peux rejouer n'importe quel event depuis le tableau de bord. Un portail abonné prêt à l'emploi laisse tes utilisateurs gérer leurs endpoints, leurs secrets et leurs filtres d'events, donc le support arrête de traiter les tickets de rotation de secret. Fais-le tourner en auto-hébergé sur Docker ou Kubernetes, ou sur le cloud, gratuit jusqu'à 100 events par jour sans carte bancaire. Le même code SSPL-1.0 dans les deux cas, sans palier entreprise qui cache les fonctions utiles."
   },
   pageTitle: 'Plateforme webhooks en Europe, alignée RGPD | Hook0',
-  pageDescription: 'Plateforme webhooks open source (SSPL-1.0) : HMAC, relances, file des échecs, portail abonnés. Données en France (Clever Cloud).',
+  pageDescription: 'Plateforme webhooks open source (SSPL-1.0) : HMAC, relances, rejeu des events, portail abonnés. Données en France (Clever Cloud).',
   "pageModified": "2026-06-25",
   "track": "fr-webhook-plateforme",
   "hero": {
@@ -30,7 +30,7 @@ module.exports = {
       },
       {
         "title": "Relances en deux phases",
-        "body": "Relances rapides pour les coupures brèves, lentes sur plusieurs jours pour les vraies pannes. Réglables par souscription, avec une dead-letter queue au bout."
+        "body": "Relances rapides pour les coupures brèves, lentes sur plusieurs jours pour les vraies pannes. Quand la dernière échoue, la tentative reste journalisée avec sa réponse et tu rejoues l'event."
       },
       {
         "title": "Journaux de livraison",
@@ -135,6 +135,10 @@ module.exports = {
         "a": "Une plateforme de webhooks, c'est l'infrastructure de production entre ton application et les endpoints de tes clients. Elle signe les payloads en HMAC, relance les livraisons en échec avec un backoff configurable, conserve les journaux de livraison et expose un portail abonnés où tes utilisateurs gèrent leurs propres endpoints. Hook0 livre tout ça en service managé ou en stack Docker auto-hébergée."
       },
       {
+        "q": "Quelles plateformes prennent en charge les webhooks ?",
+        "a": "La plupart des API SaaS que les développeurs intègrent envoient des webhooks : Stripe et PayPal pour les paiements, GitHub et GitLab pour les événements de dépôt, Shopify pour les commandes, Slack pour l'activité d'un espace de travail, Twilio pour les SMS et les appels, HubSpot pour les changements dans le CRM. Chacune signe ses payloads, relance les livraisons en échec et laisse ses clients déclarer leurs propres endpoints. Une plateforme de webhooks comme Hook0 apporte cette même couche à ton produit : tu ajoutes des webhooks à ton API sans développer toi-même la partie livraison."
+      },
+      {
         "q": "Pourquoi utiliser une plateforme plutôt que la construire ?",
         "a": "Un système de webhooks prêt pour la production, c'est plus de trois sprints d'ingénierie pour les relances, les dead-letter queues, les signatures HMAC, le monitoring et une interface abonnés, plus la maintenance permanente. Avec une plateforme comme Hook0, tu es en production en 30 minutes et tu récupères ce temps d'ingénierie pour ton produit."
       },
@@ -182,6 +186,10 @@ module.exports = {
       {
         "label": "Tarifs",
         "href": "/pricing"
+      },
+      {
+        "label": "How Webhooks Work",
+        "href": "/how-webhooks-work"
       }
     ]
   },

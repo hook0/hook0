@@ -27,7 +27,7 @@ module.exports = {
     rows: [
       { criteria: 'Code source', hook0Html: 'Oui (SSPL-1.0, source intégrale)', svixHtml: 'Partiel (open core, entreprise fermé)', hookdeckHtml: 'Partiel (Outpost en Apache-2.0 ; Event Gateway fermé)', convoyHtml: 'Source ouverte (Elastic License 2.0)' },
       { criteria: 'Auto-hébergement', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Serveur MIT, autogéré ; on-prem supporté en Enterprise', hookdeckHtml: 'Outpost oui ; Event Gateway cloud uniquement', convoyHtml: 'Oui (auto-géré)' },
-      { criteria: 'Tier gratuit', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui', hookdeckHtml: 'Oui (10 000 events/mois)', convoyHtml: 'Édition communauté uniquement' },
+      { criteria: 'Tier gratuit', hook0Html: 'Oui, sans carte bancaire (<a href="/fr/webhook-gratuit" class="underline hover:text-green-300">webhooks gratuits</a>)', svixHtml: 'Oui', hookdeckHtml: 'Oui (10 000 events/mois)', convoyHtml: 'Édition communauté uniquement' },
       { criteria: 'Modèle tarifaire', hook0Html: 'À l\'event, transparent', svixHtml: 'À l\'event + tarifs entreprise', hookdeckHtml: 'À l\'event en managé ; Outpost auto-hébergé gratuit', convoyHtml: 'Forfaits cloud au débit (dès 99 $/mois) ; Premium auto-hébergé 999 $/mois' },
       { criteria: 'Signatures HMAC', hook0Html: 'Incluses (tous les plans)', svixHtml: 'Incluses', hookdeckHtml: 'Vérification seulement', convoyHtml: 'Incluses' },
       { criteria: 'Logique de relances', hook0Html: 'Configurable par abonnement (phases rapide + lente)', svixHtml: 'Relances automatiques', hookdeckHtml: 'Relances automatiques', convoyHtml: 'Relances automatiques' },
