@@ -88,7 +88,7 @@ pub fn init(
         let mut builder = MetricExporter::builder()
             .with_http()
             .with_protocol(Protocol::HttpBinary)
-            .with_compression(Compression::Zstd)
+            .with_compression(Compression::Gzip)
             .with_endpoint(metrics_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
         if let Some(auth) = &auth_header {
@@ -116,7 +116,7 @@ pub fn init(
         let mut builder = SpanExporter::builder()
             .with_http()
             .with_protocol(Protocol::HttpBinary)
-            .with_compression(Compression::Zstd)
+            .with_compression(Compression::Gzip)
             .with_endpoint(traces_endpoint.as_str())
             .with_timeout(Duration::from_secs(1));
         if let Some(auth) = auth_header {
@@ -150,9 +150,9 @@ pub fn init(
 /// No subscriber exists yet while this runs, so the startup line confirming where logs
 /// are being shipped is emitted later, by [`init`].
 ///
-/// The exporter mirrors the metrics/traces ones (HTTP binary, zstd, shared
-/// `Resource` and `Authorization` header) so all three signals land in the configured
-/// OTLP backend with the same correlation attributes.
+/// The exporter mirrors the metrics and traces ones.
+/// Protocol, compression, `Resource` and `Authorization` header are shared.
+/// All three signals share correlation attributes in the backend.
 pub fn init_logs(
     version: &str,
     otlp_authorization: &Option<String>,
@@ -165,7 +165,7 @@ pub fn init_logs(
     let mut builder = LogExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
-        .with_compression(Compression::Zstd)
+        .with_compression(Compression::Gzip)
         .with_endpoint(logs_endpoint.as_str())
         .with_timeout(Duration::from_secs(10));
     if let Some(auth) = otlp_authorization {
