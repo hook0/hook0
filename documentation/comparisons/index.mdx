@@ -125,7 +125,7 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 | **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ | ❌ |
 | **HMAC signatures** | ✅ | ✅ | ✅ | ✅ |
 | **Automatic retries** | ✅ Fixed escalating backoff, capped by max retries + window | ✅ | ✅ | ✅ |
-| **Dead letter queue** | ✅ | ✅ | ✅ | ❌ |
+| **Dead letter queue** | ✅ [Failed attempts kept and replayable](/explanation/webhook-dead-letter-queue), no separate queue | ✅ | ✅ | ❌ |
 | **Event type hierarchy** | ✅ Dot-notation | ✅ | ❌ | ⚠️ Flat |
 | **Custom retry schedules** | ⚠️ Global limits only (self-hosted) | ✅ | ✅ | ❌ |
 | **Delivery logs & replay** | ✅ | ✅ | ✅ | ⚠️ Logs only |
@@ -148,7 +148,7 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 
 Tools that receive webhooks rather than send them:
 
-- [Hook0 vs Requeue](https://www.hook0.com/hook0-vs-requeue): Requeue is a dead-letter inbox for webhooks you receive and for failed jobs.
+- [Hook0 vs Requeue](https://www.hook0.com/hook0-vs-requeue): Requeue is a dead-letter inbox for webhooks you receive and for failed jobs; its relay URL forwards a provider's webhook to your app once and keeps it if your app fails.
 - [Hook0 vs Webhook Relay](https://www.hook0.com/hook0-vs-webhook-relay): Webhook Relay forwards third-party webhooks to localhost or private servers.
 - [Hook0 vs ngrok](https://www.hook0.com/hook0-vs-ngrok): ngrok tunnels any local service; the Hook0 CLI forwards webhooks to localhost with no account.
 

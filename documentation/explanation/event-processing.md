@@ -117,7 +117,7 @@ Hook0 categorizes HTTP responses to decide what happens next:
 - Schedule retry according to the fixed retry schedule (see [Webhook retry logic](./webhook-retry-logic.md) for details on the predefined retry delays)
 - Increment attempt counter
 - See [HTTP Status Code Categories](../how-to-guides/debug-failed-webhooks.md#http-status-code-categories) for retry behavior details
-- Eventually move to dead letter queue after max retries exhausted
+- Once retries are exhausted, the last attempt stays `failed` and the event can be replayed (see [Where do webhooks go after the last retry?](./webhook-dead-letter-queue.md))
 
 
 ### 6. [Request attempt](/concepts/request-attempts) tracking

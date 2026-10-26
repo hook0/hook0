@@ -161,7 +161,7 @@ module.exports = {
       },
       {
         "q": "Was ist der Unterschied zwischen play.hook0.com und Hook0 Cloud?",
-        "a": "play.hook0.com ist ein kostenloses Tool, um Webhooks zu empfangen, zu prüfen und zu debuggen, die dir andere Dienste schicken. Hook0 Cloud ist die Infrastruktur, um signierte Webhooks in Produktion an deine eigenen Nutzer zu senden, mit Retries, Dead Letter Queue und Subscriber-Portal. Play zum Debuggen, Cloud oder Self-Hosting zum Ausliefern."
+        "a": "play.hook0.com ist ein kostenloses Tool, um Webhooks zu empfangen, zu prüfen und zu debuggen, die dir andere Dienste schicken. Hook0 Cloud ist die Infrastruktur, um signierte Webhooks in Produktion an deine eigenen Nutzer zu senden, mit Retries, Event-Replay und Subscriber-Portal. Play zum Debuggen, Cloud oder Self-Hosting zum Ausliefern."
       },
       {
         "q": "Läuft der kostenlose Cloud-Tarif ab oder braucht er eine Kreditkarte?",

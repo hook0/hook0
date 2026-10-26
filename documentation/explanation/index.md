@@ -49,7 +49,7 @@ How events flow from creation to delivery.
 - Event lifecycle stages
 - Queue management and priority handling
 - Retry mechanisms and backoff strategies
-- Dead letter queues and failure handling
+- Failure handling once retries are exhausted
 - Performance characteristics
 
 ---
@@ -65,6 +65,17 @@ Hook0's approach to security, authentication, and data protection.
 - Transport security (TLS)
 - Authorization and access control
 - Data privacy and compliance
+
+---
+
+### [Where do webhooks go after the last retry?](webhook-dead-letter-queue.md)
+What Hook0 keeps when it stops retrying, and how to find and replay those dead letters.
+
+**Topics covered:**
+- The four conditions that end retries, with their defaults
+- What a failed request attempt stores
+- Listing failed deliveries and replaying the event
+- Sender-side vs receiver-side dead letters
 
 ---
 

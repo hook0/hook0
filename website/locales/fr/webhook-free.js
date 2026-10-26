@@ -160,7 +160,7 @@ module.exports = {
       },
       {
         "q": "Quelle différence entre play.hook0.com et Hook0 Cloud ?",
-        "a": "play.hook0.com est un outil gratuit pour recevoir, inspecter et déboguer les webhooks que d'autres services t'envoient. Hook0 Cloud est l'infrastructure pour envoyer des webhooks signés à tes propres utilisateurs en production, avec relances, dead letter queue et portail abonné. Play sert à déboguer, le Cloud ou l'auto-hébergement servent à livrer."
+        "a": "play.hook0.com est un outil gratuit pour recevoir, inspecter et déboguer les webhooks que d'autres services t'envoient. Hook0 Cloud est l'infrastructure pour envoyer des webhooks signés à tes propres utilisateurs en production, avec relances, rejeu des events et portail abonné. Play sert à déboguer, le Cloud ou l'auto-hébergement servent à livrer."
       },
       {
         "q": "L'offre cloud gratuite expire-t-elle ou demande-t-elle une carte bancaire ?",

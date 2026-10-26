@@ -1,7 +1,46 @@
 ---
 title: "Webhook vs Polling: When Real-Time Beats Repeated Requests"
 description: "Latency numbers, cost math, and a decision framework for choosing webhooks, polling, or a hybrid of both."
-keywords: [webhook vs polling, webhooks vs api polling, real-time notifications, webhook latency, polling cost, push vs pull]
+keywords: [webhook vs polling, webhooks vs api polling, real-time notifications, webhook latency, polling cost, push vs pull, polling fallback, hybrid webhook polling]
+faqItems:
+  - question: "Is a webhook better than polling?"
+    answer: >-
+      When the source supports webhooks, yes for most cases. A webhook sends
+      one HTTP request per change, usually in under a second. Polling every 60
+      seconds adds 30 seconds of delay on average and spends almost every call
+      on an empty response. Polling still wins when the source only offers a
+      pull API, when a cron script is all you need, or when you want a full
+      snapshot of state on every run.
+  - question: "When do you have to poll instead of using a webhook?"
+    answer: >-
+      Poll when the source has no webhooks, when your consumer cannot expose a
+      public HTTPS endpoint (a laptop, a locked-down network), or when the
+      sender drops deliveries without retrying. Polling is also the simpler
+      choice for detecting deletions and reconciling full state, because each
+      run returns a complete snapshot.
+  - question: "What is the hybrid webhook and polling pattern?"
+    answer: >-
+      Webhooks carry changes in real time, and a low-frequency polling job
+      (hourly, for example) pulls full state and diffs it against what you
+      already processed. Both paths feed the same handler, which skips
+      duplicates with an idempotency key. Use it when reliability matters more
+      than latency: the poll catches anything a network blip, a sender outage
+      or a misconfiguration made the webhook miss.
+  - question: "At what volume does polling get too expensive?"
+    answer: >-
+      Cost grows with the number of resources you poll and the interval, not
+      with the number of changes. Polling one list endpoint once a minute is
+      1,440 calls a day, which most APIs accept even for a few hundred changes
+      a day. Polling 10,000 resources individually once a minute is 14.4
+      million calls a day to find roughly 2,400 changes, while webhooks send
+      about 2,400 requests.
+  - question: "Do I still need polling if the sender retries webhooks?"
+    answer: >-
+      Often not. When the sender retries failed deliveries over several hours,
+      a short outage on your side does not lose events. Hook0 retries on a
+      fixed schedule from 3 seconds up to 10-hour intervals and lets you replay
+      any event, so a polling fallback becomes a safety net for long outages
+      rather than a requirement.
 ---
 
 # Webhook vs Polling: A Decision Framework
@@ -80,6 +119,28 @@ Hook0 wraps the "webhook-first" pattern into something you can run in production
 It accepts [events](/concepts/events) from your application via API, routes them to subscriber endpoints based on [subscriptions](/concepts/subscriptions), and retries failed deliveries on a [fixed escalating schedule](/explanation/webhook-retry-logic). You also get delivery logs, latency metrics, and replay.
 
 The [getting started tutorial](/tutorials/getting-started) walks through setup.
+
+## FAQ
+
+### Is a webhook better than polling?
+
+When the source supports webhooks, yes for most cases. A webhook sends one HTTP request per change, usually in under a second. Polling every 60 seconds adds 30 seconds of delay on average and spends almost every call on an empty response. Polling still wins when the source only offers a pull API, when a cron script is all you need, or when you want a full snapshot of state on every run.
+
+### When do you have to poll instead of using a webhook?
+
+Poll when the source has no webhooks, when your consumer cannot expose a public HTTPS endpoint (a laptop, a locked-down network), or when the sender drops deliveries without retrying. Polling is also the simpler choice for detecting deletions and reconciling full state, because each run returns a complete snapshot.
+
+### What is the hybrid webhook and polling pattern?
+
+Webhooks carry changes in real time, and a low-frequency polling job (hourly, for example) pulls full state and diffs it against what you already processed. Both paths feed the same handler, which skips duplicates with an idempotency key. Use it when reliability matters more than latency: the poll catches anything a network blip, a sender outage or a misconfiguration made the webhook miss.
+
+### At what volume does polling get too expensive?
+
+Cost grows with the number of resources you poll and the interval, not with the number of changes. Polling one list endpoint once a minute is 1,440 calls a day, which most APIs accept even for a few hundred changes a day. Polling 10,000 resources individually once a minute is 14.4 million calls a day to find roughly 2,400 changes, while webhooks send about 2,400 requests.
+
+### Do I still need polling if the sender retries webhooks?
+
+Often not. When the sender retries failed deliveries over several hours, a short outage on your side does not lose events. Hook0 retries on a [fixed schedule](/explanation/webhook-retry-logic) from 3 seconds up to 10-hour intervals and lets you replay any event, so a polling fallback becomes a safety net for long outages rather than a requirement.
 
 ## Further reading
 

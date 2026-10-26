@@ -1,3 +1,27 @@
 - page: documentation/comparisons/hookdeck-vs-hook0.mdx
   exception: correction-factuelle
   reason: Title, meta description and JSON-LD still called Hookdeck an inbound webhook proxy, contradicting the page body and hookdeck.com, which describe two products (Event Gateway inbound, Outpost outbound).
+- page: website/src/hook0-vs-requeue.ejs
+  exception: correction-factuelle
+  reason: The comparison said Requeue signatures were not stated and its hosted API was waitlist only; on 2026-10-22 its README and FAQ document HMAC-SHA256 replay signatures, a live hosted API, a relay URL, MIT licence and Cloudflare Workers + D1 hosting, so the table, FAQ and sources were corrected with archived copies.
+- page: documentation/comparisons/index.mdx
+  exception: correction-factuelle
+  reason: The hub table claimed Hook0 has a dead letter queue, but the retry logic page and the API show the last attempt simply stays failed and the event is replayed; the row now says that, and the Requeue line now mentions its relay URL documented on 2026-10-22.
+- page: documentation/explanation/index.md
+  exception: correction-factuelle
+  reason: The event processing entry listed dead letter queues as a Hook0 topic although Hook0 keeps failed attempts for replay instead of a separate queue; the topic line was corrected and the new page that documents this behaviour was listed.
+- page: website/static/entitymap.html
+  exception: correction-factuelle
+  reason: The two-phase retries entity said retries end in a dead letter queue, but the documentation page on what happens after the last retry and the API show Hook0 keeps no separate queue; the last attempt stays failed with its response and the event is replayed, so the description now says that (same fix in entitymap.json and llms.txt).
+- page: website/src/webhook-api.ejs
+  exception: correction-factuelle
+  reason: The tldr, subtitle, retries card and FAQ said exhausted deliveries move to a dead letter queue, but the documentation page on what happens after the last retry and POST /events/{event_id}/replay show Hook0 keeps no separate queue; the last attempt stays failed with its response and the event is replayed, in en, fr and de (same fix in the EntityMap chunks c_api_2 and c_retries_1).
+- page: website/src/webhook-platform.ejs
+  exception: correction-factuelle
+  reason: The tldr, meta description, subtitle and retries card presented a dead letter queue as a Hook0 feature and said retries are tunable per subscription, while the retry logic page says the schedule is the same for every subscription and the dead letters page says the last attempt stays failed for replay; corrected in en, fr and de (same fix in EntityMap chunk c_retries_2).
+- page: website/src/webhook-free.ejs
+  exception: correction-factuelle
+  reason: The Play vs Cloud FAQ listed a dead letter queue among Hook0 Cloud features; Hook0 keeps failed attempts and replays the event instead, per the documentation page on dead letters, corrected in en, fr and de.
+- page: website/src/migrate-from-webhook-site.ejs
+  exception: correction-factuelle
+  reason: The tldr, comparison row and FAQ listed dead letter queues as a Hook0 feature; per the documentation page on dead letters and the replay endpoint, Hook0 keeps the failed attempt and replays the event, so the three spots now say event replay in en, fr and de.

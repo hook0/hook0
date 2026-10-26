@@ -3,7 +3,7 @@
 module.exports = {
   tldr: {
     h2: 'The Short Answer',
-    body: 'webhook.site inspects inbound HTTP requests for debugging; Hook0 sends webhooks out to your subscribers in production, with HMAC signatures, configurable retries, dead letter queues, delivery logs and a self-serve subscriber portal. Migrating takes about 30 minutes. You sign up, create an application, then swap the webhook.site URL for a single Hook0 API call, with no other code change. Hook0 is open-source under SSPL-1.0, self-hostable on Docker or Kubernetes, and free for 100 events a day with no credit card. When you only need a throwaway inspection URL, play.hook0.com does the same job as webhook.site.',
+    body: 'webhook.site inspects inbound HTTP requests for debugging; Hook0 sends webhooks out to your subscribers in production, with HMAC signatures, configurable retries, event replay, delivery logs and a self-serve subscriber portal. Migrating takes about 30 minutes. You sign up, create an application, then swap the webhook.site URL for a single Hook0 API call, with no other code change. Hook0 is open-source under SSPL-1.0, self-hostable on Docker or Kubernetes, and free for 100 events a day with no credit card. When you only need a throwaway inspection URL, play.hook0.com does the same job as webhook.site.',
   },
   pageTitle: 'Webhook.site Alternative: Switch to Hook0 in 30 Min',
   pageDescription: 'Looking for a webhook.site alternative? Hook0 is the production-grade upgrade: HMAC signatures, configurable retries, subscriber portal, open-source. Free forever.',
@@ -26,7 +26,7 @@ module.exports = {
       { need: 'Inspect incoming requests for debugging', webhookSite: 'Yes', webhookSitePositive: true, hook0: 'Yes (play.hook0.com)', hook0Positive: true },
       { need: 'Send webhooks to your customers in production', webhookSite: 'No', webhookSitePositive: false, hook0: 'Yes', hook0Positive: true },
       { need: 'HMAC-sign every payload', webhookSite: 'No', webhookSitePositive: false, hook0: 'Yes', hook0Positive: true },
-      { need: 'Retries and dead letter queues', webhookSite: 'No', webhookSitePositive: false, hook0: 'Yes', hook0Positive: true },
+      { need: 'Retries and event replay', webhookSite: 'No', webhookSitePositive: false, hook0: 'Yes', hook0Positive: true },
       { need: 'Subscriber portal for your customers', webhookSite: 'No', webhookSitePositive: false, hook0: 'Yes', hook0Positive: true },
       { need: 'Self-host on your infra', webhookSite: 'No', webhookSitePositive: false, hook0: 'Free (SSPL-1.0)', hook0Positive: true },
       { need: 'Free tier', webhookSite: 'Yes', webhookSitePositive: true, hook0: 'Yes', hook0Positive: true },
@@ -48,7 +48,7 @@ module.exports = {
     h2: 'Migration questions',
     items: [
       { q: 'Is Hook0 a webhook.site alternative?', a: 'Yes: Hook0 is the production-grade alternative when you outgrow webhook.site. Where webhook.site is a request inspector ("what payload did I receive?"), Hook0 is a webhook platform: it sends events to your subscribers, signs them with HMAC, retries on failure, and stores delivery logs. Use webhook.site to debug; use Hook0 in production.' },
-      { q: 'How do I migrate from webhook.site to Hook0?', a: 'Sign up for Hook0 (free, no credit card), create an application, and replace the webhook.site URL in your code with one Hook0 REST API call. You get HMAC-signed delivery, retries, dead letter queues and a subscriber portal: no code change beyond the API endpoint.' },
+      { q: 'How do I migrate from webhook.site to Hook0?', a: 'Sign up for Hook0 (free, no credit card), create an application, and replace the webhook.site URL in your code with one Hook0 REST API call. You get HMAC-signed delivery, retries, event replay and a subscriber portal: no code change beyond the API endpoint.' },
       { q: 'Can I still inspect raw webhook payloads with Hook0?', a: 'Yes. Every event sent through Hook0 is logged with the full request, response, status code and latency. You can replay any event from the dashboard. For ad-hoc testing without an account, play.hook0.com lets you generate disposable webhook URLs the same way webhook.site does.' },
       { q: 'Is Hook0 open-source unlike webhook.site?', a: 'Yes. Hook0 is fully open-source under SSPL-1.0 and self-hostable on Docker Compose or Kubernetes. webhook.site is a closed-source SaaS. If you need to keep traffic on your own infrastructure, Hook0 is the answer.' },
     ],

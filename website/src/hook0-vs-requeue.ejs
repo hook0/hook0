@@ -127,6 +127,31 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
     </div>
 </section>
 
+<!-- Where Requeue fits better: the honest counterweight to the table (the
+     inbound jobs Hook0 does not do), plus a pointer to the inbound gateway
+     comparison for readers who need retries rather than an inbox. -->
+<% if (t.fit) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card p-8 border-white/10 animate-on-scroll">
+            <h2 class="text-xl font-bold text-white mb-4"><%= t.fit.h2 %></h2>
+            <ul class="space-y-3 text-gray-300">
+                <% t.fit.bullets.forEach(function (b) { %>
+                <li class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span><%= b %></span>
+                </li>
+                <% }); %>
+            </ul>
+            <p class="mt-6 text-gray-400">
+                <%= t.fit.linkPrefix %>
+                <a href="<%= getPath(t.fit.link.enSlug, locals.pageLang) || getPath(t.fit.link.enSlug, 'en') %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= t.fit.link.label %></a>.
+            </p>
+        </div>
+    </div>
+</section>
+<% } %>
+
 <!-- FAQ Section -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>

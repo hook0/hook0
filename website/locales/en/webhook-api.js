@@ -5,16 +5,16 @@
 module.exports = {
   tldr: {
     h2: 'The Short Answer',
-    body: 'Hook0\'s webhook API is one REST endpoint. You POST your event to /api/v1/event with a bearer token, and Hook0 takes care of delivery. It signs each request with HMAC-SHA256, retries failed endpoints in two phases (fast retries for short blips, slow retries over days for real outages), moves exhausted deliveries to a dead letter queue, and records every attempt in the delivery logs. Pass your own event_id and Hook0 deduplicates on it, so a retried call never fires twice downstream. SDKs cover Python and Node.js. The server is open-source under SSPL-1.0, with a free tier of 100 events a day and no credit card.',
+    body: 'Hook0\'s webhook API is one REST endpoint. You POST your event to /api/v1/event with a bearer token, and Hook0 takes care of delivery. It signs each request with HMAC-SHA256, retries failed endpoints in two phases (fast retries for short blips, slow retries over days for real outages), records every attempt in the delivery logs, and keeps the last failed attempt with its response so you can replay the event. Pass your own event_id and Hook0 deduplicates on it, so a retried call never fires twice downstream. Official SDKs cover 11 languages, from Python and TypeScript to Go and Java. The server is open-source under SSPL-1.0, with a free tier of 100 events a day and no credit card.',
   },
   "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
-  "pageDescription": "Hook0 exposes a clean REST webhook API: one call to send an event, automatic HMAC signing, configurable retries and SDKs for Python, Node.js and more. Free forever.",
+  "pageDescription": "Hook0 exposes a clean REST webhook API: one call to send an event, automatic HMAC signing, configurable retries and official SDKs in 11 languages. Free forever.",
   "track": "webhook-api",
   "hero": {
     "eyebrow": "Webhook API",
     "titleLine1": "The Webhook API That",
     "titleLine2": "Just Works in 30 Minutes",
-    "subtitle": "One POST from your backend. Hook0 does the HMAC, the retries, the DLQ and the delivery logs. SDKs in Python and Node.js. Open-source, free tier, no credit card.",
+    "subtitle": "One POST from your backend. Hook0 does the HMAC, the retries, the delivery logs and the replay. Official SDKs in 11 languages. Open-source, free tier, no credit card.",
     "ctaPrimary": "Start Free",
     "ctaSecondary": "Read the API Reference",
     "microcopy": "100 events/day free. No credit card. Open-source."
@@ -41,7 +41,7 @@ module.exports = {
       },
       {
         "title": "Two-phase retries",
-        "body": "Fast retries within the first few minutes for flaky endpoints. Slow retries over hours and days for real outages. DLQ when the budget runs out."
+        "body": "Fast retries within the first few minutes for flaky endpoints. Slow retries over hours and days for real outages. When the budget runs out, the last attempt stays failed with its response, ready to replay."
       },
       {
         "title": "Idempotent event IDs",
@@ -53,7 +53,7 @@ module.exports = {
       },
       {
         "title": "Open-source SDKs",
-        "body": "Python and Node.js. Generated from the OpenAPI spec, so the client and the API stay in sync."
+        "body": "JavaScript/TypeScript, Python, Go, Rust, Java, Kotlin, C#, PHP, Ruby, Lua and Zig. Generated from the OpenAPI spec, so the client and the API stay in sync."
       },
       {
         "title": "Free tier, no gates",
@@ -67,7 +67,7 @@ module.exports = {
     "items": [
       {
         "q": "What is the Hook0 webhook API?",
-        "a": "The Hook0 webhook API is a REST interface that lets your backend trigger an event with a single HTTP call. Hook0 then signs the payload with HMAC, delivers it to every matching subscriber, retries on failure with a configurable two-phase backoff, and logs every attempt. SDKs are available for Python, Node.js and other languages."
+        "a": "The Hook0 webhook API is a REST interface that lets your backend trigger an event with a single HTTP call. Hook0 then signs the payload with HMAC, delivers it to every matching subscriber, retries on failure with a configurable two-phase backoff, and logs every attempt. Official SDKs cover 11 languages."
       },
       {
         "q": "How do I authenticate with the webhook API?",
@@ -75,11 +75,11 @@ module.exports = {
       },
       {
         "q": "Does the webhook API include retries and HMAC signatures?",
-        "a": "Yes. Every event triggered via the webhook API is automatically signed with HMAC (so subscribers can verify it) and retried using a two-phase backoff strategy on delivery failure. Dead letter queues capture events that exhaust their retry budget."
+        "a": "Yes. Every event triggered via the webhook API is automatically signed with HMAC (so subscribers can verify it) and retried using a two-phase backoff strategy on delivery failure. When an event exhausts its retry budget, the last attempt stays failed with the endpoint's response, and one API call replays it."
       },
       {
         "q": "What SDKs are available for the Hook0 webhook API?",
-        "a": "Official SDKs include Python and Node.js, with community libraries available for more languages. The REST API is fully documented in the API reference, so any HTTP client works."
+        "a": "Hook0 maintains 11 official SDKs: JavaScript/TypeScript, Python, Go, Rust, Java, Kotlin, C#, PHP, Ruby, Lua and Zig. Each installs from its language's package registry (Zig from a tagged archive), sends events and verifies webhook signatures. The REST API is fully documented in the API reference, so any HTTP client works too."
       },
       {
         "q": "Is the webhook API rate-limited?",
@@ -90,6 +90,7 @@ module.exports = {
   "related": {
     "h2": "Related",
     "links": [
+      { "label": "How Webhooks Work", "href": "./how-webhooks-work" },
       { "label": "Webhook Platform", "href": "./webhook-platform" },
       { "label": "Webhook MCP Server", "href": "./webhooks-for-ai-agents" },
       { "label": "Hook0 vs Svix", "href": "./hook0-vs-svix" },

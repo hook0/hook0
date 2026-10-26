@@ -155,7 +155,7 @@
         },
         {
           "chunkId": "c_api_2",
-          "text": "One POST from your backend. Hook0 does the HMAC, the retries, the DLQ and the delivery logs. SDKs in Python and Node.js. Open-source, free tier, no credit card.",
+          "text": "One POST from your backend. Hook0 does the HMAC, the retries, the delivery logs and the replay. Official SDKs in 11 languages. Open-source, free tier, no credit card.",
           "sourceUrl": "https://www.hook0.com/webhook-api",
           "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
           "publisher": "Hook0",
@@ -278,11 +278,11 @@
       "name": "Two-phase retries",
       "audienceType": "technical",
       "status": "active",
-      "description": "Two-phase retries are Hook0's delivery-retry strategy. Fast retries handle transient endpoint failures in the first minutes; slower retries cover longer outages over hours and days, ending in a dead letter queue once the retry budget is exhausted.",
+      "description": "Two-phase retries are Hook0's delivery-retry strategy. Fast retries handle transient endpoint failures in the first minutes; slower retries cover longer outages over hours and days. Once the retry budget is exhausted, the last attempt stays failed with its response and the event can be replayed.",
       "hasChunks": [
         {
           "chunkId": "c_retries_1",
-          "text": "Fast retries within the first few minutes for flaky endpoints. Slow retries over hours and days for real outages. DLQ when the budget runs out.",
+          "text": "Fast retries within the first few minutes for flaky endpoints. Slow retries over hours and days for real outages. When the budget runs out, the last attempt stays failed with its response, ready to replay.",
           "sourceUrl": "https://www.hook0.com/webhook-api",
           "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
           "publisher": "Hook0",
@@ -292,7 +292,7 @@
         },
         {
           "chunkId": "c_retries_2",
-          "text": "Fast retries for flaky endpoints, slow retries over days for real outages. Tunable per subscription, with a DLQ at the end.",
+          "text": "Fast retries for flaky endpoints, slow retries over days for real outages. When the last one fails, the attempt stays logged with its response and you replay the event.",
           "sourceUrl": "https://www.hook0.com/webhook-platform",
           "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
           "publisher": "Hook0",

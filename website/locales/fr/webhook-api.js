@@ -3,17 +3,17 @@
 module.exports = {
   tldr: {
     h2: 'En bref',
-    body: 'L\'API webhook de Hook0 tient en un seul endpoint REST. Tu envoies ton event en POST sur /api/v1/event avec un bearer token, et Hook0 s\'occupe de la livraison. Elle signe chaque requête en HMAC-SHA256, relance les endpoints en échec en deux phases (relances rapides pour les micro-coupures, relances lentes sur plusieurs jours pour les vraies pannes), bascule les livraisons épuisées vers une file de messages morts, et enregistre chaque tentative dans les logs de livraison. Tu passes ton propre event_id et Hook0 déduplique dessus, donc une requête relancée ne se déclenche jamais deux fois côté aval. Les SDK couvrent Python et Node.js. Le serveur est open source (SSPL-1.0), avec un tier gratuit de 100 events par jour et sans carte bancaire.',
+    body: 'L\'API webhook de Hook0 tient en un seul endpoint REST. Tu envoies ton event en POST sur /api/v1/event avec un bearer token, et Hook0 s\'occupe de la livraison. Elle signe chaque requête en HMAC-SHA256, relance les endpoints en échec en deux phases (relances rapides pour les micro-coupures, relances lentes sur plusieurs jours pour les vraies pannes), enregistre chaque tentative dans les logs de livraison, et garde la dernière tentative en échec avec sa réponse pour que tu rejoues l\'event. Tu passes ton propre event_id et Hook0 déduplique dessus, donc une requête relancée ne se déclenche jamais deux fois côté aval. Les SDK officiels couvrent 11 langages, de Python et TypeScript à Go et Java. Le serveur est open source (SSPL-1.0), avec un tier gratuit de 100 events par jour et sans carte bancaire.',
   },
   pageTitle: 'API Webhook : un POST suffit pour livrer un event | Hook0',
-  pageDescription: 'API REST sobre Hook0 : un POST déclenche un event, signature HMAC auto, relances configurables, SDK Python et Node.js. Gratuit.',
+  pageDescription: 'API REST sobre Hook0 : un POST déclenche un event, signature HMAC auto, relances configurables, SDK officiels en 11 langages. Gratuit.',
   "pageModified": "2026-06-27",
   "track": "fr-api-webhook",
   "hero": {
     "eyebrow": "API Webhook",
     "titleLine1": "L'API webhook qui marche",
     "titleLine2": "en 30 minutes",
-    "subtitle": "Un POST depuis ton backend. Hook0 gère HMAC, relances, DLQ et les logs de livraison. SDK Python et Node.js. Open source (SSPL-1.0), tier gratuit, sans carte bancaire.",
+    "subtitle": "Un POST depuis ton backend. Hook0 gère HMAC, relances, logs de livraison et rejeu. SDK officiels en 11 langages. Open source (SSPL-1.0), tier gratuit, sans carte bancaire.",
     "ctaPrimary": "Démarrer gratuitement",
     "ctaSecondary": "Lire la référence API",
     "microcopy": "100 events/jour gratuits. Sans carte bancaire. Open source (SSPL-1.0)."
@@ -40,7 +40,7 @@ module.exports = {
       },
       {
         "title": "Relances en deux phases",
-        "body": "Relances rapides dans les premières minutes pour les endpoints fragiles. Relances lentes sur des heures et des jours pour les vraies pannes. DLQ quand le budget de relance est épuisé."
+        "body": "Relances rapides dans les premières minutes pour les endpoints fragiles. Relances lentes sur des heures et des jours pour les vraies pannes. Budget épuisé : la dernière tentative reste en échec avec sa réponse, prête à rejouer."
       },
       {
         "title": "Identifiants d'event idempotents",
@@ -52,7 +52,7 @@ module.exports = {
       },
       {
         "title": "SDK open source",
-        "body": "Python et Node.js. Générés depuis la spec OpenAPI, donc le client et l'API restent alignés."
+        "body": "JavaScript/TypeScript, Python, Go, Rust, Java, Kotlin, C#, PHP, Ruby, Lua et Zig. Générés depuis la spec OpenAPI, donc le client et l'API restent alignés."
       },
       {
         "title": "Tier gratuit, sans verrou",
@@ -66,7 +66,7 @@ module.exports = {
     "items": [
       {
         "q": "Qu'est-ce que l'API webhook de Hook0 ?",
-        "a": "L'API webhook de Hook0 est une interface REST qui permet à ton backend de déclencher un event avec un seul appel HTTP. Hook0 signe ensuite le payload en HMAC, livre à chaque subscriber concerné, relance en cas d'échec avec un backoff configurable en deux phases et logge chaque tentative. Des SDK sont disponibles pour Python, Node.js et d'autres langages."
+        "a": "L'API webhook de Hook0 est une interface REST qui permet à ton backend de déclencher un event avec un seul appel HTTP. Hook0 signe ensuite le payload en HMAC, livre à chaque subscriber concerné, relance en cas d'échec avec un backoff configurable en deux phases et logge chaque tentative. Les SDK officiels couvrent 11 langages."
       },
       {
         "q": "Comment s'authentifier sur l'API webhook ?",
@@ -74,11 +74,11 @@ module.exports = {
       },
       {
         "q": "L'API webhook inclut-elle les relances et les signatures HMAC ?",
-        "a": "Oui. Chaque event déclenché via l'API webhook est signé automatiquement en HMAC (pour que tes destinataires le vérifient) et relancé selon une stratégie de backoff en deux phases en cas d'échec. Les dead-letter queues capturent les events qui épuisent leur budget de relance."
+        "a": "Oui. Chaque event déclenché via l'API webhook est signé automatiquement en HMAC (pour que tes destinataires le vérifient) et relancé selon une stratégie de backoff en deux phases en cas d'échec. Quand un event épuise son budget de relance, la dernière tentative reste en échec avec la réponse de l'endpoint, et un appel API le rejoue."
       },
       {
         "q": "Quels SDK sont disponibles pour l'API webhook Hook0 ?",
-        "a": "Les SDK officiels incluent Python et Node.js, avec des librairies communautaires pour d'autres langages. L'API REST est entièrement documentée dans la référence, donc n'importe quel client HTTP fonctionne."
+        "a": "Hook0 maintient 11 SDK officiels : JavaScript/TypeScript, Python, Go, Rust, Java, Kotlin, C#, PHP, Ruby, Lua et Zig. Chacun s'installe depuis le registre de paquets de son langage (Zig depuis une archive taguée), envoie des events et vérifie la signature des webhooks. L'API REST est entièrement documentée dans la référence, donc n'importe quel client HTTP fonctionne aussi."
       },
       {
         "q": "L'API webhook a-t-elle un rate limit ?",
@@ -94,7 +94,8 @@ module.exports = {
       { "label": "Hook0 vs Hookdeck", "href": "/hook0-vs-hookdeck" },
       { "label": "Build vs Buy Webhooks", "href": "/build-vs-buy-webhooks" },
       { "label": "Self-Hosted Webhooks", "href": "/self-hosted-webhooks" },
-      { "label": "Open-Source Webhooks", "href": "/open-source-webhooks" }
+      { "label": "Open-Source Webhooks", "href": "/open-source-webhooks" },
+      { "label": "How Webhooks Work", "href": "/how-webhooks-work" }
     ]
   }
 };

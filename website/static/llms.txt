@@ -1,9 +1,9 @@
 # Hook0
 
-> Open-source webhook platform that delivers events with HMAC signatures, configurable retries, dead letter queues, and a built-in subscriber portal. Cloud (EU-hosted, France) or self-hosted under SSPL-1.0. Editor: FGRibreau SARL (France), no US parent. CDN: Cloudflare (US), disclosed in our DPA.
+> Open-source webhook platform that delivers events with HMAC signatures, configurable retries, replay of failed deliveries, and a built-in subscriber portal. Cloud (EU-hosted, France) or self-hosted under SSPL-1.0. Editor: FGRibreau SARL (France), no US parent. CDN: Cloudflare (US), disclosed in our DPA.
 
 ## Product
-- [Webhook Platform](https://www.hook0.com/webhook-platform): Sign, retry, replay, and monitor webhooks. Two-phase retries, dead letter queue, subscriber portal, drop-in HMAC.
+- [Webhook Platform](https://www.hook0.com/webhook-platform): Sign, retry, replay, and monitor webhooks. Two-phase retries, replay of failed deliveries, subscriber portal, drop-in HMAC.
 - [Webhook Service](https://www.hook0.com/webhook-service): Managed delivery with HMAC signing, two-phase retries, and per-attempt logs. EU data plane on every plan. The same SSPL-1.0 code self-hosts when you want to leave.
 - [Pricing](https://www.hook0.com/pricing): Free forever tier, paid tiers unlock higher volume only. No feature gating. Self-hosted free under SSPL-1.0.
 - [Free Webhooks](https://www.hook0.com/webhook-free): Three free paths. Test webhooks in the browser with no account, self-host the SSPL-1.0 server with no Hook0 volume cap, or run the free cloud tier at 100 events/day, no credit card.
@@ -42,7 +42,7 @@
 - [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix)
 - [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck)
 - [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy)
-- [Hook0 vs Requeue](https://www.hook0.com/hook0-vs-requeue): Requeue is an inbound dead-letter inbox that catches webhooks you receive and failed cron/worker jobs to replay into your app. Hook0 is outbound webhooks-as-a-service: it sends webhooks to your users with per-attempt logs, free retries, HMAC, and replay from the dashboard or API. Opposite directions on the same reliability problem; Hook0 does not offer a production inbound dead-letter today.
+- [Hook0 vs Requeue](https://www.hook0.com/hook0-vs-requeue): Requeue is an inbound dead-letter inbox (MIT, Cloudflare Workers + D1, v0.1.0 in October 2026). Its relay URL forwards a provider's webhook (Stripe, Clerk) to your app once and keeps the request when your app fails; it also takes failed cron and worker jobs, with replay, payload edits and bulk replay. Hook0 is outbound webhooks-as-a-service: it sends webhooks to your users with per-attempt logs, up to 24 free retries within 8 days, HMAC on every request, and replay from the dashboard or API, EU-hosted. Requeue's FAQ says it does not replace outbound webhooks-as-a-service; Hook0 does not offer a production inbound dead-letter today.
 - [Hook0 vs ngrok](https://www.hook0.com/hook0-vs-ngrok): ngrok is a general-purpose ingress for any local HTTP, TCP or TLS service. The Hook0 CLI ships hook0 listen, a WebSocket tunnel that forwards webhooks to localhost with no account, backed by an open-source relay (SSPL-1.0) you can self-host with --relay-url. They overlap only on receiving webhooks during development.
 - [Hook0 vs Webhook Relay](https://www.hook0.com/hook0-vs-webhook-relay): Webhook Relay is an inbound gateway that receives third-party webhooks and forwards them to localhost, private servers, Kubernetes or cloud queues. Hook0 is outbound webhooks-as-a-service that sends your events to your users, EU-hosted by default and open source. Opposite directions; they meet only on local development.
 - [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks)
@@ -59,6 +59,8 @@
 - [Documentation](https://documentation.hook0.com/): Full reference, guides, API, deploy.
 - [Documentation index for assistants](https://documentation.hook0.com/llms.txt): Every published documentation page, with a one-line summary each.
 - [Getting Started](https://documentation.hook0.com/tutorials/getting-started): 30-minute setup, free tier.
+- [Where do webhooks go after the last retry?](https://documentation.hook0.com/explanation/webhook-dead-letter-queue): Hook0 keeps no separate dead-letter queue. After 24 retries or 8 days (defaults), a non-retryable error, or a disabled subscription, the last request attempt stays failed with its status code and response; you list failed attempts and replay the event with POST /events/{event_id}/replay. Explains sender-side vs receiver-side dead letters.
+- [Self-hosting architecture and OpenTelemetry](https://documentation.hook0.com/self-hosting): The API, the dashboard and the output worker of a self-hosted instance. The API and the worker export metrics, traces and logs over OTLP (HTTP, protobuf, zstd) to any OpenTelemetry Collector, one endpoint per signal: OTLP_METRICS_ENDPOINT, OTLP_TRACES_ENDPOINT, OTLP_LOGS_ENDPOINT, with an optional OTLP_AUTHORIZATION header.
 - [CLI](https://documentation.hook0.com/reference/cli): Command-line client. Send and replay events, manage subscriptions and event types, and receive webhooks on localhost through a built-in tunnel, no exposed ports.
 - [MCP Server](https://documentation.hook0.com/reference/mcp): 17 tools (9 read, 8 write) that let Claude, Cursor, or Windsurf create subscriptions, emit events, and replay failed deliveries against a Hook0 account. Runs locally over stdio, or as an SSE service.
 

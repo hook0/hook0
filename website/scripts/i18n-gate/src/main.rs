@@ -329,9 +329,14 @@ fn main() {
                         ));
                     }
                 }
-                let x_default = format!("hreflang=\"x-default\" href=\"{site_url}/\"");
+                // x-default must name this page's base-language URL, not the
+                // site root (a root x-default on every page is discarded).
+                let base_url = urls.get(&base_lang).cloned().unwrap_or_default();
+                let x_default = format!("hreflang=\"x-default\" href=\"{base_url}\"");
                 if !sitemap.contains(&x_default) {
-                    failures.push(format!("SITEMAP: x-default missing (page {en_slug})"));
+                    failures.push(format!(
+                        "SITEMAP: x-default missing or not {base_url} (page {en_slug})"
+                    ));
                 }
             }
         }

@@ -507,6 +507,7 @@ module.exports = {
     guides: {
       title: 'Guides',
       items: [
+        { label: 'How Webhooks Work', href: './how-webhooks-work', icon: 'book' },
         { label: 'What is hook0?', href: 'https://documentation.hook0.com/explanation/what-is-hook0', docPath: '/explanation/what-is-hook0', icon: 'book' },
         { label: 'Getting started', href: 'https://documentation.hook0.com/tutorials/getting-started', docPath: '/tutorials/getting-started', icon: 'bolt' },
         { label: 'Your First Webhook', href: 'https://documentation.hook0.com/tutorials/first-webhook-integration', docPath: '/tutorials/first-webhook-integration', icon: 'code' },
