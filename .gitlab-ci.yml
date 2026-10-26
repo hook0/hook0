@@ -160,6 +160,19 @@ osv_dependency_scan:
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
+  # When the scan blocks and when it does not, by pipeline source. The daily
+  # scheduled pipeline on master (the "osv-daily" pipeline schedule) is the
+  # authoritative supply-chain gate: there a fresh advisory must stop the line.
+  # Everywhere else — merge requests, branches, master pushes — the scan still
+  # runs for early feedback but is non-blocking, so a newly published advisory on
+  # an unrelated dependency no longer turns every open MR red and forces repeated
+  # rebases (CEO decision 2026-10-02). Coverage is preserved by the scheduled
+  # run, not dropped.
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      allow_failure: false
+    - when: on_success
+      allow_failure: true
   before_script:
     - go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.6.0
   script:
