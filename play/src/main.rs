@@ -1,6 +1,9 @@
 use clap::Parser;
+use std::future::IntoFuture;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Notify;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -8,6 +11,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use hook0_play::storage::{InMemoryStorage, RedisStorage, StorageBackend};
 use hook0_play::{create_app, start_background_tasks, AppState};
+
+/// Longest wait between a termination signal and the exit.
+/// A stuck request would otherwise block the exit forever.
+const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(10);
 
 #[derive(Parser, Debug)]
 #[command(name = "hook0-play")]
@@ -33,6 +40,38 @@ struct Args {
     /// If not set, in-memory storage is used.
     #[arg(long, env = "REDIS_URL")]
     redis_url: Option<String>,
+}
+
+/// Resolves on SIGINT or SIGTERM.
+/// A signal whose handler fails to install is only logged.
+/// That signal keeps its default behavior.
+async fn shutdown_signal() {
+    let sigint = async {
+        if let Err(e) = tokio::signal::ctrl_c().await {
+            tracing::warn!("Failed to listen for SIGINT: {}", e);
+            std::future::pending::<()>().await;
+        }
+    };
+
+    #[cfg(unix)]
+    let sigterm = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut stream) => {
+                stream.recv().await;
+            }
+            Err(e) => {
+                tracing::warn!("Failed to listen for SIGTERM: {}", e);
+                std::future::pending::<()>().await;
+            }
+        }
+    };
+    #[cfg(not(unix))]
+    let sigterm = std::future::pending::<()>();
+
+    tokio::select! {
+        () = sigint => {}
+        () = sigterm => {}
+    }
 }
 
 #[tokio::main]
@@ -122,10 +161,30 @@ async fn main() {
         .await
         .expect("Failed to bind to address");
 
-    axum::serve(
+    let shutdown_started = Arc::new(Notify::new());
+    let server = axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .await
-    .expect("Server error");
+    .with_graceful_shutdown({
+        let shutdown_started = Arc::clone(&shutdown_started);
+        async move {
+            shutdown_signal().await;
+            info!("Shutdown signal received, no longer accepting connections");
+            shutdown_started.notify_one();
+        }
+    });
+
+    // The deadline starts at the signal.
+    // It ignores the state of the connections.
+    tokio::select! {
+        result = server.into_future() => result.expect("Server error"),
+        () = async {
+            shutdown_started.notified().await;
+            tokio::time::sleep(SHUTDOWN_GRACE_PERIOD).await;
+        } => tracing::warn!(
+            "Connections still open {}s after the shutdown signal, exiting",
+            SHUTDOWN_GRACE_PERIOD.as_secs()
+        ),
+    }
 }

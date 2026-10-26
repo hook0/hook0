@@ -2289,3 +2289,152 @@ async fn test_content_negotiation_no_accept_header_returns_html() {
         content_type
     );
 }
+
+// Graceful Shutdown Tests
+
+/// Longest allowed delay between SIGTERM and exit.
+#[cfg(unix)]
+const SHUTDOWN_DEADLINE: Duration = Duration::from_secs(10);
+
+/// Start the server binary on a free port.
+/// Returns once `/health` answers.
+#[cfg(unix)]
+async fn start_test_server_process() -> (tokio::process::Child, u16) {
+    let port = portpicker::pick_unused_port().expect("No free port available");
+    let server = tokio::process::Command::new(env!("CARGO_BIN_EXE_hook0-play"))
+        .env("HOOKS_HOST", "127.0.0.1")
+        .env("HOOKS_PORT", port.to_string())
+        .env_remove("REDIS_URL")
+        .kill_on_drop(true)
+        .spawn()
+        .expect("Failed to spawn hook0-play");
+
+    let client = Client::new();
+    timeout(Duration::from_secs(10), async {
+        while client
+            .get(format!("http://127.0.0.1:{}/health", port))
+            .send()
+            .await
+            .is_err()
+        {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .expect("hook0-play did not answer /health within 10s");
+
+    (server, port)
+}
+
+#[cfg(unix)]
+fn send_sigterm(server: &tokio::process::Child) {
+    let pid = server.id().expect("hook0-play exited before SIGTERM");
+    let kill = std::process::Command::new("kill")
+        .args(["-TERM", &pid.to_string()])
+        .status()
+        .expect("Failed to run kill");
+    assert!(kill.success(), "kill -TERM {} failed: {}", pid, kill);
+}
+
+/// Assert the server exits with status 0 within the deadline.
+#[cfg(unix)]
+async fn assert_clean_exit_within_deadline(server: &mut tokio::process::Child) {
+    let exit = timeout(SHUTDOWN_DEADLINE + Duration::from_secs(5), server.wait())
+        .await
+        .expect("hook0-play still running after SIGTERM and the shutdown deadline")
+        .expect("Failed to wait for hook0-play");
+    assert_eq!(
+        exit.code(),
+        Some(0),
+        "SIGTERM must end in a clean exit, got {}",
+        exit
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_sigterm_exits_zero_within_deadline_with_websocket_open() {
+    let (mut server, port) = start_test_server_process().await;
+
+    // Keep a registered WebSocket open for the whole shutdown
+    let (mut ws_stream, _) = connect_async(format!("ws://127.0.0.1:{}/ws", port))
+        .await
+        .expect("WebSocket connect failed");
+    let start_msg = ClientMessage::Start {
+        version: 1,
+        data: StartData {
+            token: relay::generate_token(),
+        },
+    };
+    ws_stream
+        .send(Message::Text(
+            serde_json::to_string(&start_msg).unwrap().into(),
+        ))
+        .await
+        .unwrap();
+    let started = timeout(Duration::from_secs(5), ws_stream.next())
+        .await
+        .expect("Timeout waiting for started message")
+        .expect("Stream ended")
+        .expect("WebSocket error");
+    let Message::Text(text) = started else {
+        panic!("Expected text message, got {:?}", started);
+    };
+    let server_msg: ServerMessage = serde_json::from_str(&text).unwrap();
+    assert!(
+        matches!(server_msg, ServerMessage::Started { .. }),
+        "Expected started message, got {:?}",
+        server_msg
+    );
+
+    send_sigterm(&server);
+    assert_clean_exit_within_deadline(&mut server).await;
+
+    timeout(Duration::from_secs(5), async {
+        while let Some(Ok(msg)) = ws_stream.next().await {
+            if matches!(msg, Message::Close(_)) {
+                break;
+            }
+        }
+    })
+    .await
+    .expect("WebSocket still open after the server exited");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_sigterm_exits_zero_within_deadline_with_request_in_flight() {
+    use tokio::io::AsyncWriteExt;
+
+    let (mut server, port) = start_test_server_process().await;
+
+    // Announce a body that never arrives.
+    // The request stays in flight and holds the drain.
+    let mut stalled = tokio::net::TcpStream::connect(("127.0.0.1", port))
+        .await
+        .expect("TCP connect failed");
+    stalled
+        .write_all(
+            format!(
+                "POST /in/{}/ HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 100\r\n\r\npartial",
+                relay::generate_token()
+            )
+            .as_bytes(),
+        )
+        .await
+        .expect("Failed to send the partial request");
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    send_sigterm(&server);
+
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert!(
+        server
+            .try_wait()
+            .expect("Failed to poll hook0-play")
+            .is_none(),
+        "the server must keep draining while a request is in flight"
+    );
+
+    assert_clean_exit_within_deadline(&mut server).await;
+}

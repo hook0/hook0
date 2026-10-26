@@ -54,12 +54,16 @@ spec:
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+          {{- /* Failures for 300s (period x threshold) before a restart: replicas stay at 1, a restart drops every open WebSocket. */}}
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
