@@ -249,6 +249,17 @@ test.describe("Applications", () => {
     // Only the status of the PUT is read: on success the page calls
     // router.back(), which can leave the document before its body is read.
     // Persistence is checked by reloading the settings page instead.
+    //
+    // The refresh response is not awaited, only its effect is.
+    // The page was reached with goto.
+    // So router.back() loads a document.
+    // That load starts moments after the refresh answers.
+    // Playwright then sometimes never hears that answer.
+    // The page still received and applied it.
+    // The session in localStorage outlives the document.
+    // That stored session is what the test reads.
+    const sessionBefore = await storedSession(page);
+
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes(`/api/v1/applications/${app.application_id}`) &&
@@ -256,19 +267,20 @@ test.describe("Applications", () => {
       { timeout: 15000 }
     );
 
-    const updateRefreshPromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/auth/refresh") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-
     await page.locator('[data-test="application-submit-button"]').click();
 
     const response = await responsePromise;
     expect(response.status()).toBeLessThan(400);
-    expect((await updateRefreshPromise).status()).toBeLessThan(400);
 
     await expect(page).not.toHaveURL(/\/settings$/, { timeout: 10000 });
+    await page.waitForFunction(
+      (before) => {
+        const stored = globalThis.localStorage.getItem("auth");
+        return typeof stored === "string" && stored !== before;
+      },
+      sessionBefore,
+      { timeout: 15000 }
+    );
 
     // Verify the new name persisted
     await page.goto(`/organizations/${organizationId}/applications/${app.application_id}/settings`);
@@ -568,6 +580,13 @@ test.describe("Applications", () => {
 
 function isRefreshResponse(response: { url(): string; request(): { method(): string } }): boolean {
   return response.url().includes("/api/v1/auth/refresh") && response.request().method() === "POST";
+}
+
+/** The session the page holds in localStorage, as stored. */
+async function storedSession(page: Page): Promise<string> {
+  const session = await page.evaluate(() => globalThis.localStorage.getItem("auth"));
+  expect(typeof session, "the page holds no session").toBe("string");
+  return String(session);
 }
 
 /** Fill and submit the application form, and wait for the creation to succeed. */
