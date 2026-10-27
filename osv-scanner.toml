@@ -81,44 +81,11 @@ migrating off it. Tracked.
 # unused ignores and the lockfile confirmed the removal — same procedure as the
 # RUSTSEC-2026-0253 note below.
 
-# Both npm entries below are build-time transitive deps with no fixed version
-# published (latest = the flagged version), so there is nothing to bump to.
-# Re-evaluate on the ignoreUntil date, or as soon as a fixed release ships.
-
-[[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
-ignoreUntil = "2027-01-31T00:00:00Z"
-reason = """
-braces 3.0.3: stack-exhaustion denial of service through deeply nested brace
-patterns — the recursive AST walkers lack a depth guard, so a pattern under the
-character limit can overflow the call stack and terminate the Node process.
-Availability only (CVSS C:N/I:N/A:H).
-
-Pulled transitively and build-time only, in documentation/, frontend/ and
-website/: through micromatch (@docusaurus/utils, fast-glob,
-http-proxy-middleware) and chokidar (@docusaurus/core, webpack-dev-server). It
-expands glob patterns from our own build config and file paths, in CI and the
-dev server — never attacker-controlled input, never at runtime. A stack overflow
-would fail a build, not affect a user. No fixed version exists: 3.0.3 is the
-latest release upstream.
-"""
-
-[[IgnoredVulns]]
-id = "GHSA-ch52-4w7c-c8xp"
-ignoreUntil = "2027-01-31T00:00:00Z"
-reason = """
-http-cache-semantics 4.2.0: a client max-stale directive can surface a
-cross-user cached response, leaking another user's Set-Cookie from a shared
-cache. The vulnerability is defined against a shared, multi-user HTTP cache.
-
-Pulled only through @docusaurus/core -> update-notifier -> latest-version ->
-package-json -> got -> cacheable-request in documentation/: docusaurus's
-single-user "a new version is available" check, caching npm registry metadata on
-the build machine at build time. There is no shared cache and no second user to
-leak a response to, so the cross-user disclosure the advisory describes cannot
-occur here. Build-time only, not runtime. No fixed version exists: 4.2.0 is the
-latest release upstream.
-"""
+# The two npm entries that stood here (GHSA-vfj7-8cjw-p6xm, GHSA-ch52-4w7c-c8xp)
+# are gone. The braces advisory was withdrawn upstream on 2026-10-23, so it matches
+# nothing even though braces 3.0.3 is still locked in documentation/, frontend/ and
+# website/. documentation/package-lock.json now resolves http-cache-semantics 4.3.0,
+# past the 4.2.0 last affected version. The scanner listed both as unused ignores.
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0258"
@@ -141,6 +108,41 @@ never entered. (The S3 client's hyper 0.14 path to this copy left with the legac
 It moves when actix-http moves to the 0.4 line, which means actix-web 5, unreleased. If hook0-api
 ever starts terminating TLS itself, drop this entry and reassess the exposure first: the reasoning
 above rests on the process never speaking HTTP/2.
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-qwgh-2vcv-g2f7"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+block-buffer: a panic caught by safe code can leave the buffer's cursor in an invalid state, which
+then allows out-of-bounds reads and writes. The record declares every release below 0.12.1
+affected. Cargo.lock holds 0.9.0 and 0.10.4 (scanner hits) beside 0.12.1 (fixed).
+
+No bump removes either copy. 0.12 is the digest 0.11 generation (hybrid-array instead of
+generic-array), a separate semver line from 0.9 and 0.10, and neither of those lines has a release
+past the ones in the lockfile. 0.9.0 comes from sha2 0.9.9, required by biscuit-auth 6.0.0 (hook0-api),
+which is the latest release and also pins ecdsa 0.16, elliptic-curve 0.13, p256 0.13 and
+ed25519-dalek 2. 0.10.4 comes from digest 0.10.7, required by those same biscuit-auth crates, by
+sqlx-core 0.9.0 (sha2 ^0.10, hook0-api and hook0-output-worker), and by crc-fast 1.10.0 through
+aws-smithy-checksums 0.65.0 (aws-sdk-s3). All three are the latest releases.
+
+Neither copy has the defect. It comes from a cursor stored inside the data block, which block-buffer
+introduced in 0.11.0: its changelog shrinks EagerBuffer by the byte that held the cursor and adds
+ReadBuffer, and 0.12.1 fixes the unwinding path. In 0.10.4 the cursor is a separate `pos: u8` field
+that input bytes never reach, and it is assigned only after the compress callback returns, so a
+panic leaves the previous valid position. 0.9.0 keeps a plain `usize` cursor and indexes the buffer
+with bounds checks, so a stale cursor can panic but not touch memory out of bounds. Neither version
+has ReadBuffer. The record range starts at 0, wider than the code it describes.
+
+A panic would also have to be caught and the hasher reused afterwards. No first-party code and none
+of the hashing crates (sha2, sha1, digest, biscuit-auth, ed25519-dalek, sqlx-core) calls
+catch_unwind, and the tokio task harness, the only catcher on the request path, drops the
+task's state instead of reusing it.
+
+Drop this entry once biscuit-auth, sqlx-core and crc-fast move to the digest 0.11 generation and
+neither copy is left in Cargo.lock; the scanner then lists it as unused. It matches by id, so it
+would also hide an affected block-buffer 0.11 copy: Cargo.lock has none today, so check that before
+extending ignoreUntil.
 """
 
 # Reading the scanner's "unused ignores" list.
