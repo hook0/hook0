@@ -48,8 +48,21 @@ documentation.deploy:
   needs:
     - job: documentation.build
       artifacts: true
+  # Pinning `netlify-cli` does not pin what it depends on: npm resolves those at install time, and
+  # a version published minutes earlier can be listed by the registry before its tarball is served
+  # (`ETARGET` / `404` on a transitive package). That red says nothing about the code, and the
+  # install is the first thing this job does, so a second attempt a few minutes later clears it.
+  # `netlify deploy` of the same directory is idempotent, so re-running it is safe. The two
+  # conditions of the root `default: retry:` are repeated because a job-level `retry` replaces
+  # that default rather than adding to it.
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - script_failure
   script:
-    - npm install -g netlify-cli
+    - npm install -g netlify-cli@$NETLIFY_CLI_VERSION
     - netlify deploy --dir=documentation/build --site="$NETLIFY_DOCUMENTATION_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --prod --message="Deploy from $CI_COMMIT_SHORT_SHA"
   environment:
     name: production-documentation
@@ -64,8 +77,15 @@ documentation.deploy.preview:
   needs:
     - job: documentation.build
       artifacts: true
+  # Same install, same retry as `documentation.deploy` above.
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - script_failure
   script:
-    - npm install -g netlify-cli
+    - npm install -g netlify-cli@$NETLIFY_CLI_VERSION
     - netlify deploy --dir=documentation/build --site="$NETLIFY_DOCUMENTATION_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --json --message="Preview MR-$CI_MERGE_REQUEST_IID" > deploy_output.json
     - cat deploy_output.json
     - node -e "const d=require('./deploy_output.json'); console.log('DEPLOY_URL=' + d.deploy_url);" > deploy.env
