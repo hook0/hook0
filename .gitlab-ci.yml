@@ -59,6 +59,11 @@ variables:
   # bumping the version alone stops the job at the checksum rather than somewhere further in.
   CRANE_VERSION: "0.21.9"
   CRANE_SHA256: 5c16d8ddb971cb1d5e6ed8b1e743da8224414eeba2c2762d8f1a61b2f095699e
+  # The CLI the four Netlify publication jobs install (`documentation.deploy*`, `website.deploy*`).
+  # Pinned so a release of it cannot change what publishes the sites without a commit. It pins the
+  # CLI alone: its own dependencies are still resolved by npm at install time, which is why those
+  # jobs also retry on a script failure.
+  NETLIFY_CLI_VERSION: "27.14.2"
   # How long the runner waits on one cache request before giving up on it, in minutes. The default
   # is ten, and the runner retries, so a cache backend that accepts a connection and then stops
   # answering costs half an hour before the script has run a line.
