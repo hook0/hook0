@@ -77,6 +77,14 @@ variables:
   # from scratch rather than fail. Raising the job timeouts instead would buy the same green at the
   # price of runners held for half an hour doing nothing.
   CACHE_REQUEST_TIMEOUT: "2"
+  # How many times the runner tries each step that fetches something before the script starts: the
+  # git fetch, the artifacts a job `needs`, the cache. The default is one, so a fetch cut short
+  # (`fatal: early EOF`, exit 128) killed a job within seconds, before it ran a line, as a
+  # `script_failure` that `default: retry:` below does not cover. None of the three steps runs the
+  # job's script, so a second attempt repeats no side effect.
+  GET_SOURCES_ATTEMPTS: "3"
+  ARTIFACT_DOWNLOAD_ATTEMPTS: "3"
+  RESTORE_CACHE_ATTEMPTS: "3"
 
 # Retry any job on an infrastructure failure, never on a script failure.
 # `runner_system_failure` covers the case where the job's pod cannot be
