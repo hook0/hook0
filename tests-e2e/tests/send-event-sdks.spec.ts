@@ -473,7 +473,11 @@ test.describe("Send an event — every SDK", () => {
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/events/send`
     );
-    await expect(page.locator('[data-test="send-event-card"]')).toBeVisible({
+    // The form replaces a skeleton.
+    // Its editor takes the focus as it mounts.
+    // A key pressed before that lands in the editor.
+    // The Send button marks the form.
+    await expect(page.getByRole("button", { name: "Send an event" })).toBeVisible({
       timeout: PANEL_TIMEOUT,
     });
 
