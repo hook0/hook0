@@ -22,6 +22,21 @@ is on the [vulnerability disclosure policy](vulnerability-disclosure-policy.md)
 page. Everyone whose report we act on is credited on the
 [security acknowledgments](security-acknowledgments.md) page.
 
+## Role change takes effect only when the access token expires
+
+- **Reported by:** Sagar Kirola
+- **Severity:** Medium
+- **Weakness:** CWE-613 (insufficient session expiration), CWE-863 (incorrect authorization)
+- **CVE:** to be assigned
+- **Fixed:** commit `291d4363`, 2026-09-22
+
+A user's access token records their role when it is issued, and authorization
+read that record rather than the current role. A member demoted from Editor to
+Viewer, or removed from an organization, kept the old privileges until the token
+expired on its own. The fix expires the member's session tokens in the same
+transaction as the role change, so the next request is rejected and a fresh
+login carries the current role.
+
 ## Master API key compared in non-constant time
 
 - **Reported by:** Abdurazzoqov Javohir
