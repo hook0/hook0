@@ -3,10 +3,12 @@
 
 //! This is a collection of helpers related to Sentry.
 
+use sentry::integrations::tracing::{BreadcrumbLayer, ErrorLayer, LogLayer, SpanLayer};
 use sentry::protocol::Value;
 use sentry::{ClientInitGuard, Level, User, configure_scope};
 use std::collections::BTreeMap;
 use tracing::{info, warn};
+use tracing_subscriber::filter::{LevelFilter, filter_fn};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::registry::Registry;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -23,6 +25,8 @@ pub type BoxedLayer = Box<dyn Layer<Registry> + Send + Sync>;
 
 /// Initialize Sentry integration
 ///
+/// `enable_logs` sends `tracing` events (INFO level and above) to Sentry as structured logs.
+///
 /// `extra_layer` is an optional additional `tracing` layer to install on the same
 /// subscriber (used to bridge `tracing` events to an OTLP logs exporter). It must
 /// be built before this call, since the subscriber is finalized here and cannot be
@@ -33,6 +37,7 @@ pub fn init(
     debug: bool,
     send_default_pii: bool,
     enable_spans: bool,
+    enable_logs: bool,
     extra_layer: Option<BoxedLayer>,
 ) -> Option<ClientInitGuard> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
@@ -54,9 +59,7 @@ pub fn init(
         sentry::init((dsn, options))
     });
 
-    let sentry_layer = client
-        .as_ref()
-        .map(|_| sentry::integrations::tracing::layer().span_filter(move |_| enable_spans));
+    let sentry_enabled = client.is_some();
 
     // `extra_layer` goes on first so it targets the bare `Registry` type; `EnvFilter`
     // stays a global filter and applies to every layer regardless of position, so the
@@ -65,7 +68,24 @@ pub fn init(
         .with(extra_layer)
         .with(env_filter)
         .with(fmt::layer())
-        .with(sentry_layer)
+        .with(
+            (sentry_enabled && enable_spans)
+                .then(|| SpanLayer::new().with_filter(LevelFilter::INFO)),
+        )
+        // WARN/INFO events become breadcrumbs and ERROR events become Sentry issues, as with the
+        // deprecated combined layer.
+        .with(sentry_enabled.then(|| {
+            BreadcrumbLayer::new().with_filter(filter_fn(|metadata| {
+                matches!(
+                    *metadata.level(),
+                    tracing::Level::WARN | tracing::Level::INFO
+                )
+            }))
+        }))
+        .with(sentry_enabled.then(|| ErrorLayer::new().with_filter(LevelFilter::ERROR)))
+        .with(
+            (sentry_enabled && enable_logs).then(|| LogLayer::new().with_filter(LevelFilter::INFO)),
+        )
         .init();
 
     if client.as_ref().map(|c| c.is_enabled()).unwrap_or(false) {

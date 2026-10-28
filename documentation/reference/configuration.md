@@ -198,6 +198,7 @@ own build.
 | `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
 | `SENTRY_DEBUG` | Enable Sentry SDK debug mode | `false` |  |
 | `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
+| `SENTRY_ENABLE_LOGS` | Enable sending logs (INFO level and above) to Sentry | `false` |  |
 | `SENTRY_ENABLE_SPANS` | Enable sending tracing spans to Sentry | `false` |  |
 | `SENTRY_SEND_DEFAULT_PII` | Send default PII (IP addresses, cookies, etc.) to Sentry | `false` |  |
 | `SENTRY_TRACES_SAMPLE_RATE` | Optional sample rate for tracing transactions with Sentry (between 0.0 and 1.0) | - |  |
@@ -280,6 +281,7 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `SENTRY_DSN` | Optional Sentry DSN for error reporting | - |  |
 | `SENTRY_DEBUG` | Enable Sentry SDK debug mode | `false` |  |
 | `SENTRY_SEND_DEFAULT_PII` | Send default PII (IP addresses, cookies, etc.) to Sentry | `false` |  |
+| `SENTRY_ENABLE_LOGS` | Enable sending logs (INFO level and above) to Sentry | `false` |  |
 | `OTLP_METRICS_ENDPOINT` | Optional OTLP endpoint that will receive metrics | - |  |
 | `OTLP_TRACES_ENDPOINT` | Optional OTLP endpoint that will receive traces | - |  |
 | `OTLP_LOGS_ENDPOINT` | Optional OTLP endpoint that will receive logs | - |  |

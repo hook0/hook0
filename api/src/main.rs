@@ -142,6 +142,10 @@ struct Config {
     #[clap(long, env, default_value_t = false)]
     sentry_enable_spans: bool,
 
+    /// [Monitoring] Enable sending logs (INFO level and above) to Sentry
+    #[clap(long, env, default_value_t = false)]
+    sentry_enable_logs: bool,
+
     /// [Monitoring] Optional OTLP endpoint that will receive metrics
     #[clap(long, env)]
     otlp_metrics_endpoint: Option<Url>,
@@ -1092,6 +1096,7 @@ async fn main() -> anyhow::Result<()> {
             config.sentry_debug,
             config.sentry_send_default_pii,
             config.sentry_enable_spans,
+            config.sentry_enable_logs,
             otlp_logs_layer,
         );
 
