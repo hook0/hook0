@@ -20,7 +20,7 @@ validate.dockerfiles:
 lint.dockerfiles:
   stage: build
   dependencies: []
-  image: hadolint/hadolint:latest-alpine
+  image: hadolint/hadolint:$HADOLINT_VERSION
   rules:
     - changes:
         - "**/Dockerfile"

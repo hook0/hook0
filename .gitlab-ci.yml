@@ -50,6 +50,12 @@ variables:
   ALPINE_VERSION: "3.24"
   BUILDKIT_VERSION: "v0.27.0-rootless"
   TRIVY_VERSION: "0.68.2"
+  # The image the release jobs create a GitLab release with, and the one `lint.dockerfiles` runs in.
+  # A job image tagged `latest` changes what the job does without a commit moving, and the release
+  # jobs run on a tag only, so a release-cli that broke would first show at the release itself.
+  # `smoke/tests/needs.rs` refuses a `latest` tag on any job image.
+  RELEASE_CLI_VERSION: "v0.24.0"
+  HADOLINT_VERSION: "v2.15.1-alpine"
   # What moves a scanned image out of the project registry. It copies a manifest between registries
   # by digest and builds nothing, which is the whole point: what reaches Docker Hub and GHCR is the
   # bytes trivy read rather than a second build of the same source.
