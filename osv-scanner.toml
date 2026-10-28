@@ -145,6 +145,46 @@ would also hide an affected block-buffer 0.11 copy: Cargo.lock has none today, s
 extending ignoreUntil.
 """
 
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+deepmerge 4.3.1 (CVE-2026-93753): mergeObject() lets a `__proto__` key in a source object set the
+prototype of the object merge() returns, when the target is a null-prototype object or holds a null
+placeholder. The record covers 4.2.0 through 4.3.1 and lists no fixed version, and none exists:
+4.3.1, published 2023-03-16, is the latest release, and the maintainer closed the upstream report
+(TehShrike/deepmerge#273) on 2026-10-02 without a patch. No parent offers a way out either:
+@svgr/plugin-svgo 8.1.0 and jest-config 30.5.2 are each the latest release and each asks for
+^4.3.1.
+
+Both copies are unreachable:
+
+  - documentation/package-lock.json, via @docusaurus/preset-classic -> @docusaurus/plugin-svgr ->
+    @svgr/webpack -> @svgr/plugin-svgo. That package declares deepmerge in its manifest and never
+    requires it: its published dist/index.js loads only svgo and cosmiconfig, and no file in the
+    installed tree references deepmerge outside its own directory. A `docusaurus build` run with a
+    require hook on the module name loaded it in none of the seven node processes it started, and
+    the build output holds no copy of its code.
+  - frontend/package-lock.json (dev), via jest -> @jest/core -> jest-config. jest-config requires it
+    lazily at two call sites: the exported mergeConfig() helper, which nothing in frontend/ calls,
+    and the preset step, which merges `globals` only when both the project config and the preset set
+    one. jest.config.cjs sets a preset and no `globals`. The same hook over a whole `npm run test`
+    run (22 suites, 314 tests, 14 node processes) never loaded the module. The copy is dev-only: the
+    vite bundle holds no code of it and the image carries only that bundle.
+
+Where deepmerge did run, the trigger would still be missing. The advisory needs an attacker to
+supply the JSON that gets merged in, and the only inputs here are configuration files committed to
+this repository, read at build or test time in CI, never a request body.
+
+Drop this entry once deepmerge publishes a release past 4.3.1 and both lockfiles resolve it, or once
+the advisory is disputed or withdrawn upstream; the scanner then lists it as unused. It matches by
+id, so it would also hide a deepmerge copy that a lockfile gains later: documentation/ and
+frontend/ hold the only two today (tests-api-integrations/, tests-e2e/ and website/ hold none), so
+check that before extending ignoreUntil.
+
+Verified 2026-10-28 against the npm registry, the advisory and both lockfiles.
+"""
+
 # Reading the scanner's "unused ignores" list.
 #
 # osv-scanner v2.6.0 reports that list accurately: an id appears there only when
