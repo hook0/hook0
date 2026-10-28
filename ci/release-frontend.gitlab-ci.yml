@@ -183,7 +183,7 @@ frontend.github:
 frontend.gitlab:
   extends: .frontend-release-rules
   stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: registry.gitlab.com/gitlab-org/release-cli:$RELEASE_CLI_VERSION
   needs:
     - job: frontend.extract-notes
       artifacts: true

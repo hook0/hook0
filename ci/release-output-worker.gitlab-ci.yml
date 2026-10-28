@@ -155,7 +155,7 @@ output-worker.github:
 output-worker.gitlab:
   extends: .output-worker-release-rules
   stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: registry.gitlab.com/gitlab-org/release-cli:$RELEASE_CLI_VERSION
   needs:
     - job: output-worker.extract-notes
       artifacts: true

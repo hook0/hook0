@@ -1194,3 +1194,104 @@ fn only_the_default_branch_moves_a_mutable_image_tag() {
         writers.len()
     );
 }
+
+/// The tag that names whatever was published last.
+/// `latest-alpine` and its like move the same way.
+const FLOATING_TAG: &str = "latest";
+
+/// Fewest images read from the jobs' `image:` and `services:`.
+/// Below it, the guard is reading the wrong thing.
+const MIN_IMAGES: usize = 100;
+
+/// Why an image moves without a commit, if it does.
+///
+/// A literal tag is read as written.
+/// A variable tag is read from the root `variables:`.
+fn floats(image: &str, pinned: &Yaml) -> Option<String> {
+    // Look past the last `/`.
+    // A registry port is not a tag.
+    let Some((_, tag)) = image
+        .rsplit('/')
+        .next()
+        .and_then(|name| name.rsplit_once(':'))
+    else {
+        return Some("it names no tag, which is `latest`".to_owned());
+    };
+
+    let version = match tag.strip_prefix('$') {
+        None => tag,
+        Some(variable) => {
+            let name: String = variable
+                .trim_start_matches('{')
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                .collect();
+            match pinned[name.as_str()].as_str() {
+                Some(version) if !version.is_empty() => version,
+                _ => {
+                    return Some(format!(
+                        "`{name}` holds no value in the variables of {ROOT_PIPELINE}"
+                    ));
+                }
+            }
+        }
+    };
+    version
+        .starts_with(FLOATING_TAG)
+        .then(|| format!("`{version}` moves without a commit"))
+}
+
+/// No job image can change without a commit.
+///
+/// Release jobs run only on a tag.
+/// A broken `release-cli` would first show there.
+#[test]
+fn every_image_a_job_runs_in_is_pinned() {
+    let root = repository();
+    let declared = jobs(&root);
+
+    let body = fs::read_to_string(root.join(ROOT_PIPELINE))
+        .unwrap_or_else(|cause| panic!("{ROOT_PIPELINE} is unreadable: {cause}"));
+    let documents = YamlLoader::load_from_str(&body)
+        .unwrap_or_else(|cause| panic!("{ROOT_PIPELINE} is unreadable: {cause}"));
+    let Some(pipeline) = documents.first() else {
+        panic!("{ROOT_PIPELINE} holds no document, so it pins no version");
+    };
+
+    let mut floating = Vec::new();
+    let mut read = 0usize;
+    for (name, job) in &declared {
+        // A hidden job is a template GitLab never runs.
+        // Its images arrive through the jobs that extend it.
+        if name.starts_with('.') {
+            continue;
+        }
+        let services = inherited(&declared, name, "services", MAX_EXTENDS).and_then(Yaml::as_vec);
+        let images = inherited(&declared, name, "image", MAX_EXTENDS)
+            .into_iter()
+            .chain(services.into_iter().flatten())
+            // Either the reference itself or a map with `name:`.
+            .filter_map(|entry| entry.as_str().or_else(|| entry["name"].as_str()));
+        for image in images {
+            read += 1;
+            if let Some(why) = floats(image, &pipeline["variables"]) {
+                floating.push(format!("  {name} ({}) runs {image}: {why}", job.file));
+            }
+        }
+    }
+
+    assert!(
+        floating.is_empty(),
+        "these jobs run in an image that can change without a commit. Pin it with a version \
+         variable declared in {ROOT_PIPELINE}, as `ALPINE_VERSION` is, and use that variable as \
+         its tag:\n{}",
+        floating.join("\n")
+    );
+    // An image is a string or a map.
+    // A reader that lost either form would pass unnoticed.
+    assert!(
+        read >= MIN_IMAGES,
+        "only {read} image(s) were found named by a job, fewer than the {MIN_IMAGES} expected, so \
+         this guard is looking in the wrong place"
+    );
+}

@@ -100,7 +100,7 @@ cli.github:
 cli.gitlab:
   extends: .cli-release-rules
   stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: registry.gitlab.com/gitlab-org/release-cli:$RELEASE_CLI_VERSION
   needs:
     - job: cli.extract-notes
       artifacts: true
