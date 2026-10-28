@@ -26,3 +26,6 @@ uuid = "1.29.0"
 [build-dependencies]
 prost-build = "0.14.4"
 prost-wkt-build = "0.7.2"
+
+[package.metadata.cargo-shear]
+ignored = ["prost-wkt", "serde"]
