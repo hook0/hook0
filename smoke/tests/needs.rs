@@ -662,6 +662,43 @@ fn every_included_pipeline_file_is_there_and_every_file_there_is_included() {
     );
 }
 
+/// What `workflow:` tests for an open merge request.
+const OPEN_MERGE_REQUESTS: &str = "CI_OPEN_MERGE_REQUESTS";
+
+/// The template switch that scans in merge request pipelines.
+const SCANS_IN_MERGE_REQUESTS: &str = "AST_ENABLE_MR_PIPELINES";
+
+/// Dropping a branch pipeline must not drop its scans.
+///
+/// Templates scan in branch pipelines unless the switch is set.
+/// Without it, dropped pipelines leave commits unscanned yet green.
+#[test]
+fn a_branch_pipeline_is_only_dropped_where_the_merge_request_pipeline_scans() {
+    let root = repository();
+    let body = fs::read_to_string(root.join(ROOT_PIPELINE)).expect("the root pipeline");
+    let document = YamlLoader::load_from_str(&body).expect("the root pipeline parses");
+    let pipeline = document.first().expect("the root pipeline has a document");
+
+    let rules = pipeline["workflow"]["rules"]
+        .as_vec()
+        .expect("the workflow rules");
+    let drops_for_an_open_merge_request = rules.iter().any(|rule| {
+        rule["when"].as_str() == Some("never")
+            && rule["if"]
+                .as_str()
+                .is_some_and(|it| it.contains(OPEN_MERGE_REQUESTS))
+    });
+
+    assert!(
+        !drops_for_an_open_merge_request
+            || pipeline["variables"][SCANS_IN_MERGE_REQUESTS].as_str() == Some("true"),
+        "`workflow:` drops the branch pipeline of a branch with an open merge request while \
+         `{SCANS_IN_MERGE_REQUESTS}` is not \"true\" in the root `variables:`, so the scanners of \
+         the security templates, which run in branch pipelines alone by default, would skip every \
+         commit of every merge request"
+    );
+}
+
 /// The three halves of publishing a container image, told apart by the one thing that survives a
 /// job being moved to another file: its name.
 const BUILDS_IMAGE: &str = ".container";
