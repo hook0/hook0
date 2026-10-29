@@ -3,6 +3,12 @@ workflow:
     # Skip branch pipeline for release commits (tag pipeline will run instead)
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
       when: never
+    # A branch with an open merge request gets a merge request pipeline for every commit pushed to
+    # it, and that one is the pipeline the merge waits for. The branch pipeline of the same commit
+    # would run every job a second time on the shared runner, for a result nothing reads. Branches
+    # without an open merge request, the default branch, tags and schedules are left alone.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
     # Run for all other cases
     - when: always
 
@@ -91,6 +97,13 @@ variables:
   GET_SOURCES_ATTEMPTS: "3"
   ARTIFACT_DOWNLOAD_ATTEMPTS: "3"
   RESTORE_CACHE_ATTEMPTS: "3"
+  # Where the scanners of the SAST, DAST and Secret-Detection templates run. By default that is the
+  # branch pipeline alone, which the `workflow:` rule above no longer creates for a branch with an
+  # open merge request: the scans would skip every merge request until it reached the default
+  # branch. With this set, the same templates run them in the merge request pipeline instead, and
+  # leave the branch pipeline of such a branch out, as that rule does. Branch pipelines without a
+  # merge request, and the default branch, scan as before.
+  AST_ENABLE_MR_PIPELINES: "true"
 
 # Retry any job on an infrastructure failure, never on a script failure.
 # `runner_system_failure` covers the case where the job's pod cannot be
