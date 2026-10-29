@@ -60,8 +60,8 @@ compares the sixteen bytes in constant time.
 - **Reported by:** Sagar Kirola
 - **Severity:** Low
 - **Weakness:** CWE-362 (race condition), leading to CWE-770 (allocation without limits)
-- **CVE:** to be assigned
-- **Fixed:** commit `64f699f1`, 2026-08-25
+- **CVE:** not requested (low severity, a tenant could only exceed its own plan limit)
+- **Fixed:** commit `de36063f`, 2026-08-25
 
 Creating an application read the plan's application count and then inserted the
 new application, with nothing held between the two steps. Requests sent at the
@@ -75,7 +75,7 @@ keeps the count check and the insert it guards in one transaction.
 - **Severity:** Medium
 - **Weakness:** CWE-640 (weak password recovery), CWE-613 (insufficient session expiration)
 - **CVE:** to be assigned
-- **Fixed:** commit `80fae0de`, 2026-08-24
+- **Fixed:** commit `649fa55d`, 2026-08-24
 
 A reset link was not invalidated once it had been used, so a link that had
 already reset a password still set it again within its lifetime, and whoever
@@ -91,8 +91,8 @@ settings all retire any outstanding links.
 - **Reported by:** Nishant Lungare
 - **Severity:** Low
 - **Weakness:** CWE-204 (observable response discrepancy)
-- **CVE:** to be assigned
-- **Fixed:** commit `80fae0de`, 2026-08-24
+- **CVE:** not requested (low severity, only reveals whether an address is registered)
+- **Fixed:** commit `649fa55d`, 2026-08-24
 
 The password reset endpoint answered one way for an address that had an account
 and another for one that did not, which let an unauthenticated caller decide
@@ -102,16 +102,18 @@ way in both cases.
 ## Server-side request forgery via IPv6 transition addresses
 
 - **Reported by:** tonghuaroot
-- **Severity:** High
+- **Severity:** Medium (CVSS 6.3, `AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:N/A:N`)
 - **Weakness:** CWE-918 (server-side request forgery)
 - **CVE:** to be assigned
-- **Fixed:** commit `3b27e932`, 2026-08-11
+- **Fixed:** commit `19b9ece8`, 2026-08-11
 
 Hook0 delivers webhooks to a tenant-supplied URL and screens the target address
 to keep delivery from reaching forbidden IPv4 ranges. The screen matched the
-literal IPv4 form only, so an IPv6 transition address (an IPv4-mapped or
-IPv4-compatible IPv6 address) naming the same forbidden host passed it, and the
-worker connected. A tenant could use this to make the delivery worker reach
+literal IPv4 form only, so an IPv6 transition address naming the same
+forbidden host could pass it. The IPv4-mapped form was already blocked;
+whether a transition address actually reaches an internal host depends on the
+network the worker runs on, for example whether it has a translation gateway
+such as NAT64. Where it does, a tenant could make the delivery worker reach
 addresses on the internal network that the filter was meant to block. The fix
 canonicalises the resolved address before screening.
 
@@ -121,7 +123,7 @@ canonicalises the resolved address before screening.
 - **Severity:** Medium
 - **Weakness:** CWE-116 (improper output encoding), CWE-79
 - **CVE:** to be assigned
-- **Fixed:** commit `d899f54b`, 2026-08-06
+- **Fixed:** commit `2b77c20a`, 2026-08-06
 
 Values a user controls, such as a name substituted into a transactional email,
 were placed into the email body without being escaped for the surrounding
