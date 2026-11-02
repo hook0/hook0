@@ -1209,7 +1209,7 @@
   "info": {
     "description": "Core REST API of Hook0 — Open-Source Webhooks as a service for SaaS",
     "title": "Hook0 API",
-    "version": "1.0.2"
+    "version": "3.0.0"
   },
   "openapi": "3.0.0",
   "paths": {

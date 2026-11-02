@@ -3062,7 +3062,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-api"
-version = "1.0.2"
+version = "3.0.0"
 dependencies = [
  "actix-cors",
  "actix-files",

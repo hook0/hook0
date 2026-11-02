@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [api/v3.0.0] - 2026-10-28
+
 ### Breaking Changes
 
 - `POST /api/v1/auth/password` now requires the current password (api)
@@ -69,6 +71,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upgrading the SDK is enough.
 
 ### Security
+
+- A role change or a removal takes effect on the next request (api)
+
+  An access token recorded the member's role when it was issued and authorization read that
+  record, so a member demoted or removed from an organization kept the old privileges until the
+  token expired. The member's session tokens are now expired in the same transaction as the
+  role change, so the next request is refused and a fresh login carries the current role.
 
 - A reset mail that fails to send no longer leaves the link already in the mailbox dead (api)
 
