@@ -225,24 +225,12 @@ where
 
                                                 match application_secret_lookup {
                                                     Ok(Some(application_secret)) => {
-                                                        let service_access_biscuit = crate::iam::create_service_access_token(
+                                                        let service_access_biscuit = crate::iam::create_application_secret_access_token(
                                                             &biscuit_private_key,
-                                                            Uuid::nil(),
                                                             application_secret.organization_id,
-                                                        )
-                                                        .and_then(|root_token| {
-                                                            use biscuit_auth::builder_ext::BuilderExt;
-                                                            let biscuit = root_token.biscuit.append(
-                                                                biscuit_auth::builder::BlockBuilder::new().check(
-                                                                    biscuit_auth::macros::check!(
-                                                                        "check if application_id({application_id})",
-                                                                        application_id = application_secret.application_id
-                                                                    )
-                                                                )?.check_expiration_date(
-                                                                    std::time::SystemTime::now() + std::time::Duration::from_secs(1)
-                                                                ))?;
-                                                            Ok(biscuit)
-                                                        });
+                                                            application_secret.application_id,
+                                                            std::time::SystemTime::now(),
+                                                        );
 
                                                         match service_access_biscuit {
                                                             Ok(biscuit) => {

@@ -1,8 +1,21 @@
 //! Build script that generates API client code from the Hook0 OpenAPI specification.
 //!
-//! This script downloads the OpenAPI spec at build time and generates Rust code
+//! This script loads the OpenAPI spec at build time and generates Rust code
 //! for API method implementations. The generated code is then included in the
 //! api/generated.rs module.
+//!
+//! Spec sources, in order: a local `openapi.json` override, the API snapshot
+//! committed in the monorepo, then a download from production. The snapshot
+//! comes first so a workspace build is hermetic: a slow or truncated download
+//! used to yield an empty spec and fail the CLI tests. The download only serves
+//! a crate built outside the monorepo, where the snapshot is absent.
+//!
+//! The snapshot is the public client surface (operations tagged `sdk` or `mcp`),
+//! not the whole served document, so `API_ENDPOINTS` is shorter than from a
+//! download. A spec file that exists but cannot be read or parsed fails the
+//! build. Only existing sources get `rerun-if-changed`: a declared but missing
+//! path makes Cargo rerun this script on every build. After adding
+//! `openapi.json`, `touch build.rs` once.
 
 use heck::ToSnakeCase;
 use serde::Deserialize;
@@ -13,6 +26,8 @@ use std::path::Path;
 
 const OPENAPI_URL: &str = "https://app.hook0.com/api/v1/swagger.json";
 const OPENAPI_FALLBACK_PATH: &str = "openapi.json";
+const OPENAPI_SNAPSHOT_PATH: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../api/openapi.snapshot.json");
 
 #[derive(Debug, Deserialize)]
 struct OpenApiSpec {
@@ -117,7 +132,11 @@ struct ApiMethod {
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=openapi.json");
+    for path in [OPENAPI_FALLBACK_PATH, OPENAPI_SNAPSHOT_PATH] {
+        if Path::new(path).exists() {
+            println!("cargo:rerun-if-changed={path}");
+        }
+    }
 
     // Try to load OpenAPI spec
     let spec = load_openapi_spec();
@@ -132,30 +151,36 @@ fn main() {
 }
 
 fn load_openapi_spec() -> OpenApiSpec {
-    // First try local file (for offline builds and CI)
-    if let Ok(content) = fs::read_to_string(OPENAPI_FALLBACK_PATH)
-        && let Ok(spec) = serde_json::from_str(&content)
-    {
-        println!(
-            "cargo:warning=Using local OpenAPI spec from {}",
-            OPENAPI_FALLBACK_PATH
-        );
-        return spec;
-    }
-
-    // Try to download from URL (it saves the file internally)
-    match download_spec() {
-        Ok(spec) => spec,
-        Err(e) => {
-            println!(
-                "cargo:warning=Failed to download OpenAPI spec: {}. Using empty spec.",
-                e
-            );
-            OpenApiSpec {
-                paths: HashMap::new(),
-                components: Components::default(),
+    if let Some(spec) = read_spec_file(OPENAPI_FALLBACK_PATH) {
+        println!("cargo:warning=Using local OpenAPI spec from {OPENAPI_FALLBACK_PATH}");
+        spec
+    } else if let Some(spec) = read_spec_file(OPENAPI_SNAPSHOT_PATH) {
+        spec
+    } else {
+        match download_spec() {
+            Ok(spec) => spec,
+            Err(e) => {
+                println!("cargo:warning=Failed to download OpenAPI spec: {e}. Using empty spec.");
+                OpenApiSpec {
+                    paths: HashMap::new(),
+                    components: Components::default(),
+                }
             }
         }
+    }
+}
+
+/// Reads and parses one spec file. A missing file is simply not a source; a
+/// file that exists but cannot be read or parsed fails the build, so a broken
+/// override or snapshot is never papered over by the next source.
+fn read_spec_file(path: &str) -> Option<OpenApiSpec> {
+    match fs::read_to_string(path) {
+        Ok(content) => Some(
+            serde_json::from_str(&content)
+                .unwrap_or_else(|e| panic!("OpenAPI spec at {path} does not parse: {e}")),
+        ),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => panic!("OpenAPI spec at {path} cannot be read: {e}"),
     }
 }
 
@@ -172,12 +197,6 @@ fn download_spec() -> Result<OpenApiSpec, String> {
     }
 
     let text = response.text().map_err(|e| e.to_string())?;
-
-    // Save to OUT_DIR for caching (don't modify source tree)
-    if let Ok(out_dir) = env::var("OUT_DIR") {
-        let cache_path = std::path::Path::new(&out_dir).join("openapi_cache.json");
-        let _ = fs::write(cache_path, &text);
-    }
 
     serde_json::from_str(&text).map_err(|e| e.to_string())
 }
