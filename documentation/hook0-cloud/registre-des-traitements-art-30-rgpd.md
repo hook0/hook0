@@ -32,6 +32,7 @@ Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/67
 11. [Outil gratuit play.hook0.com — webhook playground](#traitement-11)
 12. [Feedback produit in-app via Formbricks](#traitement-12)
 13. [Emails de réactivation onboarding (comptes sans événement)](#traitement-13)
+14. [Rapports de sécurité reçus de chercheurs](#traitement-14)
 
 **Annexes**
 
@@ -906,6 +907,65 @@ Aucun transfert supplémentaire par rapport au traitement n°4.
 ### 10. Source des données
 
 Aucune collecte nouvelle : données issues du compte utilisateur (traitement n°1) et du service de webhooks (traitement n°2).
+
+---
+
+## Traitement n°14 — Rapports de sécurité reçus de chercheurs {#traitement-14}
+
+### 1. Identité du responsable de traitement
+
+**FGRibreau SARL** — cf. traitement n°1.
+
+### 2. Finalité(s) du traitement
+
+**Finalité principale :** Traiter les rapports de vulnérabilité reçus sur security@hook0.com et répondre à la personne qui les a envoyés.
+
+**Finalité secondaire :** Créditer le chercheur sur la page publique de remerciements, avec son accord.
+
+### 3. Base légale (art. 6 RGPD)
+
+**Art. 6.1.f — Intérêt légitime :** traiter un rapport et répondre à son auteur relève de la sécurisation du service (cf. traitement n°6).
+
+**Art. 6.1.a — Consentement :** la publication du crédit n'a lieu qu'avec l'accord du chercheur, qui peut le retirer à tout moment en écrivant à security@hook0.com ; le crédit est alors modifié ou retiré.
+
+### 4. Catégories de personnes concernées
+
+Chercheurs en sécurité et toute personne qui envoie un rapport de vulnérabilité à security@hook0.com.
+
+### 5. Catégories de données personnelles
+
+- Nom ou pseudonyme
+- Adresse email
+- Contenu du rapport et pièces jointes
+- Échanges avec le chercheur
+- Lien GitHub ou LinkedIn, si le chercheur souhaite qu'il figure dans son crédit
+
+### 6. Catégories de destinataires
+
+**Interne :** direction et équipe technique FGRibreau SARL.
+
+**Public :** nom ou pseudonyme et lien du chercheur sur la page de remerciements, avec son accord uniquement.
+
+### 7. Transferts hors UE
+
+Aucun transfert supplémentaire identifié par rapport aux traitements n°4 et n°5.
+
+### 8. Durée de conservation
+
+| Données | Durée | Justification |
+|---|---|---|
+| Rapport, pièces jointes et échanges | 5 ans après la clôture du rapport | Suivi des vulnérabilités traitées et défense en cas de litige |
+| Crédit publié | Jusqu'au retrait du consentement | Le chercheur peut demander le retrait à tout moment |
+
+### 9. Mesures de sécurité (description générale)
+
+- Réception sur une adresse dédiée, avec chiffrement possible des rapports par clé PGP.
+- Accès limité à la direction et à l'équipe technique.
+- Seul un lien GitHub ou LinkedIn est accepté dans un crédit.
+
+### 10. Source des données
+
+Données transmises directement par le chercheur.
 
 ---
 
