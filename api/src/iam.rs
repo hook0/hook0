@@ -322,6 +322,44 @@ pub fn create_service_access_token(
     })
 }
 
+/// How long the per-request Biscuit derived from an application secret stays
+/// valid, counted from the moment the middleware builds it.
+///
+/// This Biscuit never leaves the server: it lives in the request extensions and
+/// dies with the request, so its expiration is only a backstop, not what keeps
+/// a revoked secret out (the secret is looked up again on every request). The
+/// window must cover everything between the middleware and the handler's
+/// authorization: reading the request body, then the database lookup of the
+/// application's owner organization that `authorize_for_application` runs
+/// before the authorizer evaluates `time()`. One second was not enough: on a
+/// contended database that lookup alone exceeds it and a valid secret got a 403.
+#[cfg(feature = "application-secret-compatibility")]
+pub const APPLICATION_SECRET_BISCUIT_LIFETIME: Duration = Duration::from_secs(60);
+
+/// Builds the Biscuit that stands in for an application secret during one
+/// request: a service access token of the secret's organization, restricted to
+/// the secret's application and expiring `APPLICATION_SECRET_BISCUIT_LIFETIME`
+/// after `issued_at`.
+#[cfg(feature = "application-secret-compatibility")]
+pub fn create_application_secret_access_token(
+    private_key: &PrivateKey,
+    organization_id: Uuid,
+    application_id: Uuid,
+    issued_at: SystemTime,
+) -> Result<Biscuit, biscuit_auth::error::Token> {
+    use biscuit_auth::builder::BlockBuilder;
+    use biscuit_auth::builder_ext::BuilderExt;
+
+    let root_token = create_service_access_token(private_key, Uuid::nil(), organization_id)?;
+    root_token.biscuit.append(
+        BlockBuilder::new()
+            .check(biscuit_auth::macros::check!(
+                "check if application_id({application_id})"
+            ))?
+            .check_expiration_date(issued_at + APPLICATION_SECRET_BISCUIT_LIFETIME),
+    )
+}
+
 const EMAIL_VERIFICATION_TOKEN_VERSION: i64 = 1;
 // 24 hours: an email read a few hours late must still lead to a usable account.
 // Single use is not enforced by this expiration but by the handler, which only
@@ -1721,6 +1759,80 @@ mod tests {
         assert!(
             matches!(problem, Hook0Problem::Forbidden),
             "a non-user token must be denied with Forbidden (403), got: {problem:?}"
+        );
+    }
+
+    /// A valid application secret must still authorize when the handler runs
+    /// its authorizer a few seconds after the middleware built the Biscuit
+    /// (slow body, contended database), and must stop once the lifetime is over.
+    #[cfg(feature = "application-secret-compatibility")]
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn application_secret_access_token_survives_slow_request() {
+        let keypair = KeyPair::new();
+        let organization_id = Uuid::new_v4();
+        let application_id = Uuid::new_v4();
+        let other_application_id = Uuid::new_v4();
+        let action = Action::TestWithApplication {
+            application_id: &application_id,
+        };
+
+        let built_seconds_ago = create_application_secret_access_token(
+            &keypair.private(),
+            organization_id,
+            application_id,
+            SystemTime::now() - Duration::from_secs(5),
+        )
+        .unwrap();
+        assert!(
+            dbg!(authorize(
+                &built_seconds_ago,
+                Some(organization_id),
+                action,
+                MAX_DURATION_TIME,
+                true
+            ))
+            .is_ok()
+        );
+
+        let outlived = create_application_secret_access_token(
+            &keypair.private(),
+            organization_id,
+            application_id,
+            SystemTime::now() - APPLICATION_SECRET_BISCUIT_LIFETIME - Duration::from_secs(1),
+        )
+        .unwrap();
+        assert!(
+            dbg!(authorize(
+                &outlived,
+                Some(organization_id),
+                Action::TestWithApplication {
+                    application_id: &application_id
+                },
+                MAX_DURATION_TIME,
+                true
+            ))
+            .is_err()
+        );
+
+        let fresh = create_application_secret_access_token(
+            &keypair.private(),
+            organization_id,
+            application_id,
+            SystemTime::now(),
+        )
+        .unwrap();
+        assert!(
+            dbg!(authorize(
+                &fresh,
+                Some(organization_id),
+                Action::TestWithApplication {
+                    application_id: &other_application_id
+                },
+                MAX_DURATION_TIME,
+                true
+            ))
+            .is_err()
         );
     }
 
