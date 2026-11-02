@@ -34,7 +34,11 @@ pub struct Subscription {
     pub is_enabled: bool,
     pub event_types: Vec<String>,
     pub description: Option<String>,
-    pub secret: Uuid,
+    /// HMAC signing secret shared with the receiver. Present only for
+    /// configuration-capable callers (Editor, service or master token); omitted
+    /// entirely for a read-only Viewer. Absent field, never `null`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<Uuid>,
     pub metadata: HashMap<String, String>,
     /// _Kept for backward compatibility, you should use `labels`_
     pub label_key: String,
@@ -207,6 +211,30 @@ pub async fn list(
     )
     .await?;
 
+    // Least-privilege gate on the HMAC signing secret: the read above already
+    // passed (Viewer included), so this only decides whether the secret is
+    // exposed. We reuse the *existing* write action `subscription:create` as the
+    // probe rather than a dedicated action — the secret is a configuration
+    // credential, so "may configure subscriptions here" is exactly who should
+    // see it (Editor, plus service/master which pass any check). Probing a real
+    // write action also honours biscuit attenuation: a token narrowed to
+    // read-only fails it and gets the secret omitted, as intended.
+    // A denial means "omit the secret", NOT "deny the request" — hence
+    // `.is_ok()`, never `?`: propagating it would wrongly turn a Viewer's read
+    // into a 403.
+    let reveal_secret = authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionCreate {
+            application_id: &qs.application_id,
+            labels: &HashMap::new(),
+        },
+        state.max_authorization_time,
+        state.debug_authorizer,
+    )
+    .await
+    .is_ok();
+
     #[allow(non_snake_case)]
     struct RawSubscription {
         subscription__id: Uuid,
@@ -280,7 +308,7 @@ pub async fn list(
                 is_enabled: s.is_enabled,
                 event_types: s.event_types.unwrap_or_default(),
                 description: s.description,
-                secret: s.secret,
+                secret: reveal_secret.then_some(s.secret),
                 metadata: serde_json::from_value(s.metadata).unwrap_or_else(|_| HashMap::new()),
                 label_key: first_label.0,
                 label_value: first_label.1,
@@ -341,6 +369,23 @@ pub async fn get(
         state.debug_authorizer,
     )
     .await?;
+
+    // See `list`: reuse an existing write action as the probe (here the precise
+    // `subscription:edit` on this very subscription, since we have its id) so
+    // only configuration-capable callers see the secret. `.is_ok()` maps a
+    // denial to "omit the secret" rather than a 403 (the Viewer keeps its read).
+    let reveal_secret = authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::SubscriptionEdit {
+            application_id: &application_id,
+            subscription_id: &subscription_id,
+        },
+        state.max_authorization_time,
+        state.debug_authorizer,
+    )
+    .await
+    .is_ok();
 
     #[allow(non_snake_case)]
     struct RawSubscription {
@@ -417,7 +462,7 @@ pub async fn get(
                 is_enabled: s.is_enabled,
                 event_types: s.event_types.unwrap_or_default(),
                 description: s.description,
-                secret: s.secret,
+                secret: reveal_secret.then_some(s.secret),
                 metadata: serde_json::from_value(s.metadata).unwrap_or_else(|_| HashMap::new()),
                 label_key: first_label.0,
                 label_value: first_label.1,
@@ -642,7 +687,8 @@ pub async fn create(
         is_enabled: subscription.is_enabled,
         event_types: body.event_types.clone(),
         description: subscription.description,
-        secret: subscription.secret,
+        // create/edit are Editor-only, so the secret is always exposed here.
+        secret: Some(subscription.secret),
         metadata: serde_json::from_value(subscription.metadata.clone())
             .unwrap_or_else(|_| HashMap::new()),
         label_key: first_label.0,
@@ -937,7 +983,8 @@ pub async fn edit(
                 is_enabled: s.is_enabled,
                 event_types: body.event_types.clone(),
                 description: s.description,
-                secret: s.secret,
+                // edit is Editor-only, so the secret is always exposed here.
+                secret: Some(s.secret),
                 metadata: serde_json::from_value(s.metadata.clone())
                     .unwrap_or_else(|_| HashMap::new()),
                 label_key: first_label.0,
@@ -1299,6 +1346,291 @@ mod quota_race_tests {
         assert_eq!(
             accepted, SUBSCRIPTIONS_ALLOWED as usize,
             "more callers were told their subscription was created than the plan allows"
+        );
+    }
+}
+
+/// Who gets to see a subscription's signing `secret` on `list`/`get`.
+///
+/// The secret is the HMAC key shared with the customer's own receiver, so
+/// exposing it to any org member crosses no privilege boundary. Least-privilege
+/// still says a read-only Viewer has no business reading a signing credential,
+/// so `list`/`get` omit the field for a Viewer while keeping it for every
+/// configuration-capable caller (Editor, service token, master). The omission
+/// must stay an omission: a Viewer still gets HTTP 200, never a 403. These tests
+/// drive the real endpoints behind the real biscuit middleware — no mocks.
+#[cfg(test)]
+mod secret_visibility_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_membership, seed_org, seed_user, test_state,
+    };
+    use actix_web::{App, body::MessageBody, dev::ServiceResponse, test, web};
+    use serde_json::Value;
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    /// Mint a service access token through the real `POST /service_token`
+    /// endpoint (black box): this drives the production code path — biscuit
+    /// minting *and* the `iam.token` insert — instead of reproducing it, so the
+    /// test moves in lock-step with the handler rather than drifting from a
+    /// copied SQL statement. `creator_token` must belong to an Editor of `org`
+    /// (service-token creation is Editor-gated). Returns the serialized biscuit.
+    async fn issue_service_token<S, B>(app: &S, creator_token: &str, org: Uuid) -> String
+    where
+        S: actix_web::dev::Service<
+                actix_http::Request,
+                Response = ServiceResponse<B>,
+                Error = actix_web::Error,
+            >,
+        B: MessageBody,
+    {
+        let req = test::TestRequest::post()
+            .uri("/api/v1/service_token")
+            .insert_header(("Authorization", format!("Bearer {creator_token}")))
+            .set_json(serde_json::json!({
+                "organization_id": org,
+                "name": "e2e",
+            }))
+            .to_request();
+        let resp = test::call_service(app, req).await;
+        assert!(
+            resp.status().is_success(),
+            "creating the service token failed: {}",
+            resp.status()
+        );
+        let body: Value = test::read_body_json(resp).await;
+        body.get("biscuit")
+            .and_then(Value::as_str)
+            .expect("service token creation returns the serialized biscuit")
+            .to_owned()
+    }
+
+    /// The single subscription object an authenticated `GET /subscriptions/` and
+    /// `GET /subscriptions/{id}` return for `token`, as raw JSON. Both shapes are
+    /// read here (list returns an array of one) so each caller role is checked on
+    /// both endpoints. Asserts HTTP 200 on the way through — that is the CA6
+    /// guarantee (a Viewer keeps read access, it does not get a 403).
+    async fn read_subscription_both_ways<S, B>(
+        app: &S,
+        token: &str,
+        application: Uuid,
+        subscription_id: Uuid,
+    ) -> (Value, Value)
+    where
+        S: actix_web::dev::Service<
+                actix_http::Request,
+                Response = ServiceResponse<B>,
+                Error = actix_web::Error,
+            >,
+        B: MessageBody,
+    {
+        let list_req = test::TestRequest::get()
+            .uri(&format!(
+                "/api/v1/subscriptions?application_id={application}"
+            ))
+            .insert_header(("Authorization", format!("Bearer {token}")))
+            .to_request();
+        let list_resp = test::call_service(app, list_req).await;
+        assert_eq!(
+            list_resp.status().as_u16(),
+            200,
+            "list must stay readable (never 403) regardless of secret visibility"
+        );
+        let list_body: Value = test::read_body_json(list_resp).await;
+        let from_list = list_body
+            .as_array()
+            .and_then(|subs| {
+                subs.iter().find(|s| {
+                    s.get("subscription_id").and_then(Value::as_str)
+                        == Some(subscription_id.to_string().as_str())
+                })
+            })
+            .expect("the created subscription is present in the list")
+            .clone();
+
+        let get_req = test::TestRequest::get()
+            .uri(&format!("/api/v1/subscriptions/{subscription_id}"))
+            .insert_header(("Authorization", format!("Bearer {token}")))
+            .to_request();
+        let get_resp = test::call_service(app, get_req).await;
+        assert_eq!(
+            get_resp.status().as_u16(),
+            200,
+            "get must stay readable (never 403) regardless of secret visibility"
+        );
+        let from_get: Value = test::read_body_json(get_resp).await;
+
+        (from_list, from_get)
+    }
+
+    /// Editor and service tokens keep the secret; the human Viewer loses it — on
+    /// both `list` and `get`, with every other field untouched and no 403.
+    #[sqlx::test]
+    async fn secret_is_visible_to_editor_and_service_but_omitted_for_viewer(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        // One org with an Editor (its creator) and a separate Viewer, so both
+        // roles exercise the very same subscription.
+        let editor_user = seed_user(&pool).await;
+        let org = seed_org(&pool, editor_user).await;
+        seed_membership(&pool, editor_user, org, "editor").await;
+        let viewer_user = seed_user(&pool).await;
+        seed_membership(&pool, viewer_user, org, "viewer").await;
+
+        let application = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, 'secret-visibility')",
+        )
+        .bind(application)
+        .bind(org)
+        .execute(&pool)
+        .await
+        .expect("seed the application the subscription hangs off");
+
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1")
+                    .service(
+                        web::scope("/subscriptions")
+                            .wrap(biscuit_auth.clone())
+                            .route("", web::post().to(super::create))
+                            .route("", web::get().to(super::list))
+                            .route("/{subscription_id}", web::get().to(super::get)),
+                    )
+                    .service(
+                        web::scope("/event_types")
+                            .wrap(biscuit_auth.clone())
+                            .route("", web::post().to(crate::handlers::event_types::create)),
+                    )
+                    .service(
+                        web::scope("/service_token")
+                            .wrap(biscuit_auth)
+                            .route("", web::post().to(crate::handlers::service_token::create)),
+                    ),
+            ),
+        )
+        .await;
+
+        let editor_token = issue_user_token(&pool, &private_key, editor_user, org, "editor").await;
+        let viewer_token = issue_user_token(&pool, &private_key, viewer_user, org, "viewer").await;
+        // Reuse the real endpoint (black box) rather than mirroring its insert.
+        let service_token = issue_service_token(&app, &editor_token, org).await;
+
+        // Seed through the real endpoints: the event type spans several tables
+        // tied by foreign keys, so driving it avoids reproducing that shape.
+        let register_event_type = test::TestRequest::post()
+            .uri("/api/v1/event_types")
+            .insert_header(("Authorization", format!("Bearer {editor_token}")))
+            .set_json(serde_json::json!({
+                "application_id": application,
+                "service": "sec",
+                "resource_type": "thing",
+                "verb": "created",
+            }))
+            .to_request();
+        let registered = test::call_service(&app, register_event_type).await;
+        assert!(
+            registered.status().is_success(),
+            "registering the event type failed: {}",
+            registered.status()
+        );
+
+        let create_req = test::TestRequest::post()
+            .uri("/api/v1/subscriptions")
+            .insert_header(("Authorization", format!("Bearer {editor_token}")))
+            .set_json(serde_json::json!({
+                "application_id": application,
+                "is_enabled": true,
+                "event_types": ["sec.thing.created"],
+                "description": "secret-visibility",
+                "labels": {"all": "yes"},
+                "target": {
+                    "type": "http",
+                    "method": "POST",
+                    "url": "https://example.test/hook",
+                    "headers": {},
+                },
+            }))
+            .to_request();
+        let create_resp = test::call_service(&app, create_req).await;
+        assert!(
+            create_resp.status().is_success(),
+            "creating the subscription failed: {}",
+            create_resp.status()
+        );
+        let created: Value = test::read_body_json(create_resp).await;
+        // CA5: create is Editor-only and still returns the secret.
+        let created_secret = created
+            .get("secret")
+            .and_then(Value::as_str)
+            .expect("create returns the secret to its Editor caller")
+            .to_owned();
+        let subscription_id: Uuid = created
+            .get("subscription_id")
+            .and_then(Value::as_str)
+            .expect("create returns a subscription id")
+            .parse()
+            .expect("the subscription id is a uuid");
+
+        // CA3: an Editor reads the full secret on both list and get.
+        let (editor_list, editor_get) =
+            read_subscription_both_ways(&app, &editor_token, application, subscription_id).await;
+        assert_eq!(
+            editor_list.get("secret").and_then(Value::as_str),
+            Some(created_secret.as_str()),
+            "an Editor must still see the secret on list"
+        );
+        assert_eq!(
+            editor_get.get("secret").and_then(Value::as_str),
+            Some(created_secret.as_str()),
+            "an Editor must still see the secret on get"
+        );
+
+        // CA4: a service token keeps the secret (guards provisioning).
+        let (service_list, service_get) =
+            read_subscription_both_ways(&app, &service_token, application, subscription_id).await;
+        assert_eq!(
+            service_list.get("secret").and_then(Value::as_str),
+            Some(created_secret.as_str()),
+            "a service token must still see the secret on list"
+        );
+        assert_eq!(
+            service_get.get("secret").and_then(Value::as_str),
+            Some(created_secret.as_str()),
+            "a service token must still see the secret on get"
+        );
+
+        // CA1/CA2/CA6: the Viewer reads both endpoints as 200 (asserted inside
+        // the helper) but the `secret` field is absent entirely — not null, not
+        // masked, just gone — while the rest of the payload is intact.
+        let (viewer_list, viewer_get) =
+            read_subscription_both_ways(&app, &viewer_token, application, subscription_id).await;
+        assert!(
+            viewer_list.get("secret").is_none(),
+            "a Viewer must not receive the secret on list, got: {viewer_list}"
+        );
+        assert!(
+            viewer_get.get("secret").is_none(),
+            "a Viewer must not receive the secret on get, got: {viewer_get}"
+        );
+        // Everything else a Viewer can already read stays present.
+        assert_eq!(
+            viewer_get.get("subscription_id").and_then(Value::as_str),
+            Some(subscription_id.to_string().as_str()),
+            "omitting the secret must not drop the rest of the subscription"
+        );
+        assert!(
+            viewer_get.get("target").is_some() && viewer_get.get("is_enabled").is_some(),
+            "the Viewer still sees the non-secret fields"
         );
     }
 }

@@ -22,11 +22,13 @@ import java.util.UUID;
  * @param labelValue carries `label_value`: _Kept for backward compatibility, you should use `labels`_
  * @param labels carries `labels`.
  * @param metadata carries `metadata`.
- * @param secret carries `secret`.
  * @param subscriptionId carries `subscription_id`.
  * @param target carries `target`.
  * @param updatedAt carries `updated_at`.
  * @param description carries `description`, or nothing when the API answers none.
+ * @param secret carries `secret`, or nothing when the API answers none: HMAC signing secret shared with the receiver.
+ *     Present only for configuration-capable callers (Editor, service or master token); omitted entirely for a
+ *     read-only Viewer. Absent field, never `null`.
  */
 public record Subscription(
     UUID applicationId,
@@ -38,11 +40,11 @@ public record Subscription(
     String labelValue,
     Map<String, String> labels,
     Map<String, String> metadata,
-    UUID secret,
     UUID subscriptionId,
     SubscriptionTarget target,
     OffsetDateTime updatedAt,
-    String description) {
+    String description,
+    UUID secret) {
 
   /**
    * Reads one out of what the API answered.
@@ -62,11 +64,11 @@ public record Subscription(
         Wire.read(fields, "label_value", Wire::asText),
         Wire.read(fields, "labels", Wire.asMap(Wire::asText)),
         Wire.read(fields, "metadata", Wire.asMap(Wire::asText)),
-        Wire.read(fields, "secret", Wire::asUuid),
         Wire.read(fields, "subscription_id", Wire::asUuid),
         Wire.read(fields, "target", SubscriptionTarget::fromJson),
         Wire.read(fields, "updated_at", Wire::asMoment),
-        Wire.maybe(fields, "description", Wire::asText));
+        Wire.maybe(fields, "description", Wire::asText),
+        Wire.maybe(fields, "secret", Wire::asUuid));
   }
 
   /**
@@ -85,12 +87,14 @@ public record Subscription(
     out.put("label_value", labelValue);
     out.put("labels", labels);
     out.put("metadata", metadata);
-    out.put("secret", Wire.writeUuid(secret));
     out.put("subscription_id", Wire.writeUuid(subscriptionId));
     out.put("target", target.toJson());
     out.put("updated_at", Wire.writeMoment(updatedAt));
     if (description != null) {
       out.put("description", description);
+    }
+    if (secret != null) {
+      out.put("secret", Wire.writeUuid(secret));
     }
     return out;
   }

@@ -629,8 +629,8 @@ export interface Subscription {
   readonly labels: Record<string, string>;
   /** `metadata`. */
   readonly metadata: Record<string, string>;
-  /** `secret`. */
-  readonly secret: string;
+  /** `secret`: HMAC signing secret shared with the receiver. Present only for configuration-capable callers (Editor, service or master token); omitted entirely for a read-only Viewer. Absent field, never `null`. */
+  readonly secret?: string;
   /** `subscription_id`. */
   readonly subscription_id: string;
   /** `target`. */

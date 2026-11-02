@@ -662,7 +662,7 @@ label_key: string
 label_value: string
 labels: Record<string, string>
 metadata: Record<string, string>
-secret: string
+secret?: string
 subscription_id: string
 target: SubscriptionTarget
 updated_at: string

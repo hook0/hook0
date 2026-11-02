@@ -683,8 +683,8 @@ type Subscription struct {
 	Labels map[string]string `json:"labels"`
 	// Metadata carries `metadata`.
 	Metadata map[string]string `json:"metadata"`
-	// Secret carries `secret`.
-	Secret UUID `json:"secret"`
+	// Secret carries `secret`: HMAC signing secret shared with the receiver. Present only for configuration-capable callers (Editor, service or master token); omitted entirely for a read-only Viewer. Absent field, never `null`.
+	Secret *UUID `json:"secret,omitempty"`
 	// SubscriptionId carries `subscription_id`.
 	SubscriptionId UUID `json:"subscription_id"`
 	// Target carries `target`.

@@ -2025,11 +2025,13 @@ Models.Subscription.__eq = Runtime.equality
 --- @param fields.label_value string carries `label_value`: _Kept for backward compatibility, you should use `labels`_
 --- @param fields.labels table<string, string> carries `labels`.
 --- @param fields.metadata table<string, string> carries `metadata`.
---- @param fields.secret string carries `secret`.
 --- @param fields.subscription_id string carries `subscription_id`.
 --- @param fields.target SubscriptionTarget carries `target`.
 --- @param fields.updated_at string carries `updated_at`.
 --- @param fields.description string|nil carries `description`.
+--- @param fields.secret string|nil carries `secret`: HMAC signing secret shared with the receiver. Present only for
+---   configuration-capable callers (Editor, service or master token); omitted entirely for a read-only Viewer. Absent
+---   field, never `null`.
 --- @return Subscription
 function Models.Subscription.new(fields)
   return setmetatable({
@@ -2042,11 +2044,11 @@ function Models.Subscription.new(fields)
     label_value = fields.label_value,
     labels = fields.labels,
     metadata = fields.metadata,
-    secret = fields.secret,
     subscription_id = fields.subscription_id,
     target = fields.target,
     updated_at = fields.updated_at,
     description = fields.description,
+    secret = fields.secret,
   }, Models.Subscription)
 end
 
@@ -2065,11 +2067,11 @@ function Models.Subscription.from_json(value)
     label_value = Runtime.read(fields, "label_value", Runtime.TEXT),
     labels = Runtime.read(fields, "labels", Runtime.map(Runtime.TEXT)),
     metadata = Runtime.read(fields, "metadata", Runtime.map(Runtime.TEXT)),
-    secret = Runtime.read(fields, "secret", Runtime.TEXT),
     subscription_id = Runtime.read(fields, "subscription_id", Runtime.TEXT),
     target = Runtime.read(fields, "target", Models.SubscriptionTarget.from_json),
     updated_at = Runtime.read(fields, "updated_at", Runtime.TEXT),
     description = Runtime.maybe(fields, "description", Runtime.TEXT),
+    secret = Runtime.maybe(fields, "secret", Runtime.TEXT),
   })
 end
 
@@ -2086,11 +2088,11 @@ function Models.Subscription:to_table()
     ["label_value"] = self.label_value,
     ["labels"] = Runtime.written_map(self.labels, Runtime.itself),
     ["metadata"] = Runtime.written_map(self.metadata, Runtime.itself),
-    ["secret"] = self.secret,
     ["subscription_id"] = self.subscription_id,
     ["target"] = Runtime.written(self.target),
     ["updated_at"] = self.updated_at,
     ["description"] = self.description,
+    ["secret"] = self.secret,
   })
 end
 

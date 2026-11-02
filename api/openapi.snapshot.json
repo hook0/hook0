@@ -1064,6 +1064,7 @@
             "type": "object"
           },
           "secret": {
+            "description": "HMAC signing secret shared with the receiver. Present only for\n configuration-capable callers (Editor, service or master token); omitted\n entirely for a read-only Viewer. Absent field, never `null`.",
             "format": "uuid",
             "type": "string"
           },
@@ -1111,7 +1112,6 @@
           "label_value",
           "labels",
           "metadata",
-          "secret",
           "subscription_id",
           "target",
           "updated_at"

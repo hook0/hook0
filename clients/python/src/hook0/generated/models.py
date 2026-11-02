@@ -1328,11 +1328,11 @@ class Subscription:
     label_value: str
     labels: dict[str, str]
     metadata: dict[str, str]
-    secret: uuid.UUID
     subscription_id: uuid.UUID
     target: SubscriptionTarget
     updated_at: datetime.datetime
     description: str | None = None
+    secret: uuid.UUID | None = None
 
     @classmethod
     def from_json(cls, value: Any) -> Subscription:
@@ -1348,11 +1348,11 @@ class Subscription:
             read(fields, "label_value", as_text),
             read(fields, "labels", as_map(as_text)),
             read(fields, "metadata", as_map(as_text)),
-            read(fields, "secret", as_uuid),
             read(fields, "subscription_id", as_uuid),
             read(fields, "target", SubscriptionTarget.from_json),
             read(fields, "updated_at", as_datetime),
             maybe(fields, "description", as_text),
+            maybe(fields, "secret", as_uuid),
         )
 
     def to_json(self) -> dict[str, Any]:
@@ -1367,12 +1367,13 @@ class Subscription:
         out["label_value"] = self.label_value
         out["labels"] = dict(self.labels)
         out["metadata"] = dict(self.metadata)
-        out["secret"] = str(self.secret)
         out["subscription_id"] = str(self.subscription_id)
         out["target"] = self.target.to_json()
         out["updated_at"] = self.updated_at.isoformat()
         if self.description is not None:
             out["description"] = self.description
+        if self.secret is not None:
+            out["secret"] = str(self.secret)
         return out
 
 

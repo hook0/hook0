@@ -1178,9 +1178,10 @@ pub struct Subscription {
     /// `metadata`.
     #[serde(rename = "metadata")]
     pub metadata: HashMap<String, String>,
-    /// `secret`.
+    /// `secret`: HMAC signing secret shared with the receiver. Present only for configuration-capable callers (Editor, service or master token); omitted entirely for a read-only Viewer. Absent field, never `null`.
     #[serde(rename = "secret")]
-    pub secret: Uuid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<Uuid>,
     /// `subscription_id`.
     #[serde(rename = "subscription_id")]
     pub subscription_id: Uuid,

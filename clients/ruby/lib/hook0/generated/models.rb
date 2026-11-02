@@ -2760,11 +2760,11 @@ module Hook0
                   :label_value,
                   :labels,
                   :metadata,
-                  :secret,
                   :subscription_id,
                   :target,
                   :updated_at,
-                  :description
+                  :description,
+                  :secret
 
       # @param application_id [String] carries `application_id`.
       # @param created_at [Time] carries `created_at`.
@@ -2775,11 +2775,13 @@ module Hook0
       # @param label_value [String] carries `label_value`: _Kept for backward compatibility, you should use `labels`_
       # @param labels [Hash{String => String}] carries `labels`.
       # @param metadata [Hash{String => String}] carries `metadata`.
-      # @param secret [String] carries `secret`.
       # @param subscription_id [String] carries `subscription_id`.
       # @param target [SubscriptionTarget] carries `target`.
       # @param updated_at [Time] carries `updated_at`.
       # @param description [String, nil] carries `description`.
+      # @param secret [String, nil] carries `secret`: HMAC signing secret shared with the receiver. Present only for
+      #   configuration-capable callers (Editor, service or master token); omitted entirely for a read-only Viewer.
+      #   Absent field, never `null`.
       def initialize(
         application_id:,
         created_at:,
@@ -2790,11 +2792,11 @@ module Hook0
         label_value:,
         labels:,
         metadata:,
-        secret:,
         subscription_id:,
         target:,
         updated_at:,
-        description: nil
+        description: nil,
+        secret: nil
       )
         @application_id = application_id
         @created_at = created_at
@@ -2805,11 +2807,11 @@ module Hook0
         @label_value = label_value
         @labels = labels
         @metadata = metadata
-        @secret = secret
         @subscription_id = subscription_id
         @target = target
         @updated_at = updated_at
         @description = description
+        @secret = secret
         freeze
       end
 
@@ -2829,11 +2831,11 @@ module Hook0
           label_value: Runtime.read(fields, "label_value", Runtime::TEXT),
           labels: Runtime.read(fields, "labels", Runtime.map(Runtime::TEXT)),
           metadata: Runtime.read(fields, "metadata", Runtime.map(Runtime::TEXT)),
-          secret: Runtime.read(fields, "secret", Runtime::UUID),
           subscription_id: Runtime.read(fields, "subscription_id", Runtime::UUID),
           target: Runtime.read(fields, "target", SubscriptionTarget.method(:from_json)),
           updated_at: Runtime.read(fields, "updated_at", Runtime::DATE_TIME),
-          description: Runtime.maybe(fields, "description", Runtime::TEXT)
+          description: Runtime.maybe(fields, "description", Runtime::TEXT),
+          secret: Runtime.maybe(fields, "secret", Runtime::UUID)
         )
       end
 
@@ -2851,11 +2853,11 @@ module Hook0
         out["label_value"] = @label_value
         out["labels"] = @labels
         out["metadata"] = @metadata
-        out["secret"] = @secret
         out["subscription_id"] = @subscription_id
         out["target"] = @target.to_h
         out["updated_at"] = Runtime.moment(@updated_at)
         out["description"] = @description unless @description.nil?
+        out["secret"] = @secret unless @secret.nil?
         out
       end
 
