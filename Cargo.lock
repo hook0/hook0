@@ -2957,6 +2957,7 @@ dependencies = [
  "actix-cors",
  "actix-files",
  "actix-governor",
+ "actix-http",
  "actix-web",
  "anyhow",
  "argon2",

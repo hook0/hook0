@@ -24,11 +24,13 @@ final class Subscription
      * @param string $labelValue carries `label_value`: _Kept for backward compatibility, you should use `labels`_
      * @param array<string, string> $labels carries `labels`.
      * @param array<string, string> $metadata carries `metadata`.
-     * @param string $secret carries `secret`.
      * @param string $subscriptionId carries `subscription_id`.
      * @param SubscriptionTarget $target carries `target`.
      * @param \DateTimeImmutable $updatedAt carries `updated_at`.
      * @param string|null $description carries `description`.
+     * @param string|null $secret carries `secret`: HMAC signing secret shared with the receiver. Present only for
+     *   configuration-capable callers (Editor, service or master token); omitted entirely for a read-only Viewer.
+     *   Absent field, never `null`.
      */
     public function __construct(
         public readonly string $applicationId,
@@ -40,11 +42,11 @@ final class Subscription
         public readonly string $labelValue,
         public readonly array $labels,
         public readonly array $metadata,
-        public readonly string $secret,
         public readonly string $subscriptionId,
         public readonly SubscriptionTarget $target,
         public readonly \DateTimeImmutable $updatedAt,
         public readonly ?string $description = null,
+        public readonly ?string $secret = null,
     ) {
     }
 
@@ -71,11 +73,11 @@ final class Subscription
             'labelValue' => Runtime::read($fields, 'label_value', Runtime::text(...)),
             'labels' => Runtime::read($fields, 'labels', Runtime::mapOf(Runtime::text(...))),
             'metadata' => Runtime::read($fields, 'metadata', Runtime::mapOf(Runtime::text(...))),
-            'secret' => Runtime::read($fields, 'secret', Runtime::uuid(...)),
             'subscriptionId' => Runtime::read($fields, 'subscription_id', Runtime::uuid(...)),
             'target' => Runtime::read($fields, 'target', SubscriptionTarget::fromJson(...)),
             'updatedAt' => Runtime::read($fields, 'updated_at', Runtime::dateTime(...)),
             'description' => Runtime::maybe($fields, 'description', Runtime::text(...)),
+            'secret' => Runtime::maybe($fields, 'secret', Runtime::uuid(...)),
         ];
 
         return new self(...$read);
@@ -98,12 +100,14 @@ final class Subscription
         $out['label_value'] = $this->labelValue;
         $out['labels'] = Runtime::mapping($this->labels);
         $out['metadata'] = Runtime::mapping($this->metadata);
-        $out['secret'] = $this->secret;
         $out['subscription_id'] = $this->subscriptionId;
         $out['target'] = $this->target->toArray();
         $out['updated_at'] = Runtime::moment($this->updatedAt);
         if ($this->description !== null) {
             $out['description'] = $this->description;
+        }
+        if ($this->secret !== null) {
+            $out['secret'] = $this->secret;
         }
 
         return $out;

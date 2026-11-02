@@ -172,7 +172,9 @@ watch(
           target_url: sub.target.url,
         },
       });
-      secret.value = sub.secret;
+      // Omitted for read-only Viewers (see subscription secret hardening); the
+      // card below is hidden when there is no secret to show.
+      secret.value = sub.secret ?? '';
       createdAt.value = sub.created_at;
       isEnabled.value = sub.is_enabled;
       dedicatedWorkers.value = [...sub.dedicated_workers];
@@ -378,8 +380,9 @@ const missingFieldsTooltip = computed(() => {
 
       <!-- Form -->
       <template v-else>
-        <!-- Secret (edit mode only, above the form card) -->
-        <Hook0Card v-if="!isNew" data-test="subscription-secret-card">
+        <!-- Secret (edit mode only, and only when the API returned one: a
+             read-only Viewer does not receive the signing secret) -->
+        <Hook0Card v-if="!isNew && secret" data-test="subscription-secret-card">
           <Hook0CardContent>
             <div class="sub-secret">
               <span class="sub-secret__title">{{ t('subscriptions.secretLabel') }}</span>

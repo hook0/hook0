@@ -1390,7 +1390,7 @@ export interface components {
         [key: string]: string;
       };
       /** Format: uuid */
-      secret: string;
+      secret?: string;
       /** Format: uuid */
       subscription_id: string;
       target: {

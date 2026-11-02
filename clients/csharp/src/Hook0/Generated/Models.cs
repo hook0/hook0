@@ -1269,10 +1269,6 @@ public sealed record Subscription
     [JsonPropertyName("metadata")]
     public required IReadOnlyDictionary<string, string> Metadata { get; init; }
 
-    /// <summary>Carries <c>secret</c>.</summary>
-    [JsonPropertyName("secret")]
-    public required Guid Secret { get; init; }
-
     /// <summary>Carries <c>subscription_id</c>.</summary>
     [JsonPropertyName("subscription_id")]
     public required Guid SubscriptionId { get; init; }
@@ -1289,6 +1285,14 @@ public sealed record Subscription
     [JsonPropertyName("description")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Description { get; init; }
+
+    /// <summary>
+    /// Carries <c>secret</c>: HMAC signing secret shared with the receiver. Present only for configuration-capable
+    /// callers (Editor, service or master token); omitted entirely for a read-only Viewer. Absent field, never `null`.
+    /// </summary>
+    [JsonPropertyName("secret")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? Secret { get; init; }
 }
 
 /// <summary>The <c>SubscriptionPost</c> the API declares.</summary>

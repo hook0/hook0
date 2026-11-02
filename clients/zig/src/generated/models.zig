@@ -2116,8 +2116,6 @@ pub const Subscription = struct {
     labels: runtime.Map([]const u8),
     /// carries `metadata`.
     metadata: runtime.Map([]const u8),
-    /// carries `secret`.
-    secret: []const u8,
     /// carries `subscription_id`.
     subscription_id: []const u8,
     /// carries `target`.
@@ -2126,6 +2124,10 @@ pub const Subscription = struct {
     updated_at: []const u8,
     /// carries `description`.
     description: ?[]const u8,
+    /// carries `secret`: HMAC signing secret shared with the receiver. Present only for
+    /// configuration-capable callers (Editor, service or master token); omitted entirely for a
+    /// read-only Viewer. Absent field, never `null`.
+    secret: ?[]const u8,
 
     /// Read one out of what the API answered.
     pub fn fromJson(
@@ -2158,7 +2160,6 @@ pub const Subscription = struct {
                 "metadata",
                 runtime.map(runtime.text).read,
             ),
-            .secret = try runtime.read(allocator, fields, "secret", runtime.text),
             .subscription_id = try runtime.read(allocator, fields, "subscription_id", runtime.text),
             .target = try runtime.read(
                 allocator,
@@ -2168,6 +2169,7 @@ pub const Subscription = struct {
             ),
             .updated_at = try runtime.read(allocator, fields, "updated_at", runtime.text),
             .description = try runtime.maybe(allocator, fields, "description", runtime.text),
+            .secret = try runtime.maybe(allocator, fields, "secret", runtime.text),
         };
     }
 
@@ -2186,11 +2188,11 @@ pub const Subscription = struct {
         try runtime.put(&out, allocator, "label_value", self.label_value);
         try runtime.put(&out, allocator, "labels", self.labels);
         try runtime.put(&out, allocator, "metadata", self.metadata);
-        try runtime.put(&out, allocator, "secret", self.secret);
         try runtime.put(&out, allocator, "subscription_id", self.subscription_id);
         try runtime.put(&out, allocator, "target", self.target);
         try runtime.put(&out, allocator, "updated_at", self.updated_at);
         try runtime.put(&out, allocator, "description", self.description);
+        try runtime.put(&out, allocator, "secret", self.secret);
         return .{ .object = out };
     }
 };

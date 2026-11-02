@@ -19,11 +19,13 @@ import java.util.UUID
  * @property labelValue carries `label_value`: _Kept for backward compatibility, you should use `labels`_
  * @property labels carries `labels`.
  * @property metadata carries `metadata`.
- * @property secret carries `secret`.
  * @property subscriptionId carries `subscription_id`.
  * @property target carries `target`.
  * @property updatedAt carries `updated_at`.
  * @property description carries `description`, or nothing when the API answers none.
+ * @property secret carries `secret`, or nothing when the API answers none: HMAC signing secret shared with the
+ *     receiver. Present only for configuration-capable callers (Editor, service or master token); omitted entirely for
+ *     a read-only Viewer. Absent field, never `null`.
  */
 data class Subscription(
   val applicationId: UUID,
@@ -35,11 +37,11 @@ data class Subscription(
   val labelValue: String,
   val labels: Map<String, String>,
   val metadata: Map<String, String>,
-  val secret: UUID,
   val subscriptionId: UUID,
   val target: SubscriptionTarget,
   val updatedAt: OffsetDateTime,
-  val description: String? = null
+  val description: String? = null,
+  val secret: UUID? = null
 ) {
 
   /**
@@ -58,12 +60,14 @@ data class Subscription(
     out["label_value"] = labelValue
     out["labels"] = labels
     out["metadata"] = metadata
-    out["secret"] = Wire.writeUuid(secret)
     out["subscription_id"] = Wire.writeUuid(subscriptionId)
     out["target"] = target.toJson()
     out["updated_at"] = Wire.writeMoment(updatedAt)
     if (description != null) {
       out["description"] = description
+    }
+    if (secret != null) {
+      out["secret"] = Wire.writeUuid(secret)
     }
     return out
   }
@@ -87,11 +91,11 @@ data class Subscription(
         Wire.read(fields, "label_value", Wire::asText),
         Wire.read(fields, "labels", Wire.asMap(Wire::asText)),
         Wire.read(fields, "metadata", Wire.asMap(Wire::asText)),
-        Wire.read(fields, "secret", Wire::asUuid),
         Wire.read(fields, "subscription_id", Wire::asUuid),
         Wire.read(fields, "target", SubscriptionTarget.Companion::fromJson),
         Wire.read(fields, "updated_at", Wire::asMoment),
-        Wire.maybe(fields, "description", Wire::asText)
+        Wire.maybe(fields, "description", Wire::asText),
+        Wire.maybe(fields, "secret", Wire::asUuid)
       )
     }
   }
