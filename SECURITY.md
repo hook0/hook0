@@ -19,6 +19,13 @@ deployment are out of scope. The full list of what we do and do not treat as a
 vulnerability, including findings we already know about, is in the
 [vulnerability disclosure policy](https://documentation.hook0.com/resources/vulnerability-disclosure-policy).
 
+## Your data
+
+We keep the personal data you send us in a report, and publish a credit only
+with your agreement. What we keep, why, and how to have a credit removed are in
+the [reporter data section](https://documentation.hook0.com/resources/vulnerability-disclosure-policy#reporter-data)
+of the vulnerability disclosure policy.
+
 ## After the fix
 
 We publish a [security advisory](https://documentation.hook0.com/resources/security-advisories)
