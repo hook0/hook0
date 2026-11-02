@@ -26,14 +26,15 @@ use hook0_play::{create_app, relay, AppState};
 
 /// Start the hooks server on a random available port
 async fn start_test_server() -> (SocketAddr, Arc<AppState>) {
-    let port = portpicker::pick_unused_port().expect("No free port available");
-    let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
-
-    let state = Arc::new(AppState::new(format!("http://{}", addr)));
-    let app = create_app(state.clone());
-
-    let listener = TcpListener::bind(addr).await.expect("Failed to bind");
+    // Bind port 0 and read the port back: picking a free port first and binding it
+    // later leaves a window in which a parallel test can take it.
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind");
     let local_addr = listener.local_addr().unwrap();
+
+    let state = Arc::new(AppState::new(format!("http://{}", local_addr)));
+    let app = create_app(state.clone());
 
     tokio::spawn(async move {
         axum::serve(
@@ -1131,14 +1132,17 @@ async fn test_generated_tokens_are_unique() {
 async fn start_test_server_with_limits(
     limits: hook0_play::ServerLimits,
 ) -> (SocketAddr, Arc<AppState>) {
-    let port = portpicker::pick_unused_port().expect("No free port available");
-    let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
-
-    let state = Arc::new(AppState::with_limits(format!("http://{}", addr), limits));
-    let app = create_app(state.clone());
-
-    let listener = TcpListener::bind(addr).await.expect("Failed to bind");
+    // Bind port 0 and read the port back, see `start_test_server`.
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind");
     let local_addr = listener.local_addr().unwrap();
+
+    let state = Arc::new(AppState::with_limits(
+        format!("http://{}", local_addr),
+        limits,
+    ));
+    let app = create_app(state.clone());
 
     tokio::spawn(async move {
         axum::serve(
