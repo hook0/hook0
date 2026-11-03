@@ -205,3 +205,26 @@ Verified 2026-10-28 against the npm registry, the advisory and both lockfiles.
 #
 # An unused ignore is a warning only: it does not fail the scan (the run stays
 # exit 0). Removing the dead entry just keeps that warning from accumulating.
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+glob 10.x/13.x is pulled only by build and lint tooling in the npm
+workspaces (documentation, frontend), never shipped in a runtime artefact. The
+advisory (an aborted async walk keeps reading directories) is only reachable
+by a caller that passes an AbortSignal, and the fix is the 14.x major, which
+the parents (eslint, vite and docusaurus toolchains) do not accept yet.
+Drop this entry once the toolchains allow glob 14.
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+minimatch 3.x, 5.x, 9.x and 10.x are pulled by build and lint tooling in the
+npm workspaces (documentation, frontend, website) and are only fed glob
+patterns written in this repository, never attacker-controlled input. The fix
+is the 11.x major, which no parent in the dependency tree accepts yet. Drop
+this entry once the toolchains allow minimatch 11.
+"""
