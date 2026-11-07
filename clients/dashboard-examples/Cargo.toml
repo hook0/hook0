@@ -22,7 +22,7 @@ hook0-sdkgen = { path = "../sdkgen" }
 # version and whether any job publishes it come from. Nothing about publication is written here.
 release-packages = { path = "../../ci/release-packages" }
 
-toml = "1.1"
+toml = "1.2"
 thiserror = "2.0"
 
 [dev-dependencies]

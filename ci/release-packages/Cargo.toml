@@ -16,7 +16,7 @@ hook0-sdkgen = { path = "../../clients/sdkgen" }
 semver = "1"
 serde_json = "1.0"
 thiserror = "2.0"
-toml = "1.1"
+toml = "1.2"
 
 [dev-dependencies]
 # Real directories, since discovery is a question about a filesystem and answering it against a

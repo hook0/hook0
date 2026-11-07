@@ -21,7 +21,7 @@ publish = false
 hook0-sdkgen = { path = "../clients/sdkgen" }
 
 # Each language declares how its examples are proven in a manifest beside them.
-toml = "1.1"
+toml = "1.2"
 thiserror = "2.0"
 
 # Projects are assembled outside the repository, so that proving the documentation never writes

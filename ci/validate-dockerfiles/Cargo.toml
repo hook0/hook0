@@ -5,5 +5,5 @@ edition = "2024"
 publish = false
 
 [dependencies]
-toml = "1.1"
+toml = "1.2"
 walkdir = "2"

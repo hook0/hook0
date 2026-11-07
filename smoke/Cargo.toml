@@ -20,7 +20,7 @@ publish = false
 hook0-sdkgen = { path = "../clients/sdkgen" }
 
 serde_json = "1.0"
-toml = "1.1"
+toml = "1.2"
 # The compose file is the one place the stack is described, so it is read rather than
 # transcribed.
 yaml-rust2 = "0.13"
