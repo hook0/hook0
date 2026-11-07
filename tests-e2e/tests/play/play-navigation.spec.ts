@@ -173,13 +173,15 @@ test.describe("Play Navigation - Footer", () => {
     await expect(legalLinks.nth(2)).toHaveText("Contact");
   });
 
-  test("all footer external links are reachable", async ({ page }) => {
+  test("footer external links are reachable (except LinkedIn)", async ({ page }) => {
     await page.goto("/");
 
     const footer = page.locator("footer.site-footer");
     await expect(footer).toBeVisible({ timeout: 10000 });
 
-    const links = footer.locator("a[href^='http']");
+    // LinkedIn answers 403 to every automated client, even for company pages that
+    // do not exist, so its status says nothing about the link.
+    const links = footer.locator("a[href^='http']:not([href*='linkedin.com'])");
     const count = await links.count();
     expect(count).toBeGreaterThan(0);
 
