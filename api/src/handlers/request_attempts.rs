@@ -442,7 +442,7 @@ pub async fn list(
                 AND (e.event_type__name = any($8) OR $8 = '{}')
             ORDER BY
                 ra.created_at DESC,
-                ra.request_attempt__id ASC
+                ra.request_attempt__id DESC
             LIMIT 50
         ",
         &qs.application_id,
@@ -704,6 +704,127 @@ mod tests {
         assert!(
             schema.required.contains("type"),
             "'type' should be in required fields"
+        );
+    }
+}
+
+#[cfg(test)]
+mod pagination_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_event, seed_membership, seed_org, seed_subscription, seed_user,
+        test_state,
+    };
+    use actix_web::http::header::LINK;
+    use actix_web::{App, test, web};
+    use serde_json::Value;
+    use sqlx::PgPool;
+    use std::collections::HashSet;
+    use url::Url;
+
+    const REQUEST_ATTEMPTS: usize = 60;
+    const MAX_PAGES: usize = 5;
+
+    /// Request attempts created by the same statement share their `created_at` (the dispatch trigger
+    /// creates all the request attempts of an event at once). Paging through them must return each one
+    /// exactly once, which requires the ORDER BY and the cursor to agree on `request_attempt__id`.
+    #[sqlx::test]
+    async fn pages_return_each_request_attempt_once_when_creation_dates_are_equal(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+        let (application_id, event_id) = seed_event(&pool, org).await;
+        let subscription_id = seed_subscription(&pool, application_id).await;
+        // A minute in the past, so that the endpoint's default upper bound (the API's clock) is after it
+        sqlx::query(
+            "
+                INSERT INTO webhook.request_attempt (event__id, subscription__id, application__id, created_at)
+                SELECT $1, $2, $3, statement_timestamp() - interval '1 minute'
+                FROM generate_series(1, $4)
+            ",
+        )
+        .bind(event_id)
+        .bind(subscription_id)
+        .bind(application_id)
+        .bind(REQUEST_ATTEMPTS as i32)
+        .execute(&pool)
+        .await
+        .expect("seed request attempts sharing their creation date");
+
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/request_attempts")
+                        .wrap(biscuit_auth)
+                        .route("", web::get().to(super::list)),
+                ),
+            ),
+        )
+        .await;
+
+        let mut uri = format!("/api/v1/request_attempts?application_id={application_id}");
+        let mut seen = Vec::new();
+        for _ in 0..MAX_PAGES {
+            let request = test::TestRequest::get()
+                .uri(&uri)
+                .insert_header(("Authorization", format!("Bearer {user_token}")))
+                .to_request();
+            let response = test::call_service(&app, request).await;
+            assert!(
+                response.status().is_success(),
+                "listing request attempts failed: {}",
+                response.status()
+            );
+            let next_page = response
+                .headers()
+                .get(LINK)
+                .and_then(|link| link.to_str().ok())
+                .map(str::to_owned);
+            let page: Vec<Value> = test::read_body_json(response).await;
+            if page.is_empty() {
+                break;
+            }
+            seen.extend(page.iter().map(|ra| {
+                ra["request_attempt_id"]
+                    .as_str()
+                    .expect("each request attempt has an ID")
+                    .to_owned()
+            }));
+
+            let next_page = next_page.expect("a non-empty page links to the next one");
+            let next_page_url = next_page
+                .trim_start_matches('<')
+                .split('>')
+                .next()
+                .and_then(|url| Url::parse(url).ok())
+                .expect("the Link header holds a URL");
+            uri = format!(
+                "{}?{}",
+                next_page_url.path(),
+                next_page_url.query().unwrap_or_default()
+            );
+        }
+
+        let distinct = seen.iter().collect::<HashSet<_>>();
+        assert_eq!(
+            distinct.len(),
+            seen.len(),
+            "a request attempt was returned on more than one page"
+        );
+        assert_eq!(
+            seen.len(),
+            REQUEST_ATTEMPTS,
+            "paging did not return every request attempt"
         );
     }
 }

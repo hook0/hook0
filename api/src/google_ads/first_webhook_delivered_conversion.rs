@@ -87,8 +87,8 @@ async fn upload_pending_first_webhook_delivered_conversions(
     // signup attribution — are excluded by construction, so self-deliveries
     // never generate a conversion. The pending set is backed by
     // `signup_attribution_first_webhook_delivered_pending_idx`; the EXISTS probe
-    // uses the existing request_attempt (application__id) index (no index is
-    // added on that hot table).
+    // uses the leading column of the existing request_attempt
+    // (application__id, created_at) index (no index is added on that hot table).
     //
     // The `created_at` bound caps egress at the retention window: a gclid older
     // than SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS is never uploaded to Google, even
