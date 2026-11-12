@@ -17,7 +17,6 @@
 
 ## Proof
 - Production customers include Coinbase, GEODIS, WoodWing, Optery, Eudonet, Alteos, ActiveAnts, and Apizee.
-- Coinbase is on the record. Ian Mukherjee (Coinbase): "Thank you for all of your help, we appreciate your partnership."
 - Platon Samuel left a 5/5 review on Product Hunt, and the GitHub star count is public and verifiable.
 
 ## Compliance
