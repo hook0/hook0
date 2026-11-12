@@ -219,7 +219,6 @@ locals.subscriptionLinks = {
 // visible on screen (the rotation never benches it). `logo` is also the identity
 // used by the rotation script.
 locals.customers = [
-  { name: 'Coinbase', logo: './customers/coinbase.svg', pinned: true },
   { name: 'Eudonet', logo: './customers/eudonet.svg', pinned: false },
   { name: 'GEODIS', logo: './customers/geodis.svg', pinned: false },
   { name: 'WoodWing', logo: './customers/woodwing.svg', pinned: false },

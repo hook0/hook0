@@ -2,7 +2,7 @@
 // Loaded as a Parcel-bundled module from _customers.ejs (homepage only).
 // Every tick, all grid slots crossfade at once to a freshly shuffled arrangement.
 // The pool is larger than the grid, so logos rotate in/out over time. A "pinned"
-// logo (Coinbase) is always part of the arrangement and always moves to a new slot,
+// logo is always part of the arrangement and always moves to a new slot,
 // so it keeps animating yet stays continuously visible on screen.
 document.addEventListener('DOMContentLoaded', function() {
     var rotator = document.querySelector('[data-logo-rotator]');
