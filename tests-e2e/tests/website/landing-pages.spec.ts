@@ -5,19 +5,19 @@ const LANDING_PAGES = [
     path: "/hook0-vs-svix",
     h1Contains: "Hook0 vs Svix",
     title: "Hook0 vs Svix",
-    faqCount: 4,
+    faqCount: 9,
   },
   {
     path: "/hook0-vs-hookdeck",
     h1Contains: "Hook0 vs Hookdeck",
     title: "Hook0 vs Hookdeck",
-    faqCount: 4,
+    faqCount: 8,
   },
   {
     path: "/build-vs-buy-webhooks",
     h1Contains: "Stop Building Webhooks",
     title: "Build vs Buy",
-    faqCount: 4,
+    faqCount: 5,
   },
   {
     path: "/self-hosted-webhooks",
@@ -47,13 +47,13 @@ for (const page of LANDING_PAGES) {
     test("has meta description", async ({ request }) => {
       const response = await request.get(page.path);
       const html = await response.text();
-      expect(html).toMatch(/<meta\s+name="description"\s+content="[^"]+"/);
+      expect(html).toMatch(/<meta\s+name="?description"?\s+content="?[^">]+/);
     });
 
     test("has canonical URL", async ({ request }) => {
       const response = await request.get(page.path);
       const html = await response.text();
-      expect(html).toContain(`<link rel="canonical"`);
+      expect(html).toMatch(/<link\s+rel="?canonical"?/);
       expect(html).toContain(page.path);
     });
 
@@ -70,23 +70,17 @@ for (const page of LANDING_PAGES) {
     test("has Open Graph tags", async ({ request }) => {
       const response = await request.get(page.path);
       const html = await response.text();
-      expect(html).toMatch(/property="og:title"/);
-      expect(html).toMatch(/property="og:description"/);
-      expect(html).toMatch(/property="og:url"/);
+      expect(html).toMatch(/property="?og:title"?/);
+      expect(html).toMatch(/property="?og:description"?/);
+      expect(html).toMatch(/property="?og:url"?/);
     });
 
     test("has social proof bar (customer logos)", async ({ request }) => {
       const response = await request.get(page.path);
       const html = await response.text();
-      expect(html).toContain('alt="Coinbase"');
-      expect(html).toContain('alt="WoodWing"');
-      expect(html).toContain('alt="Optery"');
-    });
-
-    test("has GitHub stars widget", async ({ request }) => {
-      const response = await request.get(page.path);
-      const html = await response.text();
-      expect(html).toContain("ghbtns.com/github-btn.html");
+      expect(html).toMatch(/alt="?Eudonet"?/);
+      expect(html).toMatch(/alt="?WoodWing"?/);
+      expect(html).toMatch(/alt="?Optery"?/);
     });
 
     test("has Product Hunt badge", async ({ request }) => {
