@@ -172,6 +172,20 @@ Verified 2026-10-28 against the npm registry, the advisory and both lockfiles.
 # exit 0). Removing the dead entry just keeps that warning from accumulating.
 
 [[IgnoredVulns]]
+id = "RUSTSEC-2026-0459"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+libsqlite3-sys 0.37.0 (fixed in 0.39.0) is locked only because sqlx 0.9.0 lists sqlx-sqlite 0.9.0 as
+a dependency, and sqlx-sqlite 0.9.0, the latest release on crates.io, requires libsqlite3-sys
+`>=0.30.1, <0.38.0`, so no lockfile bump reaches 0.39. The crate is not compiled: hook0-api and
+hook0-output-worker declare sqlx without the sqlite feature, and `cargo tree -p <member> -e
+normal,build -i libsqlite3-sys` (and `-i sqlx-sqlite`) prints nothing for either. No SQLite code is
+built or linked. Drop this entry once sqlx-sqlite accepts libsqlite3-sys 0.39.
+
+Verified 2026-11-12 against the crates.io index and the lockfile.
+"""
+
+[[IgnoredVulns]]
 id = "GHSA-3g3m-2fjr-6pw4"
 ignoreUntil = "2026-12-31T00:00:00Z"
 reason = """
