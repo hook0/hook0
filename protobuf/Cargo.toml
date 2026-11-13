@@ -11,7 +11,7 @@ license = "SSPL-1.0"
 
 [dependencies]
 chrono = "0.4.45"
-prost = "0.14.4"
+prost = "0.14.6"
 prost-wkt = "0.7.2"
 prost-wkt-types = "0.7.2"
 # The runtime feature its two consumers both ask for. Without it this crate only ever
@@ -24,7 +24,7 @@ thiserror = "2.0.21"
 uuid = "1.29.2"
 
 [build-dependencies]
-prost-build = "0.14.4"
+prost-build = "0.14.6"
 prost-wkt-build = "0.7.2"
 
 [package.metadata.cargo-shear]
