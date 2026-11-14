@@ -227,8 +227,8 @@ async fn emit_pending_activation_events(
     // guard in both the CTE and the UPDATE holds the claim across instances and
     // passes (READ COMMITTED re-checks the guard on a concurrently-updated row).
     // The eligibility EXISTS probe and the first-delivery timestamp reuse the
-    // existing request_attempt (application__id) index; no index is added on
-    // that hot table. The pending set is backed by
+    // existing request_attempt (application__id, created_at) index through its
+    // leading column; no index is added on that hot table. The pending set is backed by
     // `organization_matomo_activation_pending_idx`.
     let limit = i64::from(scan_limit);
     let claimed = sqlx::query!(

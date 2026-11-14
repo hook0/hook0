@@ -1041,19 +1041,7 @@ pub(crate) mod test_support {
         event_id: Uuid,
         succeeded: bool,
     ) {
-        let subscription_id = Uuid::new_v4();
-        sqlx::query(
-            r#"
-                INSERT INTO webhook.subscription
-                    (subscription__id, application__id, is_enabled, secret, metadata, labels, target__id, created_at, updated_at)
-                VALUES ($1, $2, true, public.gen_random_uuid(), '{}'::jsonb, '{"e2e":"1"}'::jsonb, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())
-            "#,
-        )
-        .bind(subscription_id)
-        .bind(application_id)
-        .execute(pool)
-        .await
-        .expect("seed subscription");
+        let subscription_id = seed_subscription(pool, application_id).await;
 
         sqlx::query(
             r#"
@@ -1069,6 +1057,26 @@ pub(crate) mod test_support {
         .execute(pool)
         .await
         .expect("seed request attempt");
+    }
+
+    /// Seed an enabled subscription of `application_id`, labelled `{"e2e": "1"}`, and return its ID.
+    /// Its target is a random ID with no `webhook.target_http` row: enough for anything that does not
+    /// deliver.
+    pub(crate) async fn seed_subscription(pool: &PgPool, application_id: Uuid) -> Uuid {
+        let subscription_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+                INSERT INTO webhook.subscription
+                    (subscription__id, application__id, is_enabled, secret, metadata, labels, target__id, created_at, updated_at)
+                VALUES ($1, $2, true, public.gen_random_uuid(), '{}'::jsonb, '{"e2e":"1"}'::jsonb, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())
+            "#,
+        )
+        .bind(subscription_id)
+        .bind(application_id)
+        .execute(pool)
+        .await
+        .expect("seed subscription");
+        subscription_id
     }
     /// SMTP endpoint that refuses every connection: nothing listens on port 2.
     /// A send against it fails at the transport boundary — a genuine failure,

@@ -56,6 +56,10 @@ pub async fn look_for_work(
         let mut tx = pool.begin().await?;
 
         let fetch_start = Instant::now();
+        // Request attempts are picked in the order they become due (`coalesce(delay_until, created_at)`),
+        // which `request_attempt_due_idx` provides directly: the scan starts at the oldest due request
+        // attempt and never visits the ones that are not due yet (mostly retries scheduled for later).
+        // The expression must stay identical to the indexed one.
         let next_attempt = query_as!(
             RequestAttemptWithOptionalPayload,
             "
@@ -89,14 +93,14 @@ pub async fn look_for_work(
                     AND ra.failed_at IS NULL
                     AND s.is_enabled
                     AND s.deleted_at IS NULL
-                    AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
+                    AND coalesce(ra.delay_until, ra.created_at) <= statement_timestamp()
                     AND (
                         ($2 AND COALESCE(sw.worker__id, ow.worker__id) IS NULL)
                         OR COALESCE(sw.worker__id, ow.worker__id) = $1
                     )
                     AND ($3::smallint IS NULL OR ra.retry_count < $3)
                     AND ($4::smallint IS NULL OR ra.retry_count >= $4)
-                ORDER BY ra.created_at ASC
+                ORDER BY coalesce(ra.delay_until, ra.created_at) ASC
                 LIMIT 1
                 FOR UPDATE OF ra
                 SKIP LOCKED
@@ -128,20 +132,10 @@ pub async fn look_for_work(
                 attempt.delay_until,
             ));
 
-            // Set picked_at
-            trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picking request attempt");
-            query!(
-                "
-                    UPDATE webhook.request_attempt
-                    SET picked_at = statement_timestamp(), worker_name = $1, worker_version = $2
-                    WHERE request_attempt__id = $3
-                ",
-                &worker.name,
-                &worker_version,
-                attempt.request_attempt_id
-            )
-            .execute(&mut *tx)
-            .await?;
+            // The request attempt stays locked by the pick until the transaction ends, and nothing written
+            // before the commit is visible to others, so `picked_at` and the worker fields are written by the
+            // single UPDATE that ends each branch below (one row version instead of several). `picked_at` is
+            // `now()`, the start of this transaction, which began right before the pick.
             debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picked request attempt");
 
             // Fetch the payload. `give_up` distinguishes a payload object that is
@@ -263,32 +257,46 @@ pub async fn look_for_work(
                         })?;
                 }
 
-                // Associate response and request attempt
-                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, %response_id, "Associating response with request attempt");
-                query!(
-                    "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
-                    response_id, attempt.request_attempt_id
-                )
-                .execute(&mut *tx)
-                .await?;
-
+                // Record the pick, associate the response and complete the request attempt in a single UPDATE.
+                // Unlike the Pulsar path, there is no `succeeded_at IS NULL AND failed_at IS NULL` guard: the
+                // row has been locked since the pick, so nothing else can have completed or cancelled it.
                 if response.is_success() {
-                    // Mark attempt as completed
-                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Completing request attempt");
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, %response_id, "Completing request attempt");
                     query!(
-                        "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
-                        attempt.request_attempt_id
+                        "
+                            UPDATE webhook.request_attempt
+                            SET picked_at = now(),
+                                worker_name = $1,
+                                worker_version = $2,
+                                response__id = $3,
+                                succeeded_at = statement_timestamp()
+                            WHERE request_attempt__id = $4
+                        ",
+                        &worker.name,
+                        &worker_version,
+                        response_id,
+                        attempt.request_attempt_id,
                     )
                     .execute(&mut *tx)
                     .await?;
 
                     debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Request attempt completed successfully");
                 } else {
-                    // Mark attempt as failed
-                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Failing request attempt");
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, %response_id, "Failing request attempt");
                     query!(
-                        "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
-                        attempt.request_attempt_id
+                        "
+                            UPDATE webhook.request_attempt
+                            SET picked_at = now(),
+                                worker_name = $1,
+                                worker_version = $2,
+                                response__id = $3,
+                                failed_at = statement_timestamp()
+                            WHERE request_attempt__id = $4
+                        ",
+                        &worker.name,
+                        &worker_version,
+                        response_id,
+                        attempt.request_attempt_id,
                     )
                     .execute(&mut *tx)
                     .await?;
@@ -347,6 +355,20 @@ pub async fn look_for_work(
                     "Payload object is missing from object storage; giving up on this request attempt"
                 );
 
+                // Rare path: record the pick separately, as `give_up_on_missing_payload` is shared with the
+                // paused request attempts release, which does not pick request attempts
+                query!(
+                    "
+                        UPDATE webhook.request_attempt
+                        SET picked_at = now(), worker_name = $1, worker_version = $2
+                        WHERE request_attempt__id = $3
+                    ",
+                    &worker.name,
+                    &worker_version,
+                    attempt.request_attempt_id,
+                )
+                .execute(&mut *tx)
+                .await?;
                 give_up_on_missing_payload(&mut tx, attempt.request_attempt_id).await?;
 
                 tx.commit().await?;
@@ -362,7 +384,16 @@ pub async fn look_for_work(
                 // it immediately in a hot loop). retry_count / failed_at / succeeded_at
                 // stay untouched so it becomes eligible again once the delay elapses.
                 query!(
-                    "UPDATE webhook.request_attempt SET delay_until = statement_timestamp() + interval '1 hour' WHERE request_attempt__id = $1",
+                    "
+                        UPDATE webhook.request_attempt
+                        SET picked_at = now(),
+                            worker_name = $1,
+                            worker_version = $2,
+                            delay_until = statement_timestamp() + interval '1 hour'
+                        WHERE request_attempt__id = $3
+                    ",
+                    &worker.name,
+                    &worker_version,
                     attempt.request_attempt_id,
                 )
                 .execute(&mut *tx)

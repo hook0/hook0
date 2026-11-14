@@ -941,6 +941,9 @@ pub async fn edit(
             // insert a retry before committing; that retry is invisible to the first statement's snapshot
             // but visible to the second one (READ COMMITTED). The retry delay is much longer than
             // the gap between passes, so no worker can pick the retry and create yet another one in between.
+            // `paused OR NOT paused` is always true, but it lets Postgres look the subscription up in the two
+            // small partial indexes of pending request attempts (request_attempt_paused_idx and
+            // request_attempt_subscription_waiting_idx) instead of reading its whole history; do not remove it.
             let cancelled_request_attempts = if !body.is_enabled {
                 let mut cancelled_request_attempts = 0;
                 for _ in 0..2 {
@@ -951,6 +954,7 @@ pub async fn edit(
                             WHERE subscription__id = $1
                               AND failed_at IS NULL
                               AND succeeded_at IS NULL
+                              AND (paused OR NOT paused)
                         ",
                         &s.subscription__id
                     )
@@ -1094,6 +1098,9 @@ pub async fn delete(
             // insert a retry before committing; that retry is invisible to the first statement's snapshot
             // but visible to the second one (READ COMMITTED). The retry delay is much longer than
             // the gap between passes, so no worker can pick the retry and create yet another one in between.
+            // `paused OR NOT paused` is always true, but it lets Postgres look the subscription up in the two
+            // small partial indexes of pending request attempts (request_attempt_paused_idx and
+            // request_attempt_subscription_waiting_idx) instead of reading its whole history; do not remove it.
             let mut cancelled_request_attempts = 0;
             for _ in 0..2 {
                 cancelled_request_attempts += query!(
@@ -1103,6 +1110,7 @@ pub async fn delete(
                         WHERE subscription__id = $1
                           AND failed_at IS NULL
                           AND succeeded_at IS NULL
+                          AND (paused OR NOT paused)
                     ",
                     &s.subscription__id
                 )
@@ -1631,6 +1639,99 @@ mod secret_visibility_tests {
         assert!(
             viewer_get.get("target").is_some() && viewer_get.get("is_enabled").is_some(),
             "the Viewer still sees the non-secret fields"
+        );
+    }
+}
+
+#[cfg(test)]
+mod cancel_pending_request_attempts_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_event, seed_membership, seed_org, seed_subscription, seed_user,
+        test_state,
+    };
+    use actix_web::{App, test, web};
+    use sqlx::PgPool;
+
+    /// Disabling a subscription fails all its pending request attempts, paused or not: the cancel query
+    /// filters on `paused OR NOT paused` only so that Postgres uses the partial indexes.
+    #[sqlx::test]
+    async fn disabling_a_subscription_fails_its_paused_and_unpaused_pending_request_attempts(
+        pool: PgPool,
+    ) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+        let (application_id, event_id) = seed_event(&pool, org).await;
+        let subscription_id = seed_subscription(&pool, application_id).await;
+        sqlx::query(
+            "
+                INSERT INTO webhook.request_attempt (event__id, subscription__id, application__id, paused)
+                VALUES ($1, $2, $3, true), ($1, $2, $3, false)
+            ",
+        )
+        .bind(event_id)
+        .bind(subscription_id)
+        .bind(application_id)
+        .execute(&pool)
+        .await
+        .expect("seed a paused and an unpaused pending request attempt");
+
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/subscriptions")
+                        .wrap(biscuit_auth)
+                        .route("/{subscription_id}", web::put().to(super::edit)),
+                ),
+            ),
+        )
+        .await;
+
+        let disable = test::TestRequest::put()
+            .uri(&format!("/api/v1/subscriptions/{subscription_id}"))
+            .insert_header(("Authorization", format!("Bearer {user_token}")))
+            .set_json(serde_json::json!({
+                "application_id": application_id,
+                "is_enabled": false,
+                "event_types": ["test.resource.created"],
+                "description": "cancel-pending",
+                "labels": {"e2e": "1"},
+                "target": {
+                    "type": "http",
+                    "method": "POST",
+                    "url": "https://example.test/hook",
+                    "headers": {},
+                },
+            }))
+            .to_request();
+        let response = test::call_service(&app, disable).await;
+        assert!(
+            response.status().is_success(),
+            "disabling the subscription failed: {}",
+            response.status()
+        );
+
+        let still_pending: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM webhook.request_attempt WHERE subscription__id = $1 AND failed_at IS NULL",
+        )
+        .bind(subscription_id)
+        .fetch_one(&pool)
+        .await
+        .expect("count the pending request attempts left");
+        assert_eq!(
+            still_pending, 0,
+            "disabling the subscription must fail its paused and unpaused pending request attempts"
         );
     }
 }
