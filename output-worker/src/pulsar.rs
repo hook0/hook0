@@ -196,8 +196,10 @@ pub async fn load_waiting_request_attempts_from_db(
         .build()
         .await?;
 
-    // Keyset cursor over `(created_at, request_attempt__id)`; the primary key is only a tiebreaker
-    // because rows created before the switch to UUIDv7 are not time-ordered.
+    // Keyset cursor over `(coalesce(delay_until, created_at), request_attempt__id)`: request attempts
+    // are loaded in the order they become due, which `request_attempt_due_idx` provides directly.
+    // The expression must stay identical to the indexed one. The primary key is only a tiebreaker
+    // between request attempts that become due at the same time.
     let mut cursor = (DateTime::<Utc>::UNIX_EPOCH, Uuid::nil());
     let mut counter = 0u64;
     let mut running = true;
@@ -239,13 +241,13 @@ pub async fn load_waiting_request_attempts_from_db(
                     AND s.deleted_at IS NULL
                     AND COALESCE(sw.worker__id, ow.worker__id) = $1
                     AND ra.created_at <= $3::timestamptz
-                    AND (ra.created_at, ra.request_attempt__id) > ($4::timestamptz, $5::uuid)
+                    AND (coalesce(ra.delay_until, ra.created_at), ra.request_attempt__id) > ($4::timestamptz, $5::uuid)
                     AND (
                         NOT $2
                         OR ra.delay_until IS NULL
                         OR ra.delay_until <= $3::timestamptz + interval '10 seconds'
                     )
-                ORDER BY ra.created_at ASC, ra.request_attempt__id ASC
+                ORDER BY coalesce(ra.delay_until, ra.created_at) ASC, ra.request_attempt__id ASC
                 LIMIT $6::bigint
             ",
             worker_id.as_ref(),
@@ -261,9 +263,12 @@ pub async fn load_waiting_request_attempts_from_db(
             error!(loaded = counter, ?cursor, error = %e, "Could not fetch a batch of waiting request attempts");
         })?;
 
-        let next_cursor = rows
-            .last()
-            .map(|last| (last.created_at, last.request_attempt_id));
+        let next_cursor = rows.last().map(|last| {
+            (
+                last.delay_until.unwrap_or(last.created_at),
+                last.request_attempt_id,
+            )
+        });
 
         if let Some(next_cursor) = next_cursor {
             let rows_len = rows.len();
