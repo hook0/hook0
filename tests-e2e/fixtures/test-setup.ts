@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "./email-verification";
 
 /** Shared UUID pattern for extracting IDs from URLs. */
@@ -24,6 +24,23 @@ export const BACKEND_ROUNDTRIP_TIMEOUT = 30_000;
 /** A UI element that renders client-side once its data has already arrived. */
 export const UI_RENDER_TIMEOUT = 15_000;
 
+/**
+ * Adds the time one backend-bound setup step may legitimately take on top of the
+ * running test's own budget.
+ *
+ * The wait budgets above are useless on their own: the setup runs inside the
+ * test, and Playwright's per-test timeout (30 s by default) covers setup and
+ * body together. Register → verify → login → create-app → create-event-type can
+ * spend most of it on a slow single-worker CI backend, so the test dies of the
+ * test timeout (or of a wait cut short by it) before the waits themselves run
+ * out. Each step therefore grants its own share, so the total test budget grows
+ * with the setup actually performed and a hung call still fails, only later.
+ */
+export function allowForSetupStep(): void {
+  const info = test.info();
+  info.setTimeout(info.timeout + BACKEND_ROUNDTRIP_TIMEOUT);
+}
+
 export interface TestEnv {
   email: string;
   password: string;
@@ -47,6 +64,7 @@ async function loginAsNewUser(
   request: import("@playwright/test").APIRequestContext,
   testId: string
 ): Promise<TestEnv> {
+  allowForSetupStep();
   const timestamp = Date.now();
   const email = `test-${testId}-${timestamp}@hook0.local`;
   const password = `TestPassword123!${timestamp}`;
@@ -87,6 +105,7 @@ async function loginAndCreateApp(
   request: import("@playwright/test").APIRequestContext,
   testId: string
 ): Promise<TestEnvWithApp> {
+  allowForSetupStep();
   const env = await loginAsNewUser(page, request, testId);
 
   await page.goto(`/organizations/${env.organizationId}/applications/new`);
@@ -124,6 +143,7 @@ async function loginAndCreateAppWithEventType(
   testId: string,
   eventType = { service: "test", resource: "entity", verb: "created" }
 ): Promise<TestEnvWithAppAndEventType> {
+  allowForSetupStep();
   const env = await loginAndCreateApp(page, request, testId);
 
   await page.goto(
