@@ -207,3 +207,26 @@ patterns written in this repository, never attacker-controlled input. The fix
 is the 11.x major, which no parent in the dependency tree accepts yet. Drop
 this entry once the toolchains allow minimatch 11.
 """
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+chrono 0.4.45 is flagged unmaintained with every version affected, so no
+patched release exists to bump to (verified on osv.dev 2026-11-17). It is a
+maintenance notice, not a vulnerability: first-party code uses chrono for
+timestamps in the api and output-worker, and the smoke Rust client lockfile
+carries it too. The advisory names jiff and time as replacements; migrating
+is a separate piece of work. Re-evaluate before the ignoreUntil date.
+"""
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0542"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+humantime 2.4.0 is flagged unmaintained only because it wraps chrono, which
+is itself unmaintained; every version is affected, so no patched release
+exists (verified on osv.dev 2026-11-17). Used by hook0-api and
+hook0-output-worker to parse durations from configuration. Drop this entry
+together with the chrono one, or when a replacement lands.
+"""
