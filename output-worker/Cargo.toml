@@ -15,10 +15,10 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.104"
-aws-sdk-s3 = { version = "1.159.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
+aws-sdk-s3 = { version = "1.161.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
-clap = { version = "4.6.7", features = ["derive", "env", "cargo", "wrap_help"] }
+clap = { version = "4.6.9", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.34"
 hex = "0.4.3"
 hickory-resolver = "0.26.3"
@@ -41,13 +41,13 @@ rustls = { version = "0.23.46", default-features = false, features = ["std", "tl
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"
-sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
+sqlx = { version = "0.9.1", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.20", features = ["rt"] }
 url = "2.5.8"
-uuid = { version = "1.29.2", features = ["v4", "v7"] }
+uuid = { version = "1.29.3", features = ["v4", "v7"] }
 
 [dev-dependencies]
 proptest = "1"
