@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { fromItsOwnAddress } from "../fixtures/test-setup";
+import {
+  allowForSetupStep,
+  BACKEND_ROUNDTRIP_TIMEOUT,
+  fromItsOwnAddress,
+  UI_RENDER_TIMEOUT,
+} from "../fixtures/test-setup";
 
 /**
  * API Keys (Application Secrets) E2E tests for Hook0.
@@ -17,6 +22,7 @@ test.describe("API Keys", () => {
     request: import("@playwright/test").APIRequestContext,
     testId: string
   ) {
+    allowForSetupStep();
     const timestamp = Date.now();
     const email = `test-apikeys-${testId}-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
@@ -41,25 +47,25 @@ test.describe("API Keys", () => {
     // Login via UI
     await page.goto("/login");
     await expect(page.locator('[data-test="login-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="login-email-input"]').fill(email);
     await page.locator('[data-test="login-password-input"]').fill(password);
     await page.locator('[data-test="login-submit-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, {
-      timeout: 15000,
+      timeout: BACKEND_ROUNDTRIP_TIMEOUT,
     });
 
     // Create an application
     await page.goto(`/organizations/${organizationId}/applications`);
     await expect(page.locator('[data-test="applications-create-button"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="applications-create-button"]').click();
 
     await expect(page.locator('[data-test="application-form"]')).toBeVisible({
-      timeout: 10000,
+      timeout: UI_RENDER_TIMEOUT,
     });
     await page.locator('[data-test="application-name-input"]').fill(`Test App ${timestamp}`);
 
@@ -83,7 +89,7 @@ test.describe("API Keys", () => {
         }
         return false;
       },
-      { timeout: 15000 }
+      { timeout: BACKEND_ROUNDTRIP_TIMEOUT }
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
@@ -93,7 +99,7 @@ test.describe("API Keys", () => {
     // UUID pattern: 8-4-4-4-12 hex characters
     const uuidPattern =
       /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
-    await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
+    await expect(page).toHaveURL(uuidPattern, { timeout: BACKEND_ROUNDTRIP_TIMEOUT });
     const url = page.url();
     const match = url.match(uuidPattern);
     expect(match, "Failed to extract application ID (UUID) from URL").toBeTruthy();
