@@ -202,7 +202,13 @@ test.describe("Play Navigation - Footer", () => {
       results.push({ url: href, status: response.status() });
     }
 
-    const failures = results.filter((r) => r.status >= 400);
+    // Social networks answer automated clients with anti-bot statuses (403, 429, 5xx, 999)
+    // that say nothing about the link itself: only a missing page counts as a failure there.
+    const failures = results.filter((r) =>
+      skipHeadDomains.concat(["linkedin.com"]).some((d) => r.url.includes(d))
+        ? r.status === 404 || r.status === 410
+        : r.status >= 400
+    );
     expect(failures, `Unreachable footer links: ${JSON.stringify(failures)}`).toHaveLength(0);
   });
 });
