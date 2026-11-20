@@ -62,6 +62,13 @@ variables:
   # `smoke/tests/needs.rs` refuses a `latest` tag on any job image.
   RELEASE_CLI_VERSION: "v0.24.0"
   HADOLINT_VERSION: "v2.15.1-alpine"
+  # The image the three Playwright jobs run in (`e2e-playwright.test`,
+  # `documentation-e2e-playwright.test`, `play.e2e-playwright`). It carries the browsers built for
+  # one Playwright release, and only those, so it must name the exact version of `@playwright/test`
+  # locked in `tests-e2e/package-lock.json`. The `^` range in `tests-e2e/package.json` lets a deps
+  # update move the lockfile without touching this line, and every test then fails at browser
+  # launch with "Executable doesn't exist".
+  PLAYWRIGHT_VERSION: "v1.65.1-noble"
   # What moves a scanned image out of the project registry. It copies a manifest between registries
   # by digest and builds nothing, which is the whole point: what reaches Docker Hub and GHCR is the
   # bytes trivy read rather than a second build of the same source.
