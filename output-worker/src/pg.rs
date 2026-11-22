@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::Utc;
-use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
@@ -20,6 +19,7 @@ use crate::work::work;
 use crate::{
     Config, MissingPayload, ObjectStorageConfig, RequestAttemptWithOptionalPayload, RetryPolicy,
     SlotRole, Worker, compute_next_retry, fetch_event_payload, give_up_on_missing_payload,
+    retry_interval,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -182,7 +182,7 @@ pub async fn look_for_work(
                 let ids = delivery_trace_ids(&span);
 
                 // Work
-                let response = work(config, resolver, &attempt_with_payload, &ids).await;
+                let mut response = work(config, resolver, &attempt_with_payload, &ids).await;
                 trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                 // Store response
@@ -212,7 +212,7 @@ pub async fn look_for_work(
                     response.response_error__name(),
                     response.http_code(),
                     response_contents_to_insert.map(|(_, headers)| headers.to_owned()).unwrap_or(None),
-                    response_contents_to_insert.map(|(body, _)| body.to_owned()).unwrap_or(None),
+                    response_contents_to_insert.and_then(|(body, _)| body.as_deref()),
                     response.elapsed_time_ms(),
                 )
                 .fetch_one(&mut *tx)
@@ -235,7 +235,9 @@ pub async fn look_for_work(
                         attempt.created_at.naive_utc().date()
                     );
                     let object: Vec<u8> = ObjectStorageResponse {
-                        body: response.body.clone().unwrap_or_default(),
+                        // Moved rather than copied: nothing after storage reads the body, and it
+                        // can be as large as `MAX_RESPONSE_BODY_SIZE`
+                        body: response.body.take().unwrap_or_default(),
                         headers: response_headers.unwrap_or_default(),
                     }
                     .try_into()?;
@@ -307,11 +309,6 @@ pub async fn look_for_work(
                             .await?
                     {
                         let next_retry_count = attempt.retry_count + 1;
-                        let retry_interval = PgInterval::try_from(retry_in).map_err(|e| {
-                            anyhow!(
-                                "Could not convert retry delay ({retry_in:?}) to a PG interval: {e}"
-                            )
-                        })?;
                         let retry_id = query!(
                             "
                                 INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
@@ -321,7 +318,7 @@ pub async fn look_for_work(
                             attempt.application_id,
                             attempt.event_id,
                             attempt.subscription_id,
-                            retry_interval,
+                            retry_interval(retry_in),
                             next_retry_count,
                         )
                         .fetch_one(&mut *tx)

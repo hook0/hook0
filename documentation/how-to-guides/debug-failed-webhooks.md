@@ -57,7 +57,7 @@ Every delivery try is a request attempt. Its stored response holds what your end
 | `delay_until` | Request attempt | When the next retry is due |
 | `response_id` | Request attempt | Points to the stored response, fetched with `GET /responses/{response_id}` |
 | `response_error_name` | Response | `E_CONNECTION`, `E_TIMEOUT`, `E_DNS`, `E_HTTP`, `E_INVALID_TARGET` or `E_INVALID_HEADER` |
-| `http_code`, `headers`, `body` | Response | The status, headers and body your endpoint sent back |
+| `http_code`, `headers`, `body` | Response | The status, headers and body your endpoint sent back (only the beginning of a body longer than the [response size limit](/explanation/webhook-retry-logic#response-size-limit), 1 MiB by default) |
 | `elapsed_time_ms` | Response | How long your endpoint took to answer |
 
 :::tip Try it on your own events

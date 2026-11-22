@@ -66,11 +66,9 @@ impl TryFrom<ObjectStorageResponse> for Vec<u8> {
     fn try_from(value: ObjectStorageResponse) -> Result<Self, Self::Error> {
         let proto: crate::raw_proto::object_storage_response::ObjectStorageResponse =
             value.try_into()?;
-        let mut buf = Vec::new();
-        proto
-            .encode(&mut buf)
-            .map_err(Hook0ProtobufError::ProtoEncode)?;
-        Ok(buf)
+        // Sized for the whole message up front: the body can weigh megabytes, and a buffer that
+        // grows as it is written would hold two copies of it at once and keep spare capacity
+        Ok(proto.encode_to_vec())
     }
 }
 
@@ -93,5 +91,28 @@ mod tests {
             request_attempt.clone().try_into().unwrap();
         let output: ObjectStorageResponse = proto_request_attempt.try_into().unwrap();
         assert_eq!(output, request_attempt)
+    }
+
+    /// What the worker uploads to object storage is what the API reads back
+    #[test]
+    fn object_storage_response_bytes_round_trip() {
+        let response = ObjectStorageResponse {
+            body: b"{\"ok\":true}".to_vec(),
+            headers: json!({
+                "content-type": "application/json",
+                "x-test": "test",
+            }),
+        };
+
+        let bytes: Vec<u8> = response.clone().try_into().expect("a response must encode");
+        assert_eq!(
+            bytes.len(),
+            bytes.capacity(),
+            "the encoded object is sized exactly"
+        );
+
+        let decoded =
+            ObjectStorageResponse::try_from(bytes.as_slice()).expect("a response must decode");
+        assert_eq!(decoded, response);
     }
 }
