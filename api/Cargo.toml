@@ -57,7 +57,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 subtle = "2.6.1"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1" }
-url = "2.5.8"
+url = "2.5.9"
 uuid = { version = "1.29.3", features = ["serde", "v4", "v7"] }
 validator = { version = "0.21.0", features = ["derive"] }
 
