@@ -859,7 +859,7 @@ async fn handle_message(
                         let ids = delivery_trace_ids(&span);
 
                         // Work
-                        let response = work(config, resolver, &attempt, &ids).await;
+                        let mut response = work(config, resolver, &attempt, &ids).await;
                         trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                         // Open DB transaction
@@ -892,7 +892,7 @@ async fn handle_message(
                             response.response_error__name(),
                             response.http_code(),
                             response_contents_to_insert.map(|(_, headers)| headers.to_owned()).unwrap_or(None),
-                            response_contents_to_insert.map(|(body, _)| body.to_owned()).unwrap_or(None),
+                            response_contents_to_insert.and_then(|(body, _)| body.as_deref()),
                             response.elapsed_time_ms(),
                         )
                         .fetch_one(&mut *tx)
@@ -915,7 +915,9 @@ async fn handle_message(
                                 attempt.created_at.naive_utc().date()
                             );
                             let object: Vec<u8> = ObjectStorageResponse {
-                                body: response.body.clone().unwrap_or_default(),
+                                // Moved rather than copied: nothing after storage reads the
+                                // body, and it can be as large as `MAX_RESPONSE_BODY_SIZE`
+                                body: response.body.take().unwrap_or_default(),
                                 headers: response_headers.unwrap_or_default(),
                             }
                             .try_into()?;

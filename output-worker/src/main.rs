@@ -16,6 +16,7 @@ use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::operation::get_object::GetObjectError;
+use bytesize::ByteSize;
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
 use hickory_resolver::config::LookupIpStrategy;
@@ -254,6 +255,10 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     timeout: Duration,
 
+    /// Maximum size of a webhook response body that is read and stored (for example "512KiB" or "1MiB"); the rest of a longer body is discarded and the connection is closed, without changing the delivery outcome; "0" disables reading response bodies; cannot exceed "256MiB"
+    #[clap(long, env, value_parser = parse_response_body_size, default_value = "1MiB")]
+    max_response_body_size: ByteSize,
+
     /// Total wall-clock budget for resolving the target's hostname, across every name server query it takes (if exceeded, request attempt will fail); must be at least "3ms"
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
     dns_timeout: Duration,
@@ -344,6 +349,22 @@ fn parse_min_duration(input: &str) -> Result<Duration, String> {
         Err("must be at least 1s".to_owned())
     } else {
         Ok(duration)
+    }
+}
+
+/// Largest value `MAX_RESPONSE_BODY_SIZE` accepts.
+///
+/// A stored body has to fit in one PostgreSQL value (1 GB), and a body that cannot be stored is
+/// a delivery that cannot be recorded. The ceiling keeps every accepted value well clear of that.
+const MAX_RESPONSE_BODY_SIZE_CEILING: ByteSize = ByteSize::mib(256);
+
+/// Parse a size limit for webhook response bodies, refusing anything above the ceiling.
+fn parse_response_body_size(input: &str) -> Result<ByteSize, String> {
+    let size = input.parse::<ByteSize>()?;
+    if size > MAX_RESPONSE_BODY_SIZE_CEILING {
+        Err("must be at most 256MiB".to_owned())
+    } else {
+        Ok(size)
     }
 }
 
@@ -514,6 +535,10 @@ async fn main() -> anyhow::Result<()> {
         config.connect_timeout
     );
     debug!("Webhook total timeout is set to {:?}", config.timeout);
+    debug!(
+        "Webhook response body size limit is set to {}",
+        config.max_response_body_size
+    );
 
     let retry_policy = RetryPolicy::from_config(&config)?;
     let effective_retry_policy = retry_policy.evaluate(config.max_retry_window);
@@ -1267,25 +1292,17 @@ async fn compute_next_retry(
     response: &Response,
     policy: RetryPolicy,
 ) -> Result<Option<Duration>, sqlx::Error> {
+    // The reason behind these errors was logged by `work` when it produced them; the response
+    // body may already have been moved to object storage by now
     match response.response_error {
         Some(ResponseError::InvalidHeader) => {
-            let msg = response
-                .body
-                .as_ref()
-                .and_then(|bytes| str::from_utf8(bytes).ok())
-                .unwrap_or("???");
-            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
+            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature; giving up");
             report_given_up(GiveUpReason::SignatureFailed);
             Ok(None)
         }
         _ => {
             if let Some(ResponseError::InvalidTarget) = response.response_error {
-                let msg = response
-                    .body
-                    .as_ref()
-                    .and_then(|bytes| str::from_utf8(bytes).ok())
-                    .unwrap_or("???");
-                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
+                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target; continuing as normal");
             }
 
             // `throttled` is true when the subscription is degraded or recovering and subscription health is enforced for its application
@@ -1742,6 +1759,7 @@ mod tests {
             http_code: Some(http_code),
             headers,
             body: None,
+            body_truncated: false,
             elapsed_time: Duration::ZERO,
         }
     }
@@ -1930,6 +1948,21 @@ mod tests {
                 prop_assert_eq!(throttled, normal.max(Duration::from_secs(min_secs)));
             }
         }
+    }
+
+    #[test]
+    fn test_parse_response_body_size() {
+        assert_eq!(parse_response_body_size("1MiB"), Ok(ByteSize::mib(1)));
+        assert_eq!(parse_response_body_size("512KiB"), Ok(ByteSize::kib(512)));
+        assert_eq!(parse_response_body_size("1048576"), Ok(ByteSize::mib(1)));
+        assert_eq!(parse_response_body_size("0"), Ok(ByteSize::b(0)));
+        assert_eq!(
+            parse_response_body_size("256MiB"),
+            Ok(MAX_RESPONSE_BODY_SIZE_CEILING)
+        );
+        assert!(parse_response_body_size("257MiB").is_err());
+        assert!(parse_response_body_size("soon").is_err());
+        assert!(parse_response_body_size("-1").is_err());
     }
 
     #[test]

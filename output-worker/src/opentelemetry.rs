@@ -412,6 +412,9 @@ pub fn end_request_attempt_span(mut span: BoxedSpan, response: &Response) {
             "http.response.status_code",
             response.http_code.map(i64::from).unwrap_or_default(),
         ),
+        // The span also carries the subscription, which makes this the way to find out who
+        // is answering with bodies larger than the limit
+        KeyValue::new("http.response.body.truncated", response.body_truncated),
     ]);
     span.end();
 }
@@ -561,6 +564,19 @@ pub fn report_given_up(reason: GiveUpReason) {
     DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", <&'static str>::from(reason))]);
 }
 
+static RESPONSE_BODIES_TRUNCATED: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("webhook.delivery.response_body_truncated")
+        .with_description(
+            "Count of webhook responses whose body was larger than the limit and was truncated",
+        )
+        .build()
+});
+
+pub fn report_response_body_truncated() {
+    RESPONSE_BODIES_TRUNCATED.add(1, &[]);
+}
+
 static PAUSED_REQUEST_ATTEMPTS_RELEASED: LazyLock<Counter<u64>> = LazyLock::new(|| {
     global::meter(crate_name!())
         .u64_counter("paused_request_attempts.released")
@@ -644,6 +660,7 @@ mod tests {
             http_code,
             headers: None,
             body: None,
+            body_truncated: false,
             elapsed_time: Duration::from_secs(0),
         }
     }

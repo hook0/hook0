@@ -1,14 +1,10 @@
-use prost::{DecodeError, EncodeError};
+use prost::DecodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Hook0ProtobufError {
     // Decoding from ProtoBuf error
     #[error("Could not decode from ProtoBuf: {0}")]
     ProtoDecode(#[from] DecodeError),
-
-    /// Encoding to ProtoBuf error
-    #[error("Could not encode to ProtoBuf: {0}")]
-    ProtoEncode(#[from] EncodeError),
 
     /// Invalid UUID error
     #[error("Could not parse '{str}' as a UUID: {error}")]

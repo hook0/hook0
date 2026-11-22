@@ -171,6 +171,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`DISABLE_TARGET_IP_CHECK\` | If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail | \`false\` |  |
 | \`CONNECT_TIMEOUT\` | Timeout for establishing a connection to the target (if exceeded, request attempt will fail) | \`5s\` |  |
 | \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | \`15s\` |  |
+| \`MAX_RESPONSE_BODY_SIZE\` | Maximum size of a webhook response body that is read and stored (for example "512KiB" or "1MiB"); the rest of a longer body is discarded and the connection is closed, without changing the delivery outcome; "0" disables reading response bodies; cannot exceed "256MiB" | \`1MiB\` |  |
 | \`DNS_TIMEOUT\` | Total wall-clock budget for resolving the target's hostname, across every name server query it takes (if exceeded, request attempt will fail); must be at least "3ms" | \`5s\` |  |
 | \`DNS_CACHE_MAX_TTL\` | Maximum duration a successful DNS answer is kept in the worker's in-process DNS cache (shorter record TTLs are still honored) | \`5m\` |  |
 | \`DNS_NEGATIVE_CACHE_MAX_TTL\` | Maximum duration a negative DNS answer (for example NXDOMAIN) is kept in the worker's in-process DNS cache | \`30s\` |  |

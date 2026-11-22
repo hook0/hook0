@@ -265,6 +265,20 @@ The check applies to hostnames *and* to URLs written with an IP literal, and the
 
 This check can be disabled with the `DISABLE_TARGET_IP_CHECK` flag for development environments.
 
+## Response size limit
+
+Hook0 keeps the response your endpoint sends back, so that you can inspect it when debugging a delivery. It reads at most `MAX_RESPONSE_BODY_SIZE` of the body (1 MiB by default). When a body is longer, Hook0 keeps the beginning, stops reading and closes the connection. A text body is cut between two characters, never inside one.
+
+This never changes the outcome of a delivery: success or failure is decided by the HTTP status code alone, and a truncated body does not trigger a retry.
+
+If you operate Hook0 yourself, size the limit with your workers in mind:
+
+- A worker holds at least `CONCURRENT` x 2 x `MAX_RESPONSE_BODY_SIZE` in memory (x 3 when responses are stored in PostgreSQL) when every delivery in flight receives a body at the limit.
+- When responses are stored in object storage, a body at the limit has to be uploaded within `OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT`.
+- Setting the limit to `0` disables reading response bodies altogether.
+
+The `webhook.delivery.response_body_truncated` metric counts truncated responses, and the `request_attempt` trace span of each delivery carries an `http.response.body.truncated` attribute next to its `subscription_id`.
+
 ## Further reading
 
 - [Webhook delivery guarantees](/explanation/webhook-delivery-guarantees) -- at-least-once delivery and the idempotency pattern
