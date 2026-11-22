@@ -23,6 +23,7 @@ use hickory_resolver::config::LookupIpStrategy;
 use humantime::format_duration;
 use reqwest::Url;
 use reqwest::header::{HeaderName, RETRY_AFTER};
+use sqlx::postgres::types::PgInterval;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgConnection, PgPool, query, query_as};
 use std::str::FromStr;
@@ -1130,10 +1131,7 @@ impl RetryPolicy {
             jitter_ratio: config.retry_jitter_ratio,
             jitter_max_spread: config.retry_jitter_max_spread,
             // Truncated to whole microseconds for the same reason as in `next_delay`
-            degraded_min_retry_delay: Duration::new(
-                config.degraded_subscription_min_retry_delay.as_secs(),
-                config.degraded_subscription_min_retry_delay.subsec_micros() * 1000,
-            ),
+            degraded_min_retry_delay: whole_micros(config.degraded_subscription_min_retry_delay),
         })
     }
 
@@ -1171,13 +1169,11 @@ impl RetryPolicy {
     ///
     /// The result is truncated to whole microseconds: both queue backends store it in
     /// PostgreSQL (as an `INTERVAL` or a `timestamptz`), neither of which keeps
-    /// sub-microsecond precision. Truncating here keeps the two paths in agreement and
-    /// keeps `PgInterval::try_from` from rejecting the value.
+    /// sub-microsecond precision. Truncating here keeps the two paths in agreement.
     fn next_delay(&self, retry_count: i16, factor: f64) -> Option<Duration> {
         self.base_delay(retry_count).map(|base| {
             let spread = self.jitter_spread(base);
-            let delay = base.saturating_add(spread.mul_f64(factor.clamp(0.0, 1.0)));
-            Duration::new(delay.as_secs(), delay.subsec_micros() * 1000)
+            whole_micros(base.saturating_add(spread.mul_f64(factor.clamp(0.0, 1.0))))
         })
     }
 
@@ -1186,6 +1182,10 @@ impl RetryPolicy {
     /// Only `429 Too Many Requests` is honoured. Other statuses may carry `Retry-After` too, but
     /// only a rate limit tells us the target is healthy and merely asking for a slower pace;
     /// on a 503 the header is a guess about a recovery we have no reason to trust.
+    ///
+    /// The hint is truncated to whole microseconds like every other delay of the schedule. The
+    /// distance to an HTTP-date is measured from a clock that counts nanoseconds, so without
+    /// this a target could hand the pg queue a delay PostgreSQL has no way to store.
     fn retry_after_hint(&self, response: &Response, now: DateTime<Utc>) -> Option<Duration> {
         if response.http_code == Some(429) {
             response
@@ -1194,7 +1194,7 @@ impl RetryPolicy {
                 .and_then(|headers| headers.get(RETRY_AFTER))
                 .and_then(|value| value.to_str().ok())
                 .and_then(|value| parse_retry_after(value, now))
-                .map(|hint| hint.min(Self::RETRY_AFTER_MAX))
+                .map(|hint| whole_micros(hint.min(Self::RETRY_AFTER_MAX)))
         } else {
             None
         }
@@ -1264,6 +1264,40 @@ impl RetryPolicy {
 
         (effective_retries, cumulative)
     }
+}
+
+/// A duration cut down to whole microseconds, the finest grain PostgreSQL keeps.
+fn whole_micros(duration: Duration) -> Duration {
+    Duration::new(duration.as_secs(), duration.subsec_micros() * 1000)
+}
+
+/// Longest delay a retry is scheduled with.
+///
+/// The delay is added to the current time, by PostgreSQL for the pg queue and by chrono for the
+/// Pulsar one, and neither can go past the last moment it represents: PostgreSQL refuses the
+/// sum, chrono panics on it. A century is far beyond any retry schedule, and far from both edges.
+const RETRY_INTERVAL_MAX: Duration = Duration::from_hours(100 * 365 * 24);
+
+/// A retry delay as a PostgreSQL interval.
+///
+/// This conversion cannot fail, and that is its purpose. A retry is scheduled after the webhook
+/// has been sent, inside the transaction that records it: an error at this point rolls the
+/// attempt back, and the same webhook is sent again a moment later. Precision finer than a
+/// microsecond is dropped, and a delay longer than `RETRY_INTERVAL_MAX` is cut down to it.
+fn retry_interval(delay: Duration) -> PgInterval {
+    PgInterval {
+        months: 0,
+        days: 0,
+        microseconds: i64::try_from(delay.min(RETRY_INTERVAL_MAX).as_micros()).unwrap_or(i64::MAX),
+    }
+}
+
+/// The moment a retry is due, for the queue that stores it as a timestamp.
+///
+/// Like `retry_interval`, this cannot fail: adding a delay to a date panics past the last
+/// moment chrono can represent, so a delay longer than `RETRY_INTERVAL_MAX` is cut down to it.
+fn retry_due_at(now: DateTime<Utc>, delay: Duration) -> DateTime<Utc> {
+    now + delay.min(RETRY_INTERVAL_MAX)
 }
 
 /// A `Retry-After` value as a delay from `now`, or `None` when it is not one we can trust.
@@ -1881,6 +1915,35 @@ mod tests {
         );
     }
 
+    /// A moment that does not fall on a whole microsecond, the way `Utc::now()` reports time
+    fn a_moment_with_nanoseconds() -> DateTime<Utc> {
+        a_moment() + chrono::TimeDelta::nanoseconds(123_456_789)
+    }
+
+    /// `Retry-After` may be an HTTP-date, and the distance to it is measured from a clock that
+    /// counts nanoseconds. The pg queue stores the delay as a PostgreSQL interval, which keeps
+    /// microseconds: a delay finer than that is one it cannot schedule.
+    #[test]
+    fn test_retry_after_http_date_yields_a_delay_postgres_can_store() {
+        let now = a_moment_with_nanoseconds();
+        let policy = no_jitter(30);
+        let in_an_hour = (now + chrono::TimeDelta::hours(1)).to_rfc2822();
+        let hinted = response(429, Some(&in_an_hour));
+
+        let delay = policy
+            .next_delay_honouring(0, 0.0, &hinted, now)
+            .expect("the first retry is always scheduled");
+
+        assert!(
+            delay > Duration::from_secs(3),
+            "the hint must win over the 3s base delay, got {delay:?}"
+        );
+        assert!(
+            PgInterval::try_from(delay).is_ok(),
+            "{delay:?} cannot be stored as a PostgreSQL interval"
+        );
+    }
+
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(512))]
 
@@ -1893,17 +1956,26 @@ mod tests {
             retry_count in 0i16..40,
             factor in 0.0f64..=1.0,
             hint_secs in 0u64..1_000_000,
+            hint_is_a_date in any::<bool>(),
+            now_nanos in 0u32..1_000_000_000,
             status in prop::sample::select(vec![200u16, 400, 429, 500, 503]),
             jitter_ratio in 0.0f64..1.0,
         ) {
-            let now = a_moment();
+            // A clock reports nanoseconds, and nothing aligns it with a whole second
+            let now = a_moment() + Duration::from_nanos(now_nanos.into());
             let policy = RetryPolicy {
                 max_retries: 24,
                 jitter_ratio,
                 jitter_max_spread: Duration::from_secs(15 * 60),
                 degraded_min_retry_delay: Duration::from_hours(1),
             };
-            let answer = response(status, Some(&hint_secs.to_string()));
+            // Both forms RFC 9110 allows: a count of seconds, or the date that many seconds away
+            let hint = if hint_is_a_date {
+                (now + Duration::from_secs(hint_secs)).to_rfc2822()
+            } else {
+                hint_secs.to_string()
+            };
+            let answer = response(status, Some(&hint));
 
             let base = policy.next_delay(retry_count, factor);
             let honoured = policy.next_delay_honouring(retry_count, factor, &answer, now);
@@ -1922,6 +1994,10 @@ mod tests {
                 prop_assert!(
                     honoured <= base.max(RetryPolicy::RETRY_AFTER_MAX),
                     "honouring Retry-After went past its own bound: {honoured:?}"
+                );
+                prop_assert!(
+                    PgInterval::try_from(honoured).is_ok(),
+                    "a response header produced a delay PostgreSQL cannot store: {honoured:?}"
                 );
             }
         }
@@ -1948,6 +2024,43 @@ mod tests {
                 prop_assert_eq!(throttled, normal.max(Duration::from_secs(min_secs)));
             }
         }
+    }
+
+    /// Scheduling a retry happens after the webhook was sent, so turning its delay into an
+    /// interval must work for any duration at all.
+    #[test]
+    fn test_retry_interval_never_fails() {
+        let interval = retry_interval(Duration::from_secs(3));
+        assert_eq!(
+            (interval.months, interval.days, interval.microseconds),
+            (0, 0, 3_000_000)
+        );
+
+        // Finer than a microsecond: dropped, where `PgInterval::try_from` refuses the value
+        let finer_than_postgres = Duration::from_nanos(1_999);
+        assert!(PgInterval::try_from(finer_than_postgres).is_err());
+        assert_eq!(retry_interval(finer_than_postgres).microseconds, 1);
+
+        // Longer than PostgreSQL can add to the current time: cut down to the ceiling
+        assert_eq!(
+            u128::try_from(retry_interval(Duration::MAX).microseconds),
+            Ok(RETRY_INTERVAL_MAX.as_micros())
+        );
+    }
+
+    /// The Pulsar queue stores a retry as the moment it is due, worked out after the webhook was
+    /// sent: adding the delay to the current time must work for any duration at all.
+    #[test]
+    fn test_retry_due_at_never_panics() {
+        let now = a_moment();
+
+        assert_eq!(
+            retry_due_at(now, Duration::from_secs(3)),
+            now + Duration::from_secs(3)
+        );
+
+        // Longer than chrono can add to a date: cut down to the ceiling
+        assert_eq!(retry_due_at(now, Duration::MAX), now + RETRY_INTERVAL_MAX);
     }
 
     #[test]

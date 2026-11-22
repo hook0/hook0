@@ -33,7 +33,7 @@ use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    RetryPolicy, SlotRole, compute_next_retry, fetch_event_payload,
+    RetryPolicy, SlotRole, compute_next_retry, fetch_event_payload, retry_due_at,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -1006,7 +1006,7 @@ async fn handle_message(
                                         .await?
                                 {
                                     let next_retry_count = attempt.retry_count + 1;
-                                    let delay_until = Utc::now() + retry_in;
+                                    let delay_until = retry_due_at(Utc::now(), retry_in);
 
                                     #[allow(non_snake_case)]
                                     struct Retry {

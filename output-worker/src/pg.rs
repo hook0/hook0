@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::Utc;
-use sqlx::postgres::types::PgInterval;
 use sqlx::{PgPool, query, query_as};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
@@ -20,6 +19,7 @@ use crate::work::work;
 use crate::{
     Config, MissingPayload, ObjectStorageConfig, RequestAttemptWithOptionalPayload, RetryPolicy,
     SlotRole, Worker, compute_next_retry, fetch_event_payload, give_up_on_missing_payload,
+    retry_interval,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -309,11 +309,6 @@ pub async fn look_for_work(
                             .await?
                     {
                         let next_retry_count = attempt.retry_count + 1;
-                        let retry_interval = PgInterval::try_from(retry_in).map_err(|e| {
-                            anyhow!(
-                                "Could not convert retry delay ({retry_in:?}) to a PG interval: {e}"
-                            )
-                        })?;
                         let retry_id = query!(
                             "
                                 INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
@@ -323,7 +318,7 @@ pub async fn look_for_work(
                             attempt.application_id,
                             attempt.event_id,
                             attempt.subscription_id,
-                            retry_interval,
+                            retry_interval(retry_in),
                             next_retry_count,
                         )
                         .fetch_one(&mut *tx)
