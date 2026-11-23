@@ -1181,6 +1181,9 @@ abbr {
   @apply fixed inset-0 z-40;
   pointer-events: none;
   visibility: hidden;
+  // The off-canvas panel is parked at translateX(100%); clipping it keeps the
+  // header scrollWidth equal to the viewport so it never reads as overflow.
+  overflow: hidden;
 
   &.is-open {
     pointer-events: auto;

@@ -74,7 +74,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
 
             <% if (__groups) { %>
             <!-- Desktop Nav — 5 slots: Platform ▾ · Compare ▾ · Solutions ▾ · Pricing · Docs↗ -->
-            <div class="hidden md:flex items-center gap-1">
+            <div class="hidden lg:flex items-center gap-1">
                 <% ['platform','compare','solutions'].forEach(function(gkey) {
                      var g = __groups[gkey]; if (!g) return;
                      var itemsResolved = g.items.map(function(it){ var h = __resolveHref(it.enSlug); return h ? Object.assign({href:h}, it) : null; }).filter(Boolean);
@@ -113,14 +113,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
             </div>
 
             <!-- Desktop right zone: Play · GitHub · Login · Start Free · Lang -->
-            <div class="hidden md:flex items-center gap-2">
-                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="nav-link nav-link--icon" title="Try Hook0 live" aria-label="Try Hook0 live at play.hook0.com" onclick="trackEvent('Navigation', 'Click', 'Header Play')">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span class="hidden lg:inline"><%= __cnav.play %></span>
-                </a>
-                <a href="https://gitlab.com/hook0/hook0" target="_blank" rel="noopener" class="nav-link nav-link--icon" title="View source on GitLab" aria-label="View source on GitLab">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.6 9.6L23.6 9.5 20.2 0.7c-0.1-0.2-0.2-0.3-0.4-0.4-0.2-0.1-0.4-0.1-0.6-0.1s-0.4 0.1-0.5 0.3c-0.1 0.2-0.2 0.3-0.3 0.5L15.9 8H8.1L5.7 0.9c-0.1-0.2-0.2-0.4-0.3-0.5-0.1-0.1-0.3-0.2-0.5-0.3s-0.4 0-0.6 0.1c-0.2 0.1-0.3 0.2-0.4 0.4L0.5 9.5v0.1L0.4 9.7c-0.5 1.3-0.1 2.7 1 3.5l0.1 0 8.7 6.3 4.3 3.3 2.6 2c0.3 0.2 0.7 0.2 1 0l2.6-2 4.3-3.3 8.7-6.3 0 0c1.1-0.8 1.5-2.2 1-3.5z"/></svg>
-                </a>
+            <div class="hidden lg:flex items-center gap-2">
                 <a href="<%= locals.meta.login %>" class="nav-link"><%= __cnav.login %></a>
                 <a href="https://app.hook0.com/register" class="btn btn--primary btn--sm" onclick="trackEvent('CTA', 'Click', 'Start Free')">
                     <%= __cnav.startFree %>
@@ -143,7 +136,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
             </div>
             <% } else { %>
             <!-- Legacy flat nav (kept for pages that don't inject chrome.header.nav.groups). -->
-            <div class="hidden md:flex items-center gap-1">
+            <div class="hidden lg:flex items-center gap-1">
                 <a href="<%= __homeRoot %>#how-it-works" class="btn btn--ghost"><%= __cnav ? __cnav.howItWorks : 'How it works' %></a>
                 <a href="<%= __homeRoot %>#use_cases" class="btn btn--ghost"><%= __cnav ? __cnav.useCases : 'Use cases' %></a>
                 <a href="<%= __pricingHref %>" class="btn btn--ghost"><%= __cnav ? __cnav.pricing : 'Pricing' %></a>
@@ -170,7 +163,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
                 </details>
                 <% } %>
             </div>
-            <div class="hidden md:flex items-center gap-3">
+            <div class="hidden lg:flex items-center gap-3">
                 <a href="<%= locals.meta.contact %>" class="btn btn--ghost"><%= __cnav ? __cnav.contact : 'Contact' %></a>
                 <a href="<%= locals.meta.login %>" class="btn btn--ghost"><%= __cnav ? __cnav.login : 'Login' %></a>
                 <a href="https://app.hook0.com/register" class="btn btn--primary btn--sm" onclick="trackEvent('CTA', 'Click', 'Start Free')"><%= __cnav ? __cnav.startFree : 'Start Free' %><svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a>
@@ -180,7 +173,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
             <!-- Mobile Menu Button -->
             <button
                 id="mobile-menu-button"
-                class="md:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors touch-manipulation"
+                class="lg:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors touch-manipulation"
                 aria-label="<%= __ca11y ? __ca11y.openMenu : 'Open menu' %>"
                 aria-expanded="false"
                 aria-controls="mobile-menu">
@@ -191,7 +184,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
     </nav>
 
     <!-- Mobile Navigation Panel -->
-    <div id="mobile-menu" class="mobile-menu md:hidden" aria-hidden="true">
+    <div id="mobile-menu" class="mobile-menu lg:hidden" aria-hidden="true">
         <div class="mobile-menu__backdrop"></div>
         <div class="mobile-menu__panel">
             <% if (__groups) { %>
