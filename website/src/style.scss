@@ -1165,6 +1165,21 @@ abbr {
   &.is-open &__chevron {
     transform: rotate(180deg);
   }
+
+  // Dismissed with Escape. The script hands focus back to the trigger, and the
+  // focus-within and hover rules above would reopen the panel at once, so a
+  // keyboard user could never close it (WCAG 1.4.13). The script drops this
+  // class on the next deliberate open (click, mouse re-entry) or when focus
+  // leaves the dropdown; keep this block after the open-state rules.
+  &.is-dismissed &__panel {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+  }
+
+  &.is-dismissed &__chevron {
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -30,6 +30,7 @@ module.exports = {
   'open-source-webhooks': { fr: 'webhooks-open-source', de: 'quelloffene-webhooks' },
   'hook0-vs-convoy': { fr: 'hook0-vs-convoy', de: 'hook0-vs-convoy' },
   'hook0-vs-requeue': { fr: 'hook0-vs-requeue', de: 'hook0-vs-requeue' },
+  'hook0-vs-hookbase': { fr: 'hook0-vs-hookbase' },
   'hook0-vs-ngrok': { fr: 'hook0-vs-ngrok', de: 'hook0-vs-ngrok' },
   'hook0-vs-webhook-relay': { fr: 'hook0-vs-webhook-relay', de: 'hook0-vs-webhook-relay' },
   'self-hosted-webhooks': { fr: 'webhooks-auto-heberges', de: 'selbst-gehostete-webhooks' },

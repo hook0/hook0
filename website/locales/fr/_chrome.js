@@ -476,6 +476,7 @@ module.exports = {
         { label: 'Webhooks gratuits', href: './webhook-gratuit' },
         { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
         { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
+        { label: 'Hook0 vs Hookbase', href: './hook0-vs-hookbase' },
         { label: 'Alternatives à Hook0', href: './alternatives-a-hook0' },
         { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
       ],

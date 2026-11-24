@@ -17,7 +17,11 @@ var __cftit = (__cfoot && __cfoot.titles) ? __cfoot.titles : null;
 
     <!-- Main Footer Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12 lg:gap-8">
+        <%# hyphens-auto + break-words: the columns are fixed fractions of the
+            row, and long German compounds ("Nutzungsbedingungen") are wider
+            than a column from 375 to 1024 px. Both properties are inherited,
+            so every link label breaks inside its column instead of spilling. %>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12 lg:gap-8 hyphens-auto break-words">
             <!-- Brand Column -->
             <div class="col-span-2 lg:col-span-1">
                 <a href="/" class="flex items-center group">
@@ -120,8 +124,11 @@ var __cftit = (__cfoot && __cfoot.titles) ? __cfoot.titles : null;
                     <p class="mt-1"><a href="https://www.hook0.com/entitymap.html" class="text-gray-600 hover:text-gray-400 transition-colors">EntityMap</a></p>
                 </div>
 
-                <!-- Cookie Settings & Social Icons -->
-                <div class="flex items-center gap-4">
+                <!-- Cookie Settings & Social Icons. flex-wrap: the localized
+                     cookie label plus the six icons is wider than a 375 px
+                     screen in French and German, so the row breaks instead of
+                     pushing the page sideways. -->
+                <div class="flex flex-wrap items-center justify-center gap-4">
                     <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
                     <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="text-sm text-gray-500 hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 underline">
                         <%= __cfoot ? __cfoot.cookieSettings : 'Cookie Settings' %>

@@ -342,6 +342,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
     function openOnly(dd) {
         dropdowns.forEach(function(other) { if (other !== dd) closeDropdown(other); });
         var trigger = dd.querySelector('[aria-expanded]');
+        dd.classList.remove('is-dismissed');
         dd.classList.add('is-open');
         if (trigger) trigger.setAttribute('aria-expanded', 'true');
         openDropdown = dd;
@@ -359,15 +360,24 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
         // Hover on the container also opens (mirrors the CSS but keeps aria-expanded truthful)
         dd.addEventListener('mouseenter', function() { openOnly(dd); });
         dd.addEventListener('mouseleave', function() { closeDropdown(dd); });
+        // A dismissal lasts until focus leaves this dropdown (see .is-dismissed).
+        dd.addEventListener('focusout', function(e) {
+            if (!dd.contains(e.relatedTarget)) dd.classList.remove('is-dismissed');
+        });
     });
 
-    // Escape closes any open dropdown and returns focus to its trigger.
+    // Escape closes the dropdown that is showing and returns focus to its
+    // trigger. "Showing" also covers a panel held open by CSS alone (hover or
+    // focus-within, with no .is-open), hence the :hover / :focus-within lookup.
+    // is-dismissed stops that same CSS from reopening it once focus is back.
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && openDropdown) {
-            var t = openDropdown.querySelector('.nav-dropdown__trigger');
-            closeDropdown(openDropdown);
-            if (t) t.focus();
-        }
+        if (e.key !== 'Escape') return;
+        var dd = openDropdown || document.querySelector('[data-nav-dropdown]:focus-within, [data-nav-dropdown]:hover');
+        if (!dd) return;
+        var t = dd.querySelector('.nav-dropdown__trigger');
+        closeDropdown(dd);
+        dd.classList.add('is-dismissed');
+        if (t) t.focus();
     });
     // Click outside any dropdown closes the open one.
     document.addEventListener('click', function(e) {
