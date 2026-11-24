@@ -4,3 +4,10 @@
 # Netlify reads this file from the published directory, which is what the CI
 # `netlify deploy --dir=website/dist` uses.
 /.well-known/security.txt   /security.txt   200
+
+# The FAQ lives in the pricing page, so /faq (typed or linked from outside) goes
+# there with a permanent redirect instead of a 404. Per-locale slugs follow
+# locales/slugs.js.
+/faq      /pricing   301
+/fr/faq   /fr/tarifs 301
+/de/faq   /de/preise 301
