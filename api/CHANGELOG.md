@@ -47,6 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address is counted as the IPv4 address it carries. The address recorded with an event and
   the one in the logs stay the full address.
 
+### Fixed
+
+- Trusted proxies and Cloudflare are recognised behind a dual-stack listener (api)
+
+  With the API bound on `::`, an IPv4 peer arrives as an IPv4-mapped address, which the IPv4
+  entries of `REVERSE_PROXY_IPS` and Cloudflare's IPv4 ranges never matched. The proxy was then
+  taken for the caller, and everyone behind it shared one quota. Both forms are now matched.
+
 ## [api/v3.0.0] - 2026-10-28
 
 ### Breaking Changes

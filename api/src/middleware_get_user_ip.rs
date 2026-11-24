@@ -144,6 +144,9 @@ pub enum GetUserIpError {
 ///
 /// Behind Cloudflare, reaching one of its addresses ends the walk too, and the client is the one
 /// Cloudflare names in a header of its own.
+///
+/// An IPv4-mapped address is matched against the IPv4 networks of both lists as well, so the
+/// proxies and Cloudflare are still recognised when a dual-stack listener reports them that way.
 fn extract_ip(
     req: &ServiceRequest,
     reverse_proxy_cidrs: &[IpNetwork],
@@ -151,17 +154,8 @@ fn extract_ip(
 ) -> Result<IpAddr, GetUserIpError> {
     let peer_ip = req.peer_addr().ok_or(GetUserIpError::NoIpInRequest)?.ip();
 
-    let is_cloudflare = |ip: IpAddr| {
-        behind_cloudflare
-            && CLOUDFLARE_NETWORKS
-                .iter()
-                .any(|network| network.contains(ip))
-    };
-    let is_trusted_proxy = |ip: IpAddr| {
-        reverse_proxy_cidrs
-            .iter()
-            .any(|network| network.contains(ip))
-    };
+    let is_cloudflare = |ip: IpAddr| behind_cloudflare && is_within(&CLOUDFLARE_NETWORKS, ip);
+    let is_trusted_proxy = |ip: IpAddr| is_within(reverse_proxy_cidrs, ip);
 
     let walk = std::iter::once(peer_ip)
         .chain(forwarded_for_hops(req.headers()))
@@ -204,6 +198,19 @@ fn forwarded_for_hops(headers: &HeaderMap) -> impl Iterator<Item = IpAddr> + '_ 
                 .ok()
                 .and_then(|entry| parse_ip(entry.trim()).ok())
         })
+}
+
+/// Whether `ip` falls in one of `networks`, in either of the forms a dual-stack listener can
+/// report an IPv4 caller under.
+///
+/// A listener bound on `::` sees an IPv4 peer as `::ffff:a.b.c.d`, which an IPv4 network never
+/// contains, so the IPv4 address it carries is tried too. The address is also tried as given, so
+/// a list that already spells such peers as IPv4-mapped networks keeps matching them.
+fn is_within(networks: &[IpNetwork], ip: IpAddr) -> bool {
+    let canonical = ip.to_canonical();
+    networks
+        .iter()
+        .any(|network| network.contains(ip) || network.contains(canonical))
 }
 
 /// The client address Cloudflare names, when the request carries one that can be read.
@@ -364,6 +371,11 @@ mod tests {
 
     fn ip(str: &str) -> IpAddr {
         IpAddr::from_str(str).unwrap()
+    }
+
+    /// A peer at `address`, on an arbitrary port.
+    fn peer_at(address: &str) -> SocketAddr {
+        SocketAddr::from((ip(address), 1234))
     }
 
     /// The address the middleware resolves for `request`, which must be served.
@@ -788,6 +800,54 @@ mod tests {
         assert_eq!(
             user_ip_for(only_the_proxy(), true, request).await,
             ip("198.51.100.66")
+        );
+    }
+
+    /// A listener bound on `::` reports an IPv4 peer as an IPv4-mapped address, and the proxy it
+    /// stands for is listed under its IPv4 address.
+    #[actix_web::test]
+    async fn a_trusted_proxy_reported_as_ipv4_mapped_is_recognised() {
+        let request = TestRequest::default()
+            .peer_addr(peer_at("::ffff:192.168.0.1"))
+            .insert_header((FORWARDED_FOR_HEADER, "198.51.100.1"));
+        assert_eq!(
+            user_ip_for(only_the_proxy(), false, request).await,
+            ip("198.51.100.1")
+        );
+    }
+
+    /// A proxy on a dual-stack listener of its own writes its peer in the mapped form too.
+    #[actix_web::test]
+    async fn an_ipv4_mapped_hop_in_the_chain_is_recognised() {
+        let request = TestRequest::default()
+            .peer_addr(proxy_peer())
+            .insert_header((FORWARDED_FOR_HEADER, "198.51.100.1, ::ffff:192.168.0.2"));
+        assert_eq!(
+            user_ip_for(a_chain_of_proxies(), false, request).await,
+            ip("198.51.100.1")
+        );
+    }
+
+    #[actix_web::test]
+    async fn a_cloudflare_peer_reported_as_ipv4_mapped_is_recognised() {
+        let request = TestRequest::default()
+            .peer_addr(peer_at("::ffff:173.245.48.1"))
+            .insert_header((CLOUDFLARE_IP_HEADER, "203.0.113.7"));
+        assert_eq!(
+            user_ip_for(Vec::new(), true, request).await,
+            ip("203.0.113.7")
+        );
+    }
+
+    /// Reading the IPv4 address a mapped one carries must not widen the list.
+    #[actix_web::test]
+    async fn an_ipv4_mapped_peer_outside_the_list_is_still_the_client() {
+        let request = TestRequest::default()
+            .peer_addr(peer_at("::ffff:192.168.0.2"))
+            .insert_header((FORWARDED_FOR_HEADER, "198.51.100.1"));
+        assert_eq!(
+            user_ip_for(only_the_proxy(), false, request).await,
+            ip("::ffff:192.168.0.2")
         );
     }
 
