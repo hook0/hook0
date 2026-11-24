@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [api/v3.1.0] - 2026-11-24
+
+### Fixed
+
+- Recognise IPv4-mapped peers as trusted proxies and Cloudflare (api)
+
+### Other
+
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+
+### Performance
+
+- Speed up picking, listing and cancelling request attempts
+- Drop request_attempt_waiting_idx (api)
+- Drop request_attempt_waiting_unpaused_idx (api)
+- Index event.event.application_secret__token for secret deletions (api)
+
+### Security
+
+- Resolve the client IP right to left over X-Forwarded-For, skipping trusted proxies (api)
+- Count IPv6 callers per network prefix in the per-IP rate limiters (api)
+
+### Testing
+
+- Rewrite the older user IP tests around user_ip_for (api)
+
 ## [Unreleased]
 
 ## [api/v3.0.0] - 2026-11-24
