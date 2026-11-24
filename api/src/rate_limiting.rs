@@ -6,6 +6,7 @@ use actix_web::middleware::Condition;
 use actix_web::rt::time::sleep;
 use actix_web::{HttpMessage, HttpResponse, HttpResponseBuilder};
 use http_api_problem::{HttpApiProblem, PROBLEM_JSON_MEDIA_TYPE};
+use ipnetwork::Ipv6Network;
 use std::net::IpAddr;
 use std::time::Duration;
 use tracing::{debug, trace, warn};
@@ -83,7 +84,11 @@ impl Hook0RateLimiters {
         disable_api_rate_limiting_email: bool,
         api_rate_limiting_email_burst_size: u32,
         api_rate_limiting_email_replenish_period_in_ms: u64,
+        api_rate_limiting_ipv6_prefix_length: u8,
     ) -> Self {
+        let user_ip_key_extractor = UserIpKeyExtractor {
+            ipv6_prefix_length: api_rate_limiting_ipv6_prefix_length,
+        };
         let global = GovernorConfigBuilder::default()
             .key_extractor(InstanceKeyExtractor)
             .burst_size(api_rate_limiting_global_burst_size)
@@ -91,7 +96,7 @@ impl Hook0RateLimiters {
             .finish()
             .expect("Could not build global rate limiter; check configuration");
         let ip = GovernorConfigBuilder::default()
-            .key_extractor(UserIpKeyExtractor)
+            .key_extractor(user_ip_key_extractor)
             .burst_size(api_rate_limiting_ip_burst_size)
             .milliseconds_per_request(api_rate_limiting_ip_replenish_period_in_ms)
             .finish()
@@ -103,7 +108,7 @@ impl Hook0RateLimiters {
             .finish()
             .expect("Could not build per-token rate limiter; check configuration");
         let email = GovernorConfigBuilder::default()
-            .key_extractor(UserIpKeyExtractor)
+            .key_extractor(user_ip_key_extractor)
             .burst_size(api_rate_limiting_email_burst_size)
             .milliseconds_per_request(api_rate_limiting_email_replenish_period_in_ms)
             .finish()
@@ -217,8 +222,30 @@ impl Hook0RateLimiters {
     }
 }
 
+/// Keys a request on the address of its caller, as the user IP middleware resolved it.
 #[derive(Debug, Clone, Copy)]
-pub struct UserIpKeyExtractor;
+pub struct UserIpKeyExtractor {
+    /// Length of the network prefix an IPv6 caller is counted on.
+    ipv6_prefix_length: u8,
+}
+
+impl UserIpKeyExtractor {
+    /// The key the quota of a caller at `ip` is held under.
+    ///
+    /// An IPv4 address is its own key. An IPv6 caller is keyed on its network prefix instead of
+    /// its address: a single subscriber is routinely handed a /64 or more, and keying on the full
+    /// address would give it one fresh quota per address it cares to use. An IPv4-mapped address
+    /// is read as the IPv4 address it carries first, because the prefix those share would
+    /// otherwise put every IPv4 caller of a dual-stack listener under one key.
+    fn key(&self, ip: IpAddr) -> IpAddr {
+        match ip.to_canonical() {
+            IpAddr::V6(address) => Ipv6Network::new(address, self.ipv6_prefix_length)
+                .map(|network| IpAddr::V6(network.network()))
+                .unwrap_or(IpAddr::V6(address)),
+            address => address,
+        }
+    }
+}
 
 impl KeyExtractor for UserIpKeyExtractor {
     type Key = IpAddr;
@@ -230,7 +257,7 @@ impl KeyExtractor for UserIpKeyExtractor {
     ) -> Result<Self::Key, Self::KeyExtractionError> {
         req.extensions()
             .get::<IpAddr>()
-            .copied()
+            .map(|ip| self.key(*ip))
             .ok_or(Hook0Problem::InternalServerError)
     }
 
@@ -286,5 +313,55 @@ impl KeyExtractor for TokenKeyExtractor {
 
     fn whitelisted_keys(&self) -> Vec<Self::Key> {
         vec![RateLimiterTokenKey::MasterApiKey]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(ipv6_prefix_length: u8, ip: &str) -> IpAddr {
+        UserIpKeyExtractor { ipv6_prefix_length }.key(ip.parse().expect("a valid test address"))
+    }
+
+    fn address(ip: &str) -> IpAddr {
+        ip.parse().expect("a valid test address")
+    }
+
+    #[test]
+    fn ipv6_callers_of_one_network_share_a_key() {
+        assert_eq!(
+            key(64, "2001:db8:1:2::1"),
+            key(64, "2001:db8:1:2:ffff:ffff:ffff:9")
+        );
+        assert_eq!(key(64, "2001:db8:1:2::1"), address("2001:db8:1:2::"));
+        assert_eq!(key(56, "2001:db8:1:100::1"), key(56, "2001:db8:1:1ff::1"));
+    }
+
+    #[test]
+    fn ipv6_callers_of_different_networks_do_not() {
+        assert_ne!(key(64, "2001:db8:1:2::1"), key(64, "2001:db8:1:3::1"));
+        assert_ne!(key(56, "2001:db8:1:100::1"), key(56, "2001:db8:1:200::1"));
+    }
+
+    #[test]
+    fn a_full_length_prefix_keys_each_address_on_its_own() {
+        assert_eq!(key(128, "2001:db8:1:2::1"), address("2001:db8:1:2::1"));
+    }
+
+    /// Masked as IPv6, every mapped address would fall under `::`, the one key all IPv4 callers of
+    /// a dual-stack listener would then share.
+    #[test]
+    fn an_ipv4_mapped_address_is_keyed_as_the_ipv4_address_it_carries() {
+        assert_eq!(key(64, "::ffff:198.51.100.1"), address("198.51.100.1"));
+        assert_ne!(
+            key(64, "::ffff:198.51.100.1"),
+            key(64, "::ffff:198.51.100.2")
+        );
+    }
+
+    #[test]
+    fn an_ipv4_address_is_its_own_key() {
+        assert_eq!(key(64, "198.51.100.1"), address("198.51.100.1"));
     }
 }

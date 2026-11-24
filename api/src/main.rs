@@ -369,6 +369,10 @@ struct Config {
     #[clap(long, env, default_value = "60000")]
     api_rate_limiting_email_replenish_period_in_ms: u64,
 
+    /// [Rate Limiting] Length of the network prefix an IPv6 caller is counted on by the per-IP quotas, so that all the addresses of one network share a quota, between 32 and 128
+    #[clap(long, env, default_value = "64", value_parser = clap::value_parser!(u8).range(32..=128))]
+    api_rate_limiting_ipv6_prefix_length: u8,
+
     /// [Rate Limiting] Duration to wait beetween rate limiters housekeeping
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
     api_rate_limiting_housekeeping_period: Duration,
@@ -1164,6 +1168,7 @@ async fn main() -> anyhow::Result<()> {
             config.disable_api_rate_limiting_email,
             config.api_rate_limiting_email_burst_size,
             config.api_rate_limiting_email_replenish_period_in_ms,
+            config.api_rate_limiting_ipv6_prefix_length,
         );
 
         // Create a DB connection pool for housekeeping tasks (no timeout)

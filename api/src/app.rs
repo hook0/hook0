@@ -552,7 +552,7 @@ pub(crate) mod test_support {
             enable_security_headers: true,
             enable_hsts_header: false,
             rate_limiters: Hook0RateLimiters::new(
-                true, true, 2000, 1, true, 200, 10, true, 20, 100, true, 5, 60_000,
+                true, true, 2000, 1, true, 200, 10, true, 20, 100, true, 5, 60_000, 64,
             ),
             disable_serving_webapp: true,
             webapp_path: String::new(),
@@ -1773,6 +1773,7 @@ mod client_address {
             false,
             1,
             REPLENISH_PERIOD_IN_MS,
+            64,
         )
     }
 
@@ -1814,6 +1815,30 @@ mod client_address {
     async fn callers_the_proxy_names_differently_are_counted_apart() {
         assert_eq!(
             statuses(["203.0.113.1, 198.51.100.1", "203.0.113.1, 198.51.100.2"]).await,
+            [
+                StatusCode::UNPROCESSABLE_ENTITY,
+                StatusCode::UNPROCESSABLE_ENTITY
+            ],
+        );
+    }
+
+    /// An IPv6 caller can use every address of its /64, so moving to another one of them must not
+    /// buy it a fresh quota.
+    #[actix_web::test]
+    async fn the_addresses_of_one_ipv6_network_share_a_quota() {
+        assert_eq!(
+            statuses(["2001:db8:1:2::1", "2001:db8:1:2:ffff::9"]).await,
+            [
+                StatusCode::UNPROCESSABLE_ENTITY,
+                StatusCode::TOO_MANY_REQUESTS
+            ],
+        );
+    }
+
+    #[actix_web::test]
+    async fn ipv6_networks_are_counted_apart() {
+        assert_eq!(
+            statuses(["2001:db8:1:2::1", "2001:db8:1:3::1"]).await,
             [
                 StatusCode::UNPROCESSABLE_ENTITY,
                 StatusCode::UNPROCESSABLE_ENTITY

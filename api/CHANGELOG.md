@@ -37,6 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer feeds the scheme and host they record either; `X-Forwarded-Proto` and
   `X-Forwarded-Host` still do.
 
+- IPv6 callers are counted per network by the per-IP quotas (api)
+
+  Both per-IP quotas, the one in front of the whole API and the one in front of the endpoints
+  that send mail, were keyed on the full address. An IPv6 subscriber is commonly handed a /64
+  of its own, so it could use a fresh address, and get a fresh quota, on every request. A
+  caller is now counted on its /64. `API_RATE_LIMITING_IPV6_PREFIX_LENGTH` sets the prefix,
+  between 32 and 128, for an operator who sees abuse from wider networks. An IPv4-mapped
+  address is counted as the IPv4 address it carries. The address recorded with an event and
+  the one in the logs stay the full address.
+
 ## [api/v3.0.0] - 2026-10-28
 
 ### Breaking Changes

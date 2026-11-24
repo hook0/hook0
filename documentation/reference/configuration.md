@@ -111,6 +111,7 @@ own build.
 | `API_RATE_LIMITING_HOUSEKEEPING_PERIOD` | Duration to wait beetween rate limiters housekeeping | `5m` |  |
 | `API_RATE_LIMITING_IP_BURST_SIZE` | Quota of API calls per IP before rate limiting blocks incomming requests (must be ≥ 1) | `200` |  |
 | `API_RATE_LIMITING_IP_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one API call per IP is restored in the quota (must be ≥ 1) | `10` |  |
+| `API_RATE_LIMITING_IPV6_PREFIX_LENGTH` | Length of the network prefix an IPv6 caller is counted on by the per-IP quotas, so that all the addresses of one network share a quota, between 32 and 128 | `64` |  |
 | `API_RATE_LIMITING_TOKEN_BURST_SIZE` | Quota of API calls per token before rate limiting blocks incomming requests (must be ≥ 1) | `20` |  |
 | `API_RATE_LIMITING_TOKEN_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1) | `100` |  |
 | `DISABLE_API_RATE_LIMITING` | Set to true to disable every API rate limiting | - |  |
