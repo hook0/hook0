@@ -7,55 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security
-
-- A caller behind a trusted reverse proxy can no longer choose the address it is counted under (api)
-
-  With the peer inside `REVERSE_PROXY_IPS`, the caller's address was read from the first `for=`
-  of `Forwarded`, or else from the leftmost entry of `X-Forwarded-For`. Proxies add to those
-  headers rather than replace them, so the leftmost entry is whatever the caller wrote, and
-  anyone behind such a proxy could announce a fresh address on every request. That walked past
-  the per-IP quota and the quota of the endpoints that send mail, and it set the address
-  recorded with an ingested event. The address is now read from the right end of
-  `X-Forwarded-For`, passing over the addresses of trusted proxies, and the first one that is
-  not a proxy is the caller's.
-
-  Upgrading: `Forwarded` is no longer read, so a proxy has to add its peer to
-  `X-Forwarded-For`, as nginx, HAProxy, Traefik, Caddy, cloud load balancers and Cloudflare do.
-  Every proxy in front of the API belongs in `REVERSE_PROXY_IPS`, since one left out is now
-  taken for the caller and everyone behind it shares its quota. With Cloudflare in front of
-  proxies of your own, set `BEHIND_CLOUDFLARE`, or every visitor arriving through the same
-  Cloudflare server counts as one caller.
-
-- The client address in request logs is the one the API resolved (api)
-
-  The `http.client_ip` field of the request span was read straight from `Forwarded` or the
-  leftmost `X-Forwarded-For` entry, whatever peer sent them, so any caller could put any
-  address in the logs, with or without a reverse proxy configured. The middleware that
-  resolves the address now runs first and leaves that address as the only one the request
-  announces, so the logs and Sentry agree with the rate limiters. A `Forwarded` header no
-  longer feeds the scheme and host they record either; `X-Forwarded-Proto` and
-  `X-Forwarded-Host` still do.
-
-- IPv6 callers are counted per network by the per-IP quotas (api)
-
-  Both per-IP quotas, the one in front of the whole API and the one in front of the endpoints
-  that send mail, were keyed on the full address. An IPv6 subscriber is commonly handed a /64
-  of its own, so it could use a fresh address, and get a fresh quota, on every request. A
-  caller is now counted on its /64. `API_RATE_LIMITING_IPV6_PREFIX_LENGTH` sets the prefix,
-  between 32 and 128, for an operator who sees abuse from wider networks. An IPv4-mapped
-  address is counted as the IPv4 address it carries. The address recorded with an event and
-  the one in the logs stay the full address.
-
-### Fixed
-
-- Trusted proxies and Cloudflare are recognised behind a dual-stack listener (api)
-
-  With the API bound on `::`, an IPv4 peer arrives as an IPv4-mapped address, which the IPv4
-  entries of `REVERSE_PROXY_IPS` and Cloudflare's IPv4 ranges never matched. The proxy was then
-  taken for the caller, and everyone behind it shared one quota. Both forms are now matched.
-
-## [api/v3.0.0] - 2026-10-28
+## [api/v3.0.0] - 2026-11-24
 
 ### Breaking Changes
 
@@ -170,6 +122,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wider than the proxy, and anyone inside the range gets to claim whatever address they like
   and walk past this limiter along with the per-IP one.
 
+- A caller behind a trusted reverse proxy can no longer choose the address it is counted under (api)
+
+  With the peer inside `REVERSE_PROXY_IPS`, the caller's address was read from the first `for=`
+  of `Forwarded`, or else from the leftmost entry of `X-Forwarded-For`. Proxies add to those
+  headers rather than replace them, so the leftmost entry is whatever the caller wrote, and
+  anyone behind such a proxy could announce a fresh address on every request. That walked past
+  the per-IP quota and the quota of the endpoints that send mail, and it set the address
+  recorded with an ingested event. The address is now read from the right end of
+  `X-Forwarded-For`, passing over the addresses of trusted proxies, and the first one that is
+  not a proxy is the caller's.
+
+  Upgrading: `Forwarded` is no longer read, so a proxy has to add its peer to
+  `X-Forwarded-For`, as nginx, HAProxy, Traefik, Caddy, cloud load balancers and Cloudflare do.
+  Every proxy in front of the API belongs in `REVERSE_PROXY_IPS`, since one left out is now
+  taken for the caller and everyone behind it shares its quota. With Cloudflare in front of
+  proxies of your own, set `BEHIND_CLOUDFLARE`, or every visitor arriving through the same
+  Cloudflare server counts as one caller.
+
+- The client address in request logs is the one the API resolved (api)
+
+  The `http.client_ip` field of the request span was read straight from `Forwarded` or the
+  leftmost `X-Forwarded-For` entry, whatever peer sent them, so any caller could put any
+  address in the logs, with or without a reverse proxy configured. The middleware that
+  resolves the address now runs first and leaves that address as the only one the request
+  announces, so the logs and Sentry agree with the rate limiters. A `Forwarded` header no
+  longer feeds the scheme and host they record either; `X-Forwarded-Proto` and
+  `X-Forwarded-Host` still do.
+
+- IPv6 callers are counted per network by the per-IP quotas (api)
+
+  Both per-IP quotas, the one in front of the whole API and the one in front of the endpoints
+  that send mail, were keyed on the full address. An IPv6 subscriber is commonly handed a /64
+  of its own, so it could use a fresh address, and get a fresh quota, on every request. A
+  caller is now counted on its /64. `API_RATE_LIMITING_IPV6_PREFIX_LENGTH` sets the prefix,
+  between 32 and 128, for an operator who sees abuse from wider networks. An IPv4-mapped
+  address is counted as the IPv4 address it carries. The address recorded with an event and
+  the one in the logs stay the full address.
+
 ### Added
 
 - HTTP server metrics (api)
@@ -235,6 +225,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   same constant the server enforces, so the two cannot drift apart again. The mail now also
   says that the link works once and that a newer reset mail retires it, so a reader who asked
   twice knows the most recent message is the one to open.
+
+- Trusted proxies and Cloudflare are recognised behind a dual-stack listener (api)
+
+  With the API bound on `::`, an IPv4 peer arrives as an IPv4-mapped address, which the IPv4
+  entries of `REVERSE_PROXY_IPS` and Cloudflare's IPv4 ranges never matched. The proxy was then
+  taken for the caller, and everyone behind it shared one quota. Both forms are now matched.
 
 ## [api/v1.0.2] - 2026-05-13
 
