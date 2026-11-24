@@ -14,7 +14,7 @@ release = true
 publish = false
 
 [dependencies]
-anyhow = "1.0.104"
+anyhow = "1.0.105"
 aws-sdk-s3 = { version = "1.161.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 base64 = "0.23.1"
 bytesize = "2.7.0"
@@ -22,7 +22,7 @@ chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.9", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.34"
 hex = "0.4.3"
-hickory-resolver = "0.26.3"
+hickory-resolver = "0.26.4"
 hmac = "0.13.0"
 hook0-protobuf = { path = "../protobuf", version = "0.1.0" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }

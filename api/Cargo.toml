@@ -18,7 +18,7 @@ actix-cors = "0.7.2"
 actix-files = "0.7.5"
 actix-governor = "0.10.0"
 actix-web = "4.20.0"
-anyhow = "1.0.104"
+anyhow = "1.0.105"
 argon2 = "0.6.0"
 aws-sdk-s3 = { version = "1.161.0", default-features = false, features = ["behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 base64 = "0.23.1"
