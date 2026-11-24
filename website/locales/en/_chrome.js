@@ -489,6 +489,7 @@ module.exports = {
       items: [
         { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
         { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
+        { label: 'Hook0 vs Hookbase', href: './hook0-vs-hookbase' },
         { label: 'Hook0 Alternatives', href: './hook0-alternatives' },
         { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
       ],
