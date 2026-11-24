@@ -392,235 +392,121 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn get_user_ip_v4_peer_no_trusted_proxies() {
-        let app = init_service(test_app(Vec::new(), false)).await;
-        let peer = (IpAddr::V4(Ipv4Addr::LOCALHOST), 1234).into();
-        let req = TestRequest::default().peer_addr(peer).to_request();
-        let expected = IpAddr::V4(Ipv4Addr::LOCALHOST);
-
-        let res = call_service(&app, req).await;
-        assert_eq!(res.status(), 200);
-        let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-        let user_ip = IpAddr::from_str(&body).unwrap();
-        assert_eq!(user_ip, expected)
-    }
-
-    #[actix_web::test]
-    async fn get_user_ip_v6_peer_no_trusted_proxies() {
-        let app = init_service(test_app(Vec::new(), false)).await;
-        let peer = (IpAddr::V6(Ipv6Addr::LOCALHOST), 1234).into();
-        let req = TestRequest::default().peer_addr(peer).to_request();
-        let expected = IpAddr::V6(Ipv6Addr::LOCALHOST);
-
-        let res = call_service(&app, req).await;
-        assert_eq!(res.status(), 200);
-        let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-        let user_ip = IpAddr::from_str(&body).unwrap();
-        assert_eq!(user_ip, expected)
-    }
-
-    #[actix_web::test]
-    async fn get_user_ip_v4_peer_trusted_forwarded_for() {
-        let reverse_proxy_cidrs = vec![IpNetwork::from(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))];
-        let app = init_service(test_app(reverse_proxy_cidrs, false)).await;
-        let peer = (IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)), 1234).into();
-        let req = TestRequest::default()
-            .peer_addr(peer)
-            .insert_header((FORWARDED_FOR_HEADER, "10.0.0.1"))
-            .to_request();
-        let expected = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
-
-        let res = call_service(&app, req).await;
-        assert_eq!(res.status(), 200);
-        let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-        let user_ip = IpAddr::from_str(&body).unwrap();
-        assert_eq!(user_ip, expected)
-    }
-
-    #[actix_web::test]
-    async fn get_user_ip_v6_peer_trusted_forwarded_for() {
-        let reverse_proxy_cidrs = vec![IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
-            0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
-        )))];
-        let app = init_service(test_app(reverse_proxy_cidrs, false)).await;
-        let peer = (
-            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff)),
-            1234,
-        )
-            .into();
-        let req = TestRequest::default()
-            .peer_addr(peer)
-            .insert_header((FORWARDED_FOR_HEADER, "::ffff:192.10.2.1"))
-            .to_request();
-        let expected = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x201));
-
-        let res = call_service(&app, req).await;
-        assert_eq!(res.status(), 200);
-        let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-        let user_ip = IpAddr::from_str(&body).unwrap();
-        assert_eq!(user_ip, expected)
-    }
-
-    #[actix_web::test]
-    async fn get_user_ip_v4_peer_untrusted_forwarded_for() {
-        let reverse_proxy_cidrs = vec![IpNetwork::from(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))];
-        let app = init_service(test_app(reverse_proxy_cidrs, false)).await;
-        let peer = (IpAddr::V4(Ipv4Addr::new(192, 168, 0, 2)), 1234).into();
-        let req = TestRequest::default()
-            .peer_addr(peer)
-            .insert_header((FORWARDED_FOR_HEADER, "10.0.0.1"))
-            .to_request();
-        let expected = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 2));
-
-        let res = call_service(&app, req).await;
-        assert_eq!(res.status(), 200);
-        let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-        let user_ip = IpAddr::from_str(&body).unwrap();
-        assert_eq!(user_ip, expected)
-    }
-
-    #[actix_web::test]
-    async fn get_user_ip_v6_peer_untrusted_forwarded_for() {
-        let reverse_proxy_cidrs = vec![IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
-            0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
-        )))];
-        let app = init_service(test_app(reverse_proxy_cidrs, false)).await;
-        let peer = (
-            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2fe)),
-            1234,
-        )
-            .into();
-        let req = TestRequest::default()
-            .peer_addr(peer)
-            .insert_header((FORWARDED_FOR_HEADER, "::ffff:192.10.2.1"))
-            .to_request();
-        let expected = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2fe));
-
-        let res = call_service(&app, req).await;
-        assert_eq!(res.status(), 200);
-        let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-        let user_ip = IpAddr::from_str(&body).unwrap();
-        assert_eq!(user_ip, expected)
-    }
-
-    #[actix_web::test]
-    async fn get_user_ip_no_cf() {
-        let reverse_proxy_cidrs = vec![
-            IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
-                0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
-            ))),
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8).unwrap(),
-        ];
-        let app = init_service(test_app(reverse_proxy_cidrs, false)).await;
-
-        let tests = [
-            (
-                SocketAddr::from((
-                    IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff)),
-                    1234,
-                )),
-                "::ffff:192.10.2.1",
-                IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x201)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(127, 0, 1, 200)), 1234)),
-                "10.10.10.10",
-                IpAddr::V4(Ipv4Addr::new(10, 10, 10, 10)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 1234)),
-                "10.10.10.10",
-                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
-            ),
-        ];
-        for (peer, forwarded_for, expected) in tests {
-            let req = TestRequest::default()
-                .peer_addr(peer)
-                .insert_header((FORWARDED_FOR_HEADER, forwarded_for))
-                .to_request();
-
-            let res = call_service(&app, req).await;
-            assert_eq!(res.status(), 200);
-            let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-            let user_ip = IpAddr::from_str(&body).unwrap();
-            assert_eq!(user_ip, expected)
+    async fn with_no_trusted_proxy_the_peer_is_the_client() {
+        for peer in ["127.0.0.1", "::1"] {
+            let request = TestRequest::default()
+                .peer_addr(peer_at(peer))
+                .insert_header((FORWARDED_FOR_HEADER, "203.0.113.7"));
+            assert_eq!(
+                user_ip_for(Vec::new(), false, request).await,
+                ip(peer),
+                "{peer}"
+            );
         }
     }
 
     #[actix_web::test]
-    async fn get_user_ip_with_cf() {
-        let reverse_proxy_cidrs = vec![
-            IpNetwork::from(IpAddr::V6(Ipv6Addr::new(
-                0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff,
-            ))),
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8).unwrap(),
-        ];
-        let app = init_service(test_app(reverse_proxy_cidrs, true)).await;
+    async fn a_trusted_peer_names_the_client() {
+        for (proxy, client) in [
+            ("192.168.0.1", "10.0.0.1"),
+            ("2001:db8::1", "2001:db8:ffff::7"),
+        ] {
+            let request = TestRequest::default()
+                .peer_addr(peer_at(proxy))
+                .insert_header((FORWARDED_FOR_HEADER, client));
+            assert_eq!(
+                user_ip_for(vec![IpNetwork::from(ip(proxy))], false, request).await,
+                ip(client),
+                "{proxy}"
+            );
+        }
+    }
 
-        let tests = [
-            (
-                SocketAddr::from((
-                    IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x2ff)),
-                    1234,
-                )),
-                Some("::ffff:192.10.2.1"),
-                None,
-                IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc00a, 0x201)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(127, 0, 1, 200)), 1234)),
-                Some("10.10.10.10"),
-                None,
-                IpAddr::V4(Ipv4Addr::new(10, 10, 10, 10)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 1234)),
-                Some("10.10.10.10"),
-                None,
-                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
-            ),
-            //
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(173, 245, 48, 1)), 1234)),
-                None,
-                Some("10.0.0.1"),
-                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(127, 2, 3, 4)), 1234)),
-                Some("173.245.48.1"),
-                Some("10.0.0.1"),
-                IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(10, 2, 3, 4)), 1234)),
-                None,
-                Some("10.0.0.1"),
-                IpAddr::V4(Ipv4Addr::new(10, 2, 3, 4)),
-            ),
-            (
-                SocketAddr::from((IpAddr::V4(Ipv4Addr::new(127, 2, 3, 4)), 1234)),
-                Some("10.2.3.4"),
-                Some("10.0.0.1"),
-                IpAddr::V4(Ipv4Addr::new(10, 2, 3, 4)),
-            ),
-        ];
-        for (peer, forwarded_for, cf_header, expected) in tests {
-            let mut req = TestRequest::default().peer_addr(peer);
-            if let Some(ff) = forwarded_for {
-                req = req.insert_header((FORWARDED_FOR_HEADER, ff));
-            }
-            if let Some(cfh) = cf_header {
-                req = req.insert_header((CLOUDFLARE_IP_HEADER, cfh));
-            }
-            let req = req.to_request();
-            dbg!(&req.headers());
+    #[actix_web::test]
+    async fn a_peer_outside_the_list_is_the_client() {
+        for (proxy, peer) in [
+            ("192.168.0.1", "192.168.0.2"),
+            ("2001:db8::1", "2001:db8::2"),
+        ] {
+            let request = TestRequest::default()
+                .peer_addr(peer_at(peer))
+                .insert_header((FORWARDED_FOR_HEADER, "10.0.0.1"));
+            assert_eq!(
+                user_ip_for(vec![IpNetwork::from(ip(proxy))], false, request).await,
+                ip(peer),
+                "{peer}"
+            );
+        }
+    }
 
-            let res = call_service(&app, req).await;
-            assert_eq!(res.status(), 200);
-            let body = String::from_utf8(read_body(res).await.to_vec()).unwrap();
-            let user_ip = IpAddr::from_str(&body).unwrap();
-            assert_eq!(user_ip, expected)
+    #[actix_web::test]
+    async fn a_trusted_range_covers_every_address_in_it() {
+        for (range, proxy, client) in [
+            ("127.0.0.0/8", "127.0.1.200", "10.10.10.10"),
+            ("2001:db8::/64", "2001:db8::abcd", "2001:db8:ffff::7"),
+        ] {
+            let request = TestRequest::default()
+                .peer_addr(peer_at(proxy))
+                .insert_header((FORWARDED_FOR_HEADER, client));
+            assert_eq!(
+                user_ip_for(vec![IpNetwork::from_str(range).unwrap()], false, request).await,
+                ip(client),
+                "{range}"
+            );
+        }
+    }
+
+    #[actix_web::test]
+    async fn a_cloudflare_peer_names_the_client() {
+        let request = TestRequest::default()
+            .peer_addr(peer_at("173.245.48.1"))
+            .insert_header((CLOUDFLARE_IP_HEADER, "10.0.0.1"));
+        assert_eq!(user_ip_for(Vec::new(), true, request).await, ip("10.0.0.1"));
+    }
+
+    /// Anyone can send the header Cloudflare uses, so it only counts on a request that came
+    /// through Cloudflare.
+    #[actix_web::test]
+    async fn cloudflare_header_from_a_peer_that_is_not_cloudflare_is_ignored() {
+        let request = TestRequest::default()
+            .peer_addr(peer_at("10.2.3.4"))
+            .insert_header((CLOUDFLARE_IP_HEADER, "10.0.0.1"));
+        assert_eq!(user_ip_for(Vec::new(), true, request).await, ip("10.2.3.4"));
+    }
+
+    #[actix_web::test]
+    async fn cloudflare_header_is_ignored_when_the_chain_ends_outside_cloudflare() {
+        let request = TestRequest::default()
+            .peer_addr(proxy_peer())
+            .insert_header((FORWARDED_FOR_HEADER, "10.2.3.4"))
+            .insert_header((CLOUDFLARE_IP_HEADER, "10.0.0.1"));
+        assert_eq!(
+            user_ip_for(only_the_proxy(), true, request).await,
+            ip("10.2.3.4")
+        );
+    }
+
+    /// A request that never went through Cloudflare resolves the same with the setting on.
+    #[actix_web::test]
+    async fn behind_cloudflare_changes_nothing_for_other_requests() {
+        for behind_cloudflare in [false, true] {
+            let through_the_proxy = TestRequest::default()
+                .peer_addr(proxy_peer())
+                .insert_header((FORWARDED_FOR_HEADER, "10.10.10.10"));
+            assert_eq!(
+                user_ip_for(only_the_proxy(), behind_cloudflare, through_the_proxy).await,
+                ip("10.10.10.10"),
+                "behind_cloudflare = {behind_cloudflare}"
+            );
+
+            let direct = TestRequest::default()
+                .peer_addr(peer_at("10.0.0.1"))
+                .insert_header((FORWARDED_FOR_HEADER, "10.10.10.10"));
+            assert_eq!(
+                user_ip_for(only_the_proxy(), behind_cloudflare, direct).await,
+                ip("10.0.0.1"),
+                "behind_cloudflare = {behind_cloudflare}"
+            );
         }
     }
 
@@ -848,6 +734,28 @@ mod tests {
         assert_eq!(
             user_ip_for(only_the_proxy(), false, request).await,
             ip("::ffff:192.168.0.2")
+        );
+    }
+
+    /// A list that already spells the proxy as an IPv4-mapped address keeps matching it as such.
+    #[actix_web::test]
+    async fn a_list_of_ipv4_mapped_networks_keeps_matching() {
+        let mapped_proxy = || vec![IpNetwork::from(ip("::ffff:192.10.2.255"))];
+
+        let from_the_proxy = TestRequest::default()
+            .peer_addr(peer_at("::ffff:192.10.2.255"))
+            .insert_header((FORWARDED_FOR_HEADER, "::ffff:192.10.2.1"));
+        assert_eq!(
+            user_ip_for(mapped_proxy(), false, from_the_proxy).await,
+            ip("::ffff:192.10.2.1")
+        );
+
+        let from_a_neighbour = TestRequest::default()
+            .peer_addr(peer_at("::ffff:192.10.2.254"))
+            .insert_header((FORWARDED_FOR_HEADER, "::ffff:192.10.2.1"));
+        assert_eq!(
+            user_ip_for(mapped_proxy(), false, from_a_neighbour).await,
+            ip("::ffff:192.10.2.254")
         );
     }
 
