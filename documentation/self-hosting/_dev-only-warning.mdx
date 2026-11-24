@@ -25,8 +25,8 @@ The Docker Compose file sets two more values that belong to a development stack 
   gateway rather than as the caller, and this setting tells the API to read the caller's address out
   of a proxy header instead. It is held to one address on purpose, since the gateway is the only
   address on the network that no container can be given, and anything wider would cover every
-  sibling container and whatever an operator adds to the network next. Set it to the address of your
-  own reverse proxy, and to nothing wider.
+  sibling container and whatever an operator adds to the network next. Set it to the addresses of
+  your own reverse proxies, and to nothing wider.
 - [`API_RATE_LIMITING_EMAIL_BURST_SIZE`](../reference/configuration.md) is raised from 5 to 20, the
   headroom the browser-driven end-to-end tests need. That quota is what bounds an
   address-enumeration sweep against the endpoints that send an email to an address the caller names,

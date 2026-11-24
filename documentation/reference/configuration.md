@@ -46,8 +46,8 @@ own build.
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `BEHIND_CLOUDFLARE` | Set to true if your instance is served behind Cloudflare's proxies in order to determine the correct user IP for each request | `false` |  |
-| `CC_REVERSE_PROXY_IPS` | A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers | - |  |
-| `REVERSE_PROXY_IPS` | A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers | - |  |
+| `CC_REVERSE_PROXY_IPS` | A comma-separated list of the IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) of every reverse proxy in front of the API, each of which must append the address it received the request from to "X-Forwarded-For"; the user IP is the rightmost address of that header that is not one of them ("Forwarded" is not read) | - |  |
+| `REVERSE_PROXY_IPS` | A comma-separated list of the IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) of every reverse proxy in front of the API, each of which must append the address it received the request from to "X-Forwarded-For"; the user IP is the rightmost address of that header that is not one of them ("Forwarded" is not read) | - |  |
 
 ### Database
 

@@ -110,11 +110,11 @@ struct Config {
     #[clap(long, env, default_value = "8080")]
     port: String,
 
-    /// [Reverse Proxy] A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    /// [Reverse Proxy] A comma-separated list of the IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) of every reverse proxy in front of the API, each of which must append the address it received the request from to "X-Forwarded-For"; the user IP is the rightmost address of that header that is not one of them ("Forwarded" is not read)
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
     reverse_proxy_ips: Vec<IpNetwork>,
 
-    /// [Reverse Proxy] A comma-separated list of trusted IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) that are allowed to set "X-Forwarded-For" and "Forwarded" headers
+    /// [Reverse Proxy] A comma-separated list of the IP addresses (e.g. `192.168.1.1`) or CIDRs (e.g. `192.168.0.0/16`) of every reverse proxy in front of the API, each of which must append the address it received the request from to "X-Forwarded-For"; the user IP is the rightmost address of that header that is not one of them ("Forwarded" is not read)
     #[clap(long, env, use_value_delimiter = true, group = "reverse_proxy")]
     cc_reverse_proxy_ips: Vec<IpNetwork>,
 

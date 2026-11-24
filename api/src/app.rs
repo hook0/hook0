@@ -127,7 +127,6 @@ pub fn build_app(
                 problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
             actix_web::error::Error::from(problem)
         }))
-        .wrap(get_user_ip)
         .wrap(hsts_header_condition)
         .wrap(security_headers_condition)
         .wrap(cors)
@@ -140,6 +139,13 @@ pub fn build_app(
         ))
         .wrap(NormalizePath::trim())
         .wrap(sentry_actix::Sentry::new())
+        // Outermost, so it runs first. It leaves the address it resolves as the only one the
+        // request announces, and `ConnectionInfo` is built from the headers on its first read and
+        // kept: Sentry reads it at the start of every request, and the request span records
+        // `http.client_ip` from it, so both have to come after. As a side effect, a `Forwarded`
+        // header no longer feeds the scheme and host they record; `X-Forwarded-Proto` and
+        // `X-Forwarded-Host` still do.
+        .wrap(get_user_ip)
         .wrap_api_with_spec(spec)
         .with_json_spec_v3_at("/api/v1/swagger.json")
         .service(
@@ -1727,5 +1733,91 @@ mod tests {
         );
 
         println!("{bound_examples} bound json example(s) validated against the OpenAPI schemas");
+    }
+}
+
+/// The rate limiters count a request under the address the user IP middleware resolves, inside
+/// the real route table and middleware stack.
+#[cfg(test)]
+mod client_address {
+    use super::build_app;
+    use super::test_support::inert_app_factory_config;
+    use crate::rate_limiting::Hook0RateLimiters;
+
+    use actix_web::http::StatusCode;
+    use actix_web::test;
+    use ipnetwork::IpNetwork;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+    /// One of the endpoints the mail-sending quota wraps. Posted to with a payload its own
+    /// validation refuses, so a request the quota lets through is answered `422` without a
+    /// database.
+    const MAIL_SENDING_URI: &str = "/api/v1/auth/begin-reset-password";
+
+    /// Holds a second request back long enough that the test cannot race the quota replenishing.
+    const REPLENISH_PERIOD_IN_MS: u64 = 3_600_000;
+
+    /// Only the mail-sending quota, letting one request per caller through.
+    fn one_mail_per_caller() -> Hook0RateLimiters {
+        Hook0RateLimiters::new(
+            false,
+            true,
+            1,
+            REPLENISH_PERIOD_IN_MS,
+            true,
+            1,
+            REPLENISH_PERIOD_IN_MS,
+            true,
+            1,
+            REPLENISH_PERIOD_IN_MS,
+            false,
+            1,
+            REPLENISH_PERIOD_IN_MS,
+        )
+    }
+
+    /// What two requests a trusted proxy forwards, with these `X-Forwarded-For` values, are
+    /// answered.
+    async fn statuses(forwarded_for: [&str; 2]) -> [StatusCode; 2] {
+        let mut config = inert_app_factory_config().await;
+        config.reverse_proxy_cidrs = vec![IpNetwork::from(IpAddr::V4(Ipv4Addr::LOCALHOST))];
+        config.rate_limiters = one_mail_per_caller();
+        let app = test::init_service(build_app(&config)).await;
+
+        let mut statuses = [StatusCode::OK; 2];
+        for (status, forwarded_for) in statuses.iter_mut().zip(forwarded_for) {
+            let request = test::TestRequest::post()
+                .uri(MAIL_SENDING_URI)
+                .set_json(serde_json::json!({ "email": "not-an-address" }))
+                .peer_addr(SocketAddr::from(([127, 0, 0, 1], 5678)))
+                .insert_header(("X-Forwarded-For", forwarded_for))
+                .to_request();
+            *status = test::call_service(&app, request).await.status();
+        }
+        statuses
+    }
+
+    /// What the reporter of the vulnerability did: a fresh address on the left of every request,
+    /// with the proxy appending the same real one.
+    #[actix_web::test]
+    async fn a_caller_cannot_change_its_address_by_writing_another_one_to_the_left() {
+        assert_eq!(
+            statuses(["203.0.113.1, 198.51.100.1", "203.0.113.2, 198.51.100.1"]).await,
+            [
+                StatusCode::UNPROCESSABLE_ENTITY,
+                StatusCode::TOO_MANY_REQUESTS
+            ],
+        );
+    }
+
+    #[actix_web::test]
+    async fn callers_the_proxy_names_differently_are_counted_apart() {
+        assert_eq!(
+            statuses(["203.0.113.1, 198.51.100.1", "203.0.113.1, 198.51.100.2"]).await,
+            [
+                StatusCode::UNPROCESSABLE_ENTITY,
+                StatusCode::UNPROCESSABLE_ENTITY
+            ],
+        );
     }
 }
