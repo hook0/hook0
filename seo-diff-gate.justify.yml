@@ -25,3 +25,15 @@
 - page: website/src/migrate-from-webhook-site.ejs
   exception: correction-factuelle
   reason: The tldr, comparison row and FAQ listed dead letter queues as a Hook0 feature; per the documentation page on dead letters and the replay endpoint, Hook0 keeps the failed attempt and replays the event, so the three spots now say event replay in en, fr and de.
+- page: /faq
+  type: page
+  count: 1
+  reason: This URL never had a page and answered 404 in production; the 301 sends it to /pricing, which holds the FAQ, so no indexed page and no traffic is lost.
+- page: /fr/faq
+  type: page
+  count: 1
+  reason: This URL never had a page and answered 404 in production; the 301 sends it to /fr/tarifs, which holds the FAQ, so no indexed page and no traffic is lost.
+- page: /de/faq
+  type: page
+  count: 1
+  reason: This URL never had a page and answered 404 in production; the 301 sends it to /de/preise, which holds the FAQ, so no indexed page and no traffic is lost.
