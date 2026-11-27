@@ -3,9 +3,9 @@
 // Hook0 = « open source (SSPL-1.0) », JAMAIS « open source » seul (SSPL hors OSI, risque L121-1).
 // Hookdeck : Outpost (livraison) sous Apache-2.0 et auto-hébergeable, Event Gateway (ingestion) fermé.
 module.exports = {
-  pageTitle: 'Hook0 vs Hookdeck, plateforme webhook vs gateway | Hook0',
-  pageDescription: 'Compare Hook0 et Hookdeck : une plateforme webhook open source (SSPL-1.0) face à une gateway plus un produit de livraison séparé. Licences, auto-hébergement, tarifs.',
-  pageModified: '2026-10-08',
+  pageTitle: 'Hook0 vs Hookdeck : tarifs, offres, auto-hébergement (2026)',
+  pageDescription: 'Ce que fait et coûte Hookdeck face à Hook0, vérifié en novembre 2026 : Event Gateway de 0 à 499 $/mois, Outpost 10 $ le million d\'events, Hook0 gratuit puis 59 €/mois.',
+  pageModified: '2026-11-24',
   breadcrumb: 'Hook0 vs Hookdeck',
   tldr: {
     h2: 'En bref',
@@ -75,7 +75,7 @@ module.exports = {
   },
   pricing: {
     eyebrow: 'Tarifs',
-    h2: 'Prix publiés, octobre 2026',
+    h2: 'Prix publiés, novembre 2026',
     intro: "Hookdeck facture à l'event et ajoute des minimums mensuels pour les fonctions d'équipe. Hook0 vend des offres forfaitaires avec un quota d'events par jour, et facture le dépassement à l'event au lieu de le bloquer.",
     headers: ['Produit', 'Offre', 'Prix', 'Volume', 'Rétention'],
     rows: [
@@ -90,7 +90,7 @@ module.exports = {
       { product: 'Hook0', plan: 'Pro', price: '190 €/mois HT', volume: '100 000 events/jour, puis 0,0001 €/event', retention: '30 jours', hook0: true },
       { product: 'Hook0', plan: 'Auto-hébergé', price: 'Gratuit (SSPL-1.0)', volume: 'Ton infrastructure', retention: 'À ton choix', hook0: true },
     ],
-    note: "Prix tels que publiés sur le site de chaque éditeur le 8 octobre 2026. Les offres Enterprise de Hookdeck et de Hook0 sont sur devis. Pour les totaux de 100 000 à 10 millions d'events par mois, consulte le",
+    note: "Prix tels que publiés sur le site de chaque éditeur le 24 novembre 2026. Les offres Enterprise de Hookdeck et de Hook0 sont sur devis. Pour les totaux de 100 000 à 10 millions d'events par mois, consulte le",
     link: { enSlug: 'webhook-cost-comparison', label: 'comparatif de coût webhook' },
   },
   fit: {
@@ -126,12 +126,12 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
-    lastReviewed: 'Dernière revue, octobre 2026.',
+    lastReviewed: 'Dernière revue, novembre 2026.',
     items: [
       { q: 'Quelle est la différence entre Hook0 et Hookdeck ?', a: 'Hook0 est une plateforme webhook, tu envoies des events via API, Hook0 les livre à tes souscripteurs avec relances, signatures et monitoring. L\'Event Gateway de Hookdeck se place entre des émetteurs et des récepteurs de webhooks existants pour ajouter de la fiabilité. Elle n\'émet pas elle-même de webhooks, c\'est Outpost, le second produit de Hookdeck, qui s\'en charge.' },
       { q: 'Hook0 est-il open source ?', a: 'Le serveur Hook0 est publié sous SSPL-1.0 et les SDK sous MIT. SSPL est une licence copyleft à source disponible, tu peux inspecter, modifier et auto-héberger toute la plateforme librement. Hookdeck publie Outpost, son composant de livraison, sous Apache-2.0, et garde son Event Gateway en code fermé et disponible uniquement en SaaS managé.' },
       { q: 'Puis-je auto-héberger Hook0 ?', a: "Oui. Hook0 s'auto-héberge sur Docker Compose ou Kubernetes sans coût, ne demande que PostgreSQL, et le cloud managé fait tourner ce même code, sans fonction réservée à un palier entreprise. Hookdeck auto-héberge Outpost sous Apache-2.0, qui demande Redis, PostgreSQL et une file de messages. Son Event Gateway est cloud uniquement, et sur Outpost managé, SSO, SAML et SCIM démarrent à l'offre Growth à 499 $/mois minimum en plus du coût à l'event." },
-      { q: 'Combien coûte Hookdeck ?', a: "Tel que publié le 8 octobre 2026 : l'Event Gateway est gratuite jusqu'à 10 000 events par mois, puis à partir de 39 $/mois (Team) ou 499 $/mois (Growth). Outpost est gratuit en auto-hébergement, ou à 10 $ le million d'events en managé, avec les 50 000 premiers events offerts sur Starter et un minimum de 499 $/mois sur Growth. Hook0 Cloud est gratuit jusqu'à 100 events par jour, puis 59 €/mois (Startup) ou 190 €/mois (Pro), HT." },
+      { q: 'Combien coûte Hookdeck ?', a: "Tel que publié le 24 novembre 2026 : l'Event Gateway est gratuite jusqu'à 10 000 events par mois, puis à partir de 39 $/mois (Team) ou 499 $/mois (Growth). Outpost est gratuit en auto-hébergement, ou à 10 $ le million d'events en managé, avec les 50 000 premiers events offerts sur Starter et un minimum de 499 $/mois sur Growth. Hook0 Cloud est gratuit jusqu'à 100 events par jour, puis 59 €/mois (Startup) ou 190 €/mois (Pro), HT." },
       { q: 'Puis-je migrer de Hookdeck Outpost vers Hook0 ?', a: "Oui. Les topics Outpost deviennent des types d'event Hook0, les tenants deviennent des labels et les destinations webhook deviennent des souscriptions. Publie sur les deux pendant quelques jours, puis fais passer tes clients à la vérification de signature Hook0. Les destinations qui ne sont pas en HTTPS (SQS, Kafka, Pub/Sub) n'ont pas d'équivalent dans Hook0 et doivent rester où elles sont." },
       { q: 'Lequel choisir ?', a: "Pour recevoir des webhooks tiers, prends l'Event Gateway de Hookdeck ; Hook0 ne fait pas ça. Pour envoyer des webhooks à tes utilisateurs, compare Hook0 et Outpost : choisis Outpost s'il te faut des destinations file ou bus ou une licence Apache-2.0, et Hook0 si tu veux un hébergement en UE par une société française, PostgreSQL comme seule dépendance en auto-hébergement et des offres mensuelles forfaitaires." },
       { q: 'Hook0 est-il hébergé en UE, contrairement à Hookdeck ?', a: "Hook0 Cloud est exploité par une société française (FGRibreau SARL), avec son plan de données sur Clever Cloud en France. Le CDN et la protection anti-DDoS en frontal sont assurés par Cloudflare (US), divulgué dans une liste publique de sous-traitants avec son mécanisme de transfert. Hookdeck est une société canadienne. Et comme Hook0 s'auto-héberge sur le même code, tu peux garder les données de webhook entièrement dans ton propre réseau." },
@@ -147,16 +147,17 @@ module.exports = {
     competitors: ["Hookdeck"],
     scope: "Cette page compare les offres publiques, les licences et l'hébergement de Hook0 et de Hookdeck pour l'envoi de webhooks. Les prix sont ceux publiés par chaque éditeur, et les fonctionnalités reflètent leur documentation publique.",
     sources: [
-      { label: "Tarifs Hookdeck Event Gateway", url: "https://hookdeck.com/pricing", consulted: "2026-10-08", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
-      { label: "Tarifs Hookdeck Outpost", url: "https://hookdeck.com/outpost/pricing", consulted: "2026-10-08" },
+      { label: "Tarifs Hookdeck Event Gateway", url: "https://hookdeck.com/pricing", consulted: "2026-11-24", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Tarifs Hookdeck Outpost", url: "https://hookdeck.com/outpost/pricing", consulted: "2026-11-24" },
       { label: "Code source, fonctionnalités et licence de Hookdeck Outpost sur GitHub", url: "https://github.com/hookdeck/outpost", consulted: "2026-10-08" },
       { label: "Tarifs Hook0", url: "https://www.hook0.com/fr/tarifs", consulted: "2026-10-08" },
     ],
-    updated: "2026-10-08",
+    updated: "2026-11-24",
   },
   related: {
     h2: 'Sur le même sujet',
     links: [
+      { enSlug: 'hook0-vs-hookbase', label: 'Hook0 vs Hookbase' },
       { enSlug: 'hook0-vs-svix', label: 'Hook0 vs Svix' },
       { enSlug: 'hook0-vs-convoy', label: 'Hook0 vs Convoy' },
       { enSlug: 'hookdeck-alternatives', label: 'Alternatives à Hookdeck' },

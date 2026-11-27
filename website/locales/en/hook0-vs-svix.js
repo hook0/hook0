@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Svix: Self-Hosting, Free Tier, License, EU Hosting',
   pageDescription: 'Both servers self-host from public code. Hook0: SSPL-1.0, no closed tier, EU data plane, free tier, no card. Svix: MIT core, on-prem support on Enterprise.',
-  pageModified: '2026-10-08',
+  pageModified: '2026-11-24',
   breadcrumb: 'Hook0 vs Svix',
   tldr: {
     h2: 'The Short Answer',
@@ -35,7 +35,7 @@ module.exports = {
       { feature: 'License', hook0Html: 'SSPL-1.0 (full source available)', svixHtml: 'MIT (open-core, enterprise closed)' },
       { feature: 'Funding', hook0Html: '100% Bootstrapped', svixHtml: 'VC-funded' },
       { feature: 'Self-Hosting', hook0Html: 'Free (Docker / K8s)', svixHtml: 'MIT server, self-managed; supported on-prem on Enterprise' },
-      { feature: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes' },
+      { feature: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes, up to 50,000 messages/mo' },
       { feature: 'HMAC Signatures', hook0Html: 'Included (all plans)', svixHtml: 'Included' },
       { feature: 'Retry Logic', hook0Html: 'Configurable per subscription (fast + slow phases, smart defaults)', svixHtml: 'Automatic retries' },
       { feature: 'Data Hosting', hook0Html: 'Europe (GDPR)', svixHtml: 'Multi-region incl. EU; US-incorporated vendor' },
@@ -46,11 +46,11 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
-    lastReviewed: 'Last reviewed October 2026.',
+    lastReviewed: 'Last reviewed November 2026.',
     items: [
       { q: 'Which companies use Hook0?', a: 'Hook0 delivers webhooks in production for teams including Coinbase, GEODIS, WoodWing, Optery, and Eudonet.' },
       { q: 'Is Hook0 open-source like Svix?', a: "Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans." },
-      { q: "How does Hook0's free tier compare to Svix's?", a: "Hook0's free tier is free forever with no credit card: 100 events per day, HMAC signatures, and delivery monitoring, hosted in the EU. Paid plans scale with your volume on the same managed infrastructure, with every feature included and no enterprise paywall. Svix reserves several features for paid plans." },
+      { q: "How does Hook0's free tier compare to Svix's?", a: "Hook0's free tier is free forever with no credit card: 100 events per day, HMAC signatures, and delivery monitoring, hosted in the EU. Paid plans scale with your volume on the same managed infrastructure, with every feature included and no enterprise paywall. Svix is free up to 50,000 messages a month, with one connector and a 50 msg/s API rate limit. Basic starts at $20/month, and Professional, which adds the EEA DPA and the SOC 2 Type II report, at $490/month (svix.com/pricing, checked 24 November 2026)." },
       { q: 'Does Hook0 support Standard Webhooks?', a: 'Standard Webhooks is a specification authored by Svix. Hook0 signs every payload with HMAC-SHA256 and documents the scheme. Standard Webhooks support is planned.' },
       { q: 'Can I use Hook0 for regulated or compliance-sensitive workloads?', a: 'Yes, though formal attestations are still on the roadmap. Hook0 Cloud runs its data plane on Clever Cloud in France, operated by a French company, with the Cloudflare (US) CDN disclosed in a public sub-processor list and its transfer mechanism. Because the full server source is open (SSPL-1.0), you can audit exactly how data is handled, and you can self-host so no webhook data leaves your own network. Third-party attestations such as SOC 2, HIPAA and PCI-DSS are planned.' },
       { q: 'Where is Hook0 hosted, and how does it handle US data-transfer exposure?', a: 'Hook0 Cloud is operated by a French company (FGRibreau SARL), with its data plane on Clever Cloud in France. The CDN and DDoS layer in front is Cloudflare (US), which we disclose in a public sub-processor list, framed by the 2021 Standard Contractual Clauses and a Transfer Impact Assessment, rather than claiming zero US exposure. Svix and Hookdeck are US companies. If you need webhook data to stay entirely inside your own network, self-host Hook0 on the same code.' },
@@ -68,14 +68,15 @@ module.exports = {
     competitors: ['Svix'],
     scope: 'This page compares the public plans, licenses and hosting of Hook0 and Svix for sending webhooks. Prices are each vendor\'s published figures; features reflect their public documentation.',
     sources: [
-      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-10-08' },
+      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-11-24' },
       { label: 'Svix source code and license on GitHub', url: 'https://github.com/svix/svix-webhooks', consulted: '2026-10-08' },
     ],
-    updated: '2026-10-08',
+    updated: '2026-11-24',
   },
   related: {
     h2: 'Related',
     links: [
+      { enSlug: 'hook0-vs-hookbase', label: 'Hook0 vs Hookbase' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'hook0-vs-convoy', label: 'Hook0 vs Convoy' },
       { enSlug: 'svix-alternatives', label: 'Svix Alternatives' },

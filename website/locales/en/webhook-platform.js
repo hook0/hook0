@@ -33,7 +33,11 @@ module.exports = {
       },
       {
         "title": "Delivery logs",
-        "body": "Request, response, status code, latency. Replay any event from the dashboard. Support stops guessing."
+        "body": "Request, response, status code, latency. Replay any event from the dashboard. Support stops guessing.",
+        "link": {
+          "href": "https://documentation.hook0.com/how-to-guides/monitor-webhook-performance",
+          "label": "Webhook monitoring guide: metrics and alerts"
+        }
       },
       {
         "title": "Subscriber portal",

@@ -8,7 +8,7 @@ module.exports = {
   },
   pageTitle: 'Tarifs Hook0 : offre gratuite, cloud UE | Webhooks',
   pageDescription: 'Developer gratuit à vie. Cloud dès 59 € HT/mois, open source (SSPL-1.0), auto-hébergeable. Aucun frais caché.',
-  "pageModified": "2026-10-08",
+  "pageModified": "2026-11-24",
   "track": "fr-tarifs",
   "hero": {
     "h1": "Tarifs Hook0",
@@ -56,7 +56,7 @@ module.exports = {
       },
       {
         "q": "Comment se compare le tarif Hook0 à Svix et Hookdeck ?",
-        "a": "Hook0 Cloud démarre à 59 € HT/mois face à Svix à 490 $/mois pour des fonctions comparables. Le serveur MIT de Svix s'auto-héberge, le déploiement on-prem supporté étant réservé à son plan Enterprise. Hookdeck publie Outpost, sa brique d'envoi, sous Apache-2.0, l'auto-hébergement y est donc possible aussi. La différence tient à ce que Hook0 fait tourner le même code dans le cloud et sur tes serveurs, sans palier entreprise qui retient des fonctions. Hook0 est entièrement open source sous SSPL-1.0, donc tu peux auto-héberger quand tu as besoin de souveraineté des données. Pour les chiffres détaillés de 100k à 10M d'events par mois, consulte le <a href=\"/fr/comparatif-cout-webhook\">comparatif de coût webhook</a>."
+        "a": "Hook0 Cloud démarre à 59 € HT/mois. Svix est gratuit jusqu'à 50 000 messages par mois, puis Basic démarre à 20 $/mois et Professional, qui ajoute le DPA EEE, à 490 $/mois (svix.com/pricing, relevé le 24 novembre 2026). Le serveur MIT de Svix s'auto-héberge, le déploiement on-prem supporté étant réservé à son plan Enterprise. Hookdeck publie Outpost, sa brique d'envoi, sous Apache-2.0, l'auto-hébergement y est donc possible aussi. La différence tient à ce que Hook0 fait tourner le même code dans le cloud et sur tes serveurs, sans palier entreprise qui retient des fonctions. Hook0 est entièrement open source sous SSPL-1.0, donc tu peux auto-héberger quand tu as besoin de souveraineté des données. Pour les chiffres détaillés de 100k à 10M d'events par mois, consulte le <a href=\"/fr/comparatif-cout-webhook\">comparatif de coût webhook</a>."
       }
     ]
   }

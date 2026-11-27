@@ -1,5 +1,9 @@
 ---
 sidebar_position: 6
+title: "Build Stripe-Like Webhooks: Signed Payment Events, Retries and Tenants"
+sidebar_label: "Build Stripe-like webhooks"
+description: "Send payment events the way Stripe does: payment event types, an Express receiver that checks signatures, one subscription per customer, retries handled by Hook0. Takes about 45 minutes."
+keywords: [stripe-like webhooks, build webhook system, payment webhooks, webhook signature verification, multi-tenant webhooks, send webhooks to customers]
 ---
 
 # Building a Stripe-like webhook system

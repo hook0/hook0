@@ -69,7 +69,7 @@ module.exports = {
       { q: 'Puis-je migrer depuis un système maison ?', a: 'Oui. API REST et SDKs, donc tu peux faire tourner les deux systèmes en parallèle pendant la migration. Pas besoin de bascule big bang.' },
     ],
   },
-  deepDiveHtml: 'Tu veux plus de détails ? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Lis le guide de démarrage dans la doc</a>.',
+  deepDiveHtml: 'Tu veux plus de détails ? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Lis le guide de démarrage dans la doc</a>, ou chiffre ton propre développement avec la <a href="https://documentation.hook0.com/comparisons/build-vs-buy" class="text-indigo-400 hover:text-indigo-300 underline">grille de calcul composant par composant</a> (en anglais).',
   related: {
     h2: 'Sur le même sujet',
     links: [

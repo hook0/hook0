@@ -1,56 +1,136 @@
 ---
-title: "Hook0 vs Building Your Own Webhook Infrastructure"
-description: "What it actually costs to build webhook delivery from scratch: queue management, retry logic, signature verification, monitoring, and dead letter handling. A component-by-component breakdown."
-keywords: [build vs buy webhooks, webhook infrastructure cost, webhook engineering time, DIY webhooks, webhook build cost]
+title: "What Does It Cost to Build Webhook Delivery Yourself? A Component Worksheet"
+sidebar_label: "Build vs Buy"
+description: "A worksheet for pricing an in-house webhook sender: 13 components, the hours to plan for each, the formula, and the exact Hook0 behavior you would have to match (retry schedule, signature format, dead letters)."
+keywords: [build vs buy webhooks, webhook infrastructure cost, webhook engineering time, DIY webhooks, webhook build cost, in-house webhook system, webhook requirements checklist]
+faqItems:
+  - question: "How do I estimate the cost of building webhook delivery in-house?"
+    answer: >-
+      List every component you need (delivery engine, retries, signatures,
+      dead letters, event types, subscriptions, logs, dashboard, monitoring,
+      tenant isolation, API auth, circuit breakers, rate limits), put an hour
+      estimate on each, and multiply the total by your fully loaded hourly
+      rate. Then add the recurring hours: on-call, log retention, security
+      patches and the edge cases production traffic brings. The worksheet on
+      this page uses 396 hours as a planning baseline for the first version.
+  - question: "What retry schedule should an in-house webhook sender use?"
+    answer: >-
+      Hook0 uses 3 seconds, 10 seconds, 3 minutes, 30 minutes, 1 hour,
+      3 hours and 5 hours, then 10 hours for every later retry, with up to
+      24 retries inside an 8-day window. Each delay gets a random spread of
+      up to 10% (at least 2 seconds, at most 15 minutes) so a recovering
+      endpoint is not hit by every retry at once. If you build your own,
+      that is the behavior your customers will compare you to.
+  - question: "What does an in-house webhook signature need to cover?"
+    answer: >-
+      At minimum an HMAC-SHA256 over a timestamp and the raw body, so the
+      receiver can reject both forged and replayed requests. Hook0 also signs
+      a chosen list of headers: its X-Hook0-Signature header carries
+      t (timestamp), h (signed header names) and v1 (the hex HMAC of
+      timestamp, header names, header values and payload). You also need
+      secret rotation and verification samples for each language your
+      customers use.
+  - question: "Can I start with Hook0 and move to my own system later?"
+    answer: >-
+      Yes. The Hook0 server is open-source under SSPL-1.0, so you can move
+      from Hook0 Cloud to a self-hosted instance with the same API, fork it,
+      or read it as a reference implementation if you decide to build. Your
+      events, subscriptions and delivery history stay reachable through the
+      REST API in the meantime.
 ---
 
-import Head from '@docusaurus/Head';
+# What does it cost to build webhook delivery yourself?
 
-<Head>
-  <script type="application/ld+json">
-    {JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": "Hook0 vs Building Your Own Webhook Infrastructure",
-      "description": "Component-by-component breakdown of building webhook delivery from scratch",
-      "url": "https://documentation.hook0.com/comparisons/build-vs-buy",
-      "publisher": {"@type": "Organization", "name": "Hook0", "url": "https://www.hook0.com"}
-    })}
-  </script>
-</Head>
+Every engineering team that sends webhooks eventually asks whether to build the delivery layer or use a service. This page is the worksheet for that decision: every component of a production webhook sender, the hours to plan for each, the formula that turns them into a budget, and the concrete behavior Hook0 ships for each one, so you know the bar an in-house version has to clear.
 
-# Hook0 vs Building Your Own
-
-Every engineering team eventually asks: should we build webhook infrastructure ourselves or use a service?
-
-Here's what "building it yourself" actually involves.
+For the short product overview of the same question (time to production, maintenance, lock-in), see [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks) on hook0.com. This page goes one level down.
 
 ## Component breakdown
 
-Webhook delivery is not just "make an HTTP POST when something happens." Here's every component you'll end up building, with realistic time estimates:
+Webhook delivery is not just "make an HTTP POST when something happens." Here's every component you'll end up building. The hours are a planning baseline for a first production version by an engineer who knows the stack, not a measurement: replace them with your own estimates.
 
-| Component | What It Involves | Estimated Hours |
+| Component | What It Involves | Planning hours |
 |-----------|-----------------|----------------|
 | **HTTP delivery engine** | Queue consumer, connection pooling, timeout handling, redirect following | 40h |
-| **Retry logic with backoff** | Fixed retry schedule, jitter, configurable delays, per-endpoint state | 32h |
+| **Retry logic with backoff** | Retry schedule, jitter, retry limits, per-endpoint state | 32h |
 | **Signature generation** | HMAC-SHA256 signing, key rotation, multiple signature schemes | 16h |
 | **Dead letter queue** | Failed event storage, inspection API, manual replay, retention policy | 32h |
 | **Event type system** | Type hierarchy, schema validation, versioning | 24h |
 | **Subscription management** | CRUD API, URL validation, filtering rules, enable/disable | 24h |
 | **Delivery logging** | Request/response storage, timing data, searchable history | 24h |
 | **Dashboard UI** | Event browser, delivery status, replay controls, subscription management | 80h |
-| **Monitoring & alerting** | Success rate tracking, latency metrics, endpoint health, circuit breakers | 32h |
+| **Monitoring & alerting** | Success rate tracking, latency metrics, endpoint health | 32h |
 | **Multi-tenant isolation** | Per-tenant rate limits, data isolation, access control | 40h |
 | **API authentication** | Token management, scoping, rotation | 24h |
-| **Circuit breakers** | Per-endpoint failure tracking, automatic disable/re-enable | 16h |
+| **Circuit breakers** | Per-endpoint failure tracking, automatic slow-down and re-enable | 16h |
 | **Rate limiting** | Per-endpoint and global rate limits, backpressure | 12h |
 | **Total** | | **396h** |
 
-That's roughly 10 engineering weeks. At $150/hour fully loaded, that's $59,400 in engineering time, before ongoing maintenance.
+## Turn the hours into a budget
+
+The formula is short:
+
+```text
+first version = component hours × fully loaded hourly rate
+yearly upkeep = (on-call hours + maintenance hours per month) × 12 × rate
+```
+
+With the 396-hour baseline, that is roughly 10 engineering weeks. At an example rate of $150 an hour, fully loaded, the first version comes to $59,400 before any upkeep. Put your own rate in: the order of magnitude is what matters for the decision, and it rarely changes the answer.
+
+Two inputs teams tend to leave out of the upkeep line:
+
+- **Who owns it in 18 months.** The engineer who built the retry queue moves teams, and whoever inherits it learns it during an incident.
+- **What your customers compare you to.** Once they have integrated webhooks from Stripe or GitHub, they expect retries, signed requests and a delivery log they can read. The bar is set outside your company.
+
+## The behavior you would have to match
+
+The hour column above prices the components. This section lists the defaults Hook0 runs for the trickiest ones, so you can check an in-house design against a working implementation rather than a blank page.
+
+### Retry schedule
+
+Hook0 retries a failed delivery after a fixed sequence of growing delays:
+
+| Failed attempts so far | Delay before the next attempt |
+|---|---|
+| 1 | 3 seconds |
+| 2 | 10 seconds |
+| 3 | 3 minutes |
+| 4 | 30 minutes |
+| 5 | 1 hour |
+| 6 | 3 hours |
+| 7 | 5 hours |
+| 8 and beyond | 10 hours |
+
+A delivery gets up to 24 retries (`MAX_RETRIES`) inside an 8-day window (`MAX_RETRY_WINDOW`). Each delay gets a random spread of up to 10%, at least 2 seconds and at most 15 minutes, so a recovering endpoint is not hit by a wall of retries in the same second. The full decision process is in [Webhook retry logic](/explanation/webhook-retry-logic).
+
+### Signature format
+
+Every request carries an `X-Hook0-Signature` header:
+
+```text
+X-Hook0-Signature: t=1765443663,h=content-type x-custom-header,v1=85da0586ae0b711d...
+```
+
+`t` is the Unix timestamp, `h` the space-separated names of the signed headers, and `v1` the hex HMAC-SHA256 of the timestamp, the header names, the header values and the payload. Signing the timestamp lets receivers reject replays, and signing headers stops an attacker from swapping them. Your version also needs secret rotation and verification code for each language your customers use. See the [security model](/explanation/security-model) and the [webhook authentication tutorial](/tutorials/webhook-authentication) for Python, Node.js and Go samples.
+
+### Dead letters and replay
+
+When retries run out, Hook0 keeps the last request attempt in the failed status, next to the event payload and the response the endpoint sent back. There is no separate queue to run: you list failed attempts, fix the endpoint, then replay the event with `POST /events/{event_id}/replay`. Details in [Where do webhooks go after the last retry?](/explanation/webhook-dead-letter-queue).
+
+### Endpoint health
+
+The circuit breaker row is where in-house systems most often cut corners. Hook0 can classify each subscription every 5 minutes from the attempts of the last 15 minutes: at least 10 attempts with more than 30% failed marks it unhealthy. A degraded subscription receives at most 50 attempts per minute and its retries wait at least 1 hour, without losing any of them. Self-hosted instances turn this on with the subscription health settings, which are off by default. See [subscription health](/explanation/webhook-retry-logic#subscription-health).
+
+### Everything else
+
+- Event types and label filtering: [event types](/concepts/event-types), [labels](/concepts/labels), [subscriptions](/concepts/subscriptions)
+- Tenant isolation: [organizations](/concepts/organizations) and [applications](/concepts/applications)
+- API credentials for automated systems: [service tokens](/concepts/service-tokens)
+- Delivery log, response bodies and timing: [request attempts](/concepts/request-attempts) and [monitoring webhook performance](/how-to-guides/monitor-webhook-performance)
 
 ## The costs you don't plan for
 
-The 396 hours above gets you to "it works." Then reality hits:
+The 396 hours above gets you to "it works." Then production traffic arrives.
 
 ### Ongoing maintenance
 
@@ -88,6 +168,14 @@ Every hour on webhook infrastructure is an hour not on your product. For a start
 - You need self-hosting without building from scratch
 - You're a small team: you don't have 10 engineering weeks to spare and you don't have the ops capacity for custom infrastructure
 
+## Moving off a homegrown sender
+
+If you already run a homegrown system (a queue consumer with a retry table, for example), you do not need a big-bang cutover:
+
+1. Create the event types and subscriptions in Hook0 through the REST API, one customer or one event type at a time.
+2. Send each new event to Hook0 and to the old system in parallel, and compare the delivery logs.
+3. Give customers the new signature header and its verification code, then switch off the old sender for them.
+
 ## Start with Hook0, migrate if needed
 
 Hook0 is open-source (SSPL-1.0). If you outgrow the hosted service:
@@ -96,19 +184,38 @@ Hook0 is open-source (SSPL-1.0). If you outgrow the hosted service:
 2. Fork and customize if you need specific behavior
 3. Use the codebase as a reference implementation if you decide to build from scratch
 
-You're not locked in. The code is there. The API is documented. See the [Getting started tutorial](/tutorials/getting-started) to have your first webhook running in 10 minutes.
+You're not locked in. The code is there. The API is documented. See the [Getting started tutorial](/tutorials/getting-started) to send your first webhook.
 
 ## Cost comparison
 
 | | Build Your Own | Hook0 Cloud | Hook0 Self-Hosted |
 |---|---|---|---|
-| **Initial engineering** | ~$59,400 (396h) | $0 | ~$2,000 (setup) |
-| **Monthly maintenance** | ~$5,000-10,000 (engineering time) | Usage-based pricing | Infrastructure costs only |
-| **Time to first webhook** | 2-3 months | 10 minutes | 1-2 hours |
+| **Initial engineering** | Component hours × your rate (396h baseline) | None | Deploying the server ([self-hosting guide](/self-hosting)) |
+| **Monthly cost** | Upkeep hours × your rate, plus infrastructure | Free Developer plan (100 events a day), paid plans from €59 a month ([pricing](https://www.hook0.com/pricing)) | Your infrastructure and ops time |
 | **Ongoing feature development** | On you | Included | Community + your contributions |
+
+## FAQ
+
+### How do I estimate the cost of building webhook delivery in-house?
+
+List every component you need, put an hour estimate on each, and multiply the total by your fully loaded hourly rate. Then add the recurring hours: on-call, log retention, security patches and the edge cases production traffic brings. The worksheet above uses 396 hours as a planning baseline for the first version.
+
+### What retry schedule should an in-house webhook sender use?
+
+Hook0 uses 3 seconds, 10 seconds, 3 minutes, 30 minutes, 1 hour, 3 hours and 5 hours, then 10 hours for every later retry, with up to 24 retries inside an 8-day window and a random spread on each delay. If you build your own, that is the behavior your customers will compare you to.
+
+### What does an in-house webhook signature need to cover?
+
+At minimum an HMAC-SHA256 over a timestamp and the raw body, so the receiver can reject both forged and replayed requests. Hook0 also signs a chosen list of headers. You also need secret rotation and verification samples for each language your customers use.
+
+### Can I start with Hook0 and move to my own system later?
+
+Yes. The server is open-source under SSPL-1.0, so you can move from Hook0 Cloud to a self-hosted instance with the same API, fork it, or read it as a reference implementation if you decide to build.
 
 ## Further reading
 
+- [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks) -- the product overview on hook0.com
+- [Webhook cost comparison](https://www.hook0.com/webhook-cost-comparison) -- public vendor prices from 100k to 10M events a month
 - [All webhook service comparisons](/comparisons) -- how Hook0 compares to Svix, Hookdeck, and others
 - [Webhook retry logic](/explanation/webhook-retry-logic) -- the retry system you'd otherwise build yourself
 - [Webhook best practices](/how-to-guides/webhook-best-practices) -- production patterns for producers and consumers

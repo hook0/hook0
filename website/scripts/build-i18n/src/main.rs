@@ -11,6 +11,8 @@
 //! Must be run from the `website/` directory (the one holding `.ejsrc.js`).
 //! "build once, promote everywhere": the same templates render every locale.
 
+mod markdown;
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -141,6 +143,11 @@ fn run() -> R<()> {
     // HTML companion embeds no timestamp, so it needs no rewrite here; its
     // structural sync with the JSON is enforced by the i18n-gate.
     stamp_entitymap_generated(&dist);
+
+    // Markdown twins of the pages llms.txt lists, plus llms-full.txt. Runs after
+    // every locale is built: it reads the final HTML of EN, FR and DE pages.
+    let twins = markdown::write_markdown_twins(&dist, &site_url(), &locales, &localized)?;
+    eprintln!("build-i18n: wrote {twins} Markdown page(s) and llms-full.txt");
 
     // qdnld/ is a tree of Remotion-generated HTML that hotlinks Google Fonts
     // — that's a transfer-out-of-EU privacy violation for any visitor that

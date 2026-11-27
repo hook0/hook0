@@ -148,3 +148,4 @@ Often not. When the sender retries failed deliveries over several hours, a short
 - [Subscriptions](/concepts/subscriptions) -- routing rules that connect events to endpoints
 - [Webhook retry logic](/explanation/webhook-retry-logic) -- how Hook0 handles failed deliveries
 - [Event processing](/explanation/event-processing) -- the full event lifecycle
+- [Webhook API](https://www.hook0.com/webhook-api) -- webhook vs REST API side by side, and the one call that sends an event

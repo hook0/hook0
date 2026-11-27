@@ -115,24 +115,24 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 
 **Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
 
-| Feature | Hook0 | Svix | Hookdeck | Hostedhooks |
-|---------|-------|------|----------|-------------|
-| **SaaS (managed)** | ✅ | ✅ | ✅ | ✅ |
-| **Self-hosting** | ✅ Full feature parity | ⚠️ Open-core (limited) | ⚠️ Outpost only (Apache-2.0) | ❌ |
-| **Open-source license** | ✅ SSPL-1.0 | ⚠️ Open-core | ⚠️ Partial (Outpost Apache-2.0, Event Gateway closed) | ❌ Proprietary |
-| **Outbound webhooks** | ✅ | ✅ | ✅ Outpost (separate product) | ✅ |
-| **Inbound webhook proxy** | ❌ | ❌ | ✅ Core focus | ❌ |
-| **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ | ❌ |
-| **HMAC signatures** | ✅ | ✅ | ✅ | ✅ |
-| **Automatic retries** | ✅ Fixed escalating backoff, capped by max retries + window | ✅ | ✅ | ✅ |
-| **Dead letter queue** | ✅ [Failed attempts kept and replayable](/explanation/webhook-dead-letter-queue), no separate queue | ✅ | ✅ | ❌ |
-| **Event type hierarchy** | ✅ Dot-notation | ✅ | ❌ | ⚠️ Flat |
-| **Custom retry schedules** | ⚠️ Global limits only (self-hosted) | ✅ | ✅ | ❌ |
-| **Delivery logs & replay** | ✅ | ✅ | ✅ | ⚠️ Logs only |
-| **REST API** | ✅ | ✅ | ✅ | ✅ |
-| **SDK support** | JS, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua, Zig | JS, Python, Go, Ruby, Java | JS, Python, Go, Ruby | JS |
-| **Authentication** | Biscuit tokens + Service tokens | API keys | API keys | API keys |
-| **Self-funded** | ✅ | ❌ $17M raised | ❌ $5.5M raised | Unknown |
+| Feature | Hook0 | Svix | Hookdeck |
+|---------|-------|------|----------|
+| **SaaS (managed)** | ✅ | ✅ | ✅ |
+| **Self-hosting** | ✅ Full feature parity | ⚠️ Open-core (limited) | ⚠️ Outpost only (Apache-2.0) |
+| **Open-source license** | ✅ SSPL-1.0 | ⚠️ Open-core | ⚠️ Partial (Outpost Apache-2.0, Event Gateway closed) |
+| **Outbound webhooks** | ✅ | ✅ | ✅ Outpost (separate product) |
+| **Inbound webhook proxy** | ❌ | ❌ | ✅ Core focus |
+| **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ |
+| **HMAC signatures** | ✅ | ✅ | ✅ |
+| **Automatic retries** | ✅ Fixed escalating backoff, capped by max retries + window | ✅ | ✅ |
+| **Dead letter queue** | ✅ [Failed attempts kept and replayable](/explanation/webhook-dead-letter-queue), no separate queue | ✅ | ✅ |
+| **Event type hierarchy** | ✅ Dot-notation | ✅ | ❌ |
+| **Custom retry schedules** | ⚠️ Global limits only (self-hosted) | ✅ | ✅ |
+| **Delivery logs & replay** | ✅ | ✅ | ✅ |
+| **REST API** | ✅ | ✅ | ✅ |
+| **SDK support** | JS, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua, Zig | JS, Python, Go, Ruby, Java | JS, Python, Go, Ruby |
+| **Authentication** | Biscuit tokens + Service tokens | API keys | API keys |
+| **Self-funded** | ✅ | ❌ $17M raised | ❌ $5.5M raised |
 
 *Funding and feature data last verified: January 2025. Svix and Hookdeck self-hosting rows rechecked against their public repositories and pricing pages on 2026-10-08.*
 
@@ -141,7 +141,7 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 - [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix): both send outbound webhooks and both self-host from public code. Hook0 is SSPL-1.0 with no closed tier and an EU data plane; Svix has an MIT core and keeps supported on-prem for Enterprise.
 - [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck): Hookdeck sells an inbound Event Gateway and a separate outbound product, Outpost. Licensing, self-hosting scope and pricing tiers compared.
 - [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy): Rust and SSPL-1.0 against Go and the Elastic License v2.0, with pricing side by side.
-- [Hostedhooks vs Hook0](hostedhooks-vs-hook0.mdx): proprietary vs open-source. Hostedhooks has fewer features but a simpler setup.
+- [Hostedhooks vs Hook0](hostedhooks-vs-hook0.mdx): Hostedhooks has been offline since November 2026; its last documented features next to Hook0, and how to migrate.
 - [AWS EventBridge vs Hook0](aws-eventbridge-vs-hook0.mdx): an event bus for your own services vs a delivery server for external endpoints.
 - [Build vs Buy](build-vs-buy.mdx): what building webhook infrastructure from scratch actually costs.
 - [Webhook cost comparison](https://www.hook0.com/webhook-cost-comparison): public prices at 100k to 10M events a month, with the self-hosted ops bill.
@@ -171,7 +171,7 @@ Keep the queue for work between your own services. Put a webhook service at the 
 
 **Time to integrate**: Hook0 and Svix both have good APIs. First webhook in under 10 minutes with either. Hookdeck's Event Gateway is fast too, but it handles the receiving side; its sending product is Outpost.
 
-**Cost at scale**: Self-hosting Hook0 costs you nothing beyond your own infrastructure. With Svix's open-source version, you get a subset of features. Hostedhooks has no self-hosting option, and Hookdeck's inbound Event Gateway is cloud-only; only its Outpost delivery engine can be self-hosted.
+**Cost at scale**: Self-hosting Hook0 costs you nothing beyond your own infrastructure. With Svix's open-source version, you get a subset of features. Hookdeck's inbound Event Gateway is cloud-only; only its Outpost delivery engine can be self-hosted.
 
 **Lock-in**: Hook0 is SSPL-1.0. You can view, modify, fork, and self-host the code. The only restriction: if you offer Hook0 as a managed service to others, you must open-source your entire stack. For self-hosting your own webhook infrastructure, there are no extra obligations. If we disappeared tomorrow, your webhook infrastructure would keep running.
 

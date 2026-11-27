@@ -2,14 +2,17 @@
 
 > Open-source webhook platform that delivers events with HMAC signatures, configurable retries, replay of failed deliveries, and a built-in subscriber portal. Cloud (EU-hosted, France) or self-hosted under SSPL-1.0. Editor: FGRibreau SARL (France), no US parent. CDN: Cloudflare (US), disclosed in our DPA.
 
+## Full text
+- [llms-full.txt](https://www.hook0.com/llms-full.txt): Every English page listed below on www.hook0.com, as Markdown in one file, rebuilt from the live pages on each deploy. Each page also has its own Markdown version at its URL plus .md, for example /hook0-vs-svix.md or /pricing.md.
+
 ## Product
 - [Webhook Platform](https://www.hook0.com/webhook-platform): Sign, retry, replay, and monitor webhooks. Two-phase retries, replay of failed deliveries, subscriber portal, drop-in HMAC.
 - [Webhook Service](https://www.hook0.com/webhook-service): Managed delivery with HMAC signing, two-phase retries, and per-attempt logs. EU data plane on every plan. The same SSPL-1.0 code self-hosts when you want to leave.
 - [Pricing](https://www.hook0.com/pricing): Free forever tier, paid tiers unlock higher volume only. No feature gating. Self-hosted free under SSPL-1.0.
 - [Free Webhooks](https://www.hook0.com/webhook-free): Three free paths. Test webhooks in the browser with no account, self-host the SSPL-1.0 server with no Hook0 volume cap, or run the free cloud tier at 100 events/day, no credit card.
 - [Open-Source Webhooks](https://www.hook0.com/open-source-webhooks): SSPL-1.0, no open-core, same code in cloud and self-hosted.
-- [Self-Hosted Webhooks](https://www.hook0.com/self-hosted-webhooks): Docker Compose and Kubernetes manifests, free, same feature set as the cloud.
-- [Webhook API](https://www.hook0.com/webhook-api): One API call sends an event, Hook0 handles signing, fan-out, retries, replay.
+- [Self-Hosted Webhooks](https://www.hook0.com/self-hosted-webhooks): Docker Compose and Kubernetes manifests, free, same feature set as the cloud, metrics, traces and logs exported over OTLP to your own OpenTelemetry collector.
+- [Webhook API](https://www.hook0.com/webhook-api): What a webhook API is, webhook vs REST API compared, and the one POST that sends an event; Hook0 signs, delivers, retries (3 s up to 10 h apart) and replays.
 - [Webhook MCP Server](https://www.hook0.com/webhooks-for-ai-agents): MCP server that gives Claude, Cursor, and Windsurf tools to create subscriptions, emit events, and replay failed deliveries on the webhooks you send.
 - [Security & Compliance](https://www.hook0.com/security): EU data residency (France, Clever Cloud), GDPR-aligned process, DPA on request.
 - [EU Webhook Infrastructure](https://www.hook0.com/eu-webhook-infrastructure): Webhook data plane on Clever Cloud in France, from the free tier up. French-law company, public sub-processor list, self-host or on-prem anytime.
@@ -60,7 +63,7 @@
 - [Documentation index for assistants](https://documentation.hook0.com/llms.txt): Every published documentation page, with a one-line summary each.
 - [Getting Started](https://documentation.hook0.com/tutorials/getting-started): 30-minute setup, free tier.
 - [Where do webhooks go after the last retry?](https://documentation.hook0.com/explanation/webhook-dead-letter-queue): Hook0 keeps no separate dead-letter queue. After 24 retries or 8 days (defaults), a non-retryable error, or a disabled subscription, the last request attempt stays failed with its status code and response; you list failed attempts and replay the event with POST /events/{event_id}/replay. Explains sender-side vs receiver-side dead letters.
-- [Self-hosting architecture and OpenTelemetry](https://documentation.hook0.com/self-hosting): The API, the dashboard and the output worker of a self-hosted instance. The API and the worker export metrics, traces and logs over OTLP (HTTP, protobuf, zstd) to any OpenTelemetry Collector, one endpoint per signal: OTLP_METRICS_ENDPOINT, OTLP_TRACES_ENDPOINT, OTLP_LOGS_ENDPOINT, with an optional OTLP_AUTHORIZATION header.
+- [Self-hosting architecture and OpenTelemetry](https://documentation.hook0.com/self-hosting): The API, the dashboard and the output worker of a self-hosted instance. The API and the worker export metrics, traces and logs over OTLP (HTTP, protobuf, gzip) to any OpenTelemetry Collector, one endpoint per signal: OTLP_METRICS_ENDPOINT, OTLP_TRACES_ENDPOINT, OTLP_LOGS_ENDPOINT, with an optional OTLP_AUTHORIZATION header.
 - [CLI](https://documentation.hook0.com/reference/cli): Command-line client. Send and replay events, manage subscriptions and event types, and receive webhooks on localhost through a built-in tunnel, no exposed ports.
 - [MCP Server](https://documentation.hook0.com/reference/mcp): 17 tools (9 read, 8 write) that let Claude, Cursor, or Windsurf create subscriptions, emit events, and replay failed deliveries against a Hook0 account. Runs locally over stdio, or as an SSE service.
 

@@ -65,7 +65,7 @@ module.exports = {
   fit: {
     h2: 'Where Hookbase Fits Better',
     bullets: [
-      'Most of your traffic is webhooks you receive from Stripe, GitHub, Shopify or Slack, and you want one place that checks their signatures, reshapes the payloads and routes them to your services, or to S3, SQS or Pub/Sub on Pro and Business. Hook0 does not do inbound.',
+      'Most of your traffic is webhooks you receive from Stripe, GitHub, Shopify or Slack, and you want one place that checks their signatures, reshapes the payloads and routes them to your services, to queues such as SQS or Pub/Sub, or to object storage such as S3 from Pro upward. Hook0 does not do inbound.',
       'You need payload transforms written in JSONata, jq, JavaScript or Liquid between the provider and your app.',
       'You want a paid plan below €59 a month. Hookbase Starter is $7 a month for 25,000 inbound events.',
       'You want to manage webhooks from an AI assistant today, and Hookbase ships an MCP server, hosted or local.',

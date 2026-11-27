@@ -75,6 +75,48 @@ var t = locals.t;
 </section>
 <% } %>
 
+<!-- Project comparison: one row per open-source webhook server, so a reader
+     (or an answer engine) gets license, stack, self-hosting, portal and managed
+     offer in one table. Every competitor fact is sourced in comparisonSources,
+     rendered by _comparison-methodology.ejs further down. Rendered only when the
+     locale supplies `t.projects`. -->
+<% if (t.projects) { %>
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.projects.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.projects.h2 %></h2>
+            <p class="mt-4 text-gray-400 max-w-3xl mx-auto"><%= t.projects.intro %></p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <% ['project', 'license', 'stack', 'selfHost', 'portal', 'managed'].forEach(function (k) { %>
+                        <th scope="col" class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.projects.columns[k] %></th>
+                        <% }); %>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.projects.rows.forEach(function (r, i) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <th scope="row" class="py-4 px-4 font-semibold <%= i === 0 ? 'text-green-400' : 'text-white' %>"><%= r.project %></th>
+                        <td class="py-4 px-4 text-gray-400"><%= r.license %></td>
+                        <td class="py-4 px-4 text-gray-400"><%= r.stack %></td>
+                        <td class="py-4 px-4 text-gray-400"><%= r.selfHost %></td>
+                        <td class="py-4 px-4 text-gray-400"><%= r.portal %></td>
+                        <td class="py-4 px-4 text-gray-400"><%= r.managed %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+<% } %>
+
 <!-- Why Open-Source Matters -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
@@ -214,6 +256,8 @@ var t = locals.t;
         </div>
     </div>
 </section>
+
+<%- include('./includes/_comparison-methodology.ejs') %>
 
 <!-- Related Pages -->
 <section class="py-12 relative">

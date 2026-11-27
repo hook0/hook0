@@ -10,18 +10,18 @@
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
   "tldr": {
-    "h2": "En bref",
-    "body": "Hook0 est un serveur de webhooks entièrement open source sous SSPL-1.0. Ton équipe sécurité peut auditer chaque ligne, et tu l'auto-héberges sur Docker ou Kubernetes sans aucune fonction bridée. Il n'y a pas d'astuce open-core, et le même code tourne dans Hook0 Cloud et sur ta propre infrastructure. Svix est distribué en open-core et Convoy sous Elastic License 2.0, donc c'est la licence qui les distingue le plus. Fais-le tourner gratuitement sur tes serveurs, ou prends le cloud hébergé en UE à partir de 59 €/mois avec mises à jour gérées. Hook0 est bootstrappé, sans VC ni add-ons fermés."
+    "h2": "Quel serveur de webhooks open source choisir ?",
+    "body": "Prends Hook0 si tu veux que le code que tu auto-héberges soit celui qui tourne dans le cloud managé. Il est open source (SSPL-1.0), tourne sur Docker ou Kubernetes avec toutes ses fonctions, et Hook0 Cloud est hébergé dans l'UE à partir de 59 €/mois. Les autres projets se distinguent surtout par la licence et par l'endroit où vit le portail client. Svix a un cœur MIT, et son App Portal est documenté pour le service hébergé. Convoy est sous Elastic License 2.0 et range les Portal Links dans une offre auto-hébergée payante. Hookdeck Outpost (Apache-2.0) inclut un portail par tenant, mais demande PostgreSQL, Redis et une file de messages. WebhookX (Apache-2.0) réserve le multi-tenant à une licence commerciale et ne documente aucun cloud managé."
   },
   pageTitle: 'Webhooks open source (SSPL-1.0) : Hook0',
-  pageDescription: 'Hook0 est une plateforme webhooks open source (SSPL-1.0). Cloud UE managé ou auto-hébergement libre.',
-  "pageModified": "2026-10-08",
+  pageDescription: 'Serveurs de webhooks open source comparés : Hook0 (SSPL-1.0), Svix, Convoy, Hookdeck Outpost et WebhookX. Licence, stack, portail, cloud.',
+  "pageModified": "2026-11-25",
   "track": "fr-oss-webhooks",
   "hero": {
     "eyebrow": "Open source",
     "titleLine1": "Le meilleur serveur",
     "titleLine2": "webhook à code ouvert",
-    "subtitle": "Hook0 est entièrement open source sous SSPL-1.0, audite chaque ligne, auto-héberge pour la conformité, ou prends Hook0 Cloud pour l'infra managée, les mises à jour automatiques et l'hébergement applicatif en France (CDN Cloudflare US divulgué). Bootstrappé, sans astuce open-core.",
+    "subtitle": "Hook0 est open source sous SSPL-1.0, audite chaque ligne, auto-héberge pour la conformité, ou prends Hook0 Cloud pour l'infra managée, les mises à jour automatiques et l'hébergement applicatif en France (CDN Cloudflare US divulgué). Bootstrappé, sans astuce open-core.",
     "ctaPrimary": "Démarrer gratuitement sur le Cloud",
     "ctaPrimaryTrack": "fr-oss-webhooks-hero-cloud-signup",
     "ctaSecondary": "Tester le Playground",
@@ -60,6 +60,61 @@ module.exports = {
       }
     ]
   },
+  "projects": {
+    "eyebrow": "Projets",
+    "h2": "Cinq serveurs de webhooks open source côte à côte",
+    "intro": "Chaque ligne vient du dépôt public, de la documentation ou de la page de prix du projet, consultés les 24 et 25 novembre 2026. Les sources sont listées en bas de page.",
+    "columns": {
+      "project": "Projet",
+      "license": "Licence",
+      "stack": "Stack",
+      "selfHost": "Auto-hébergement",
+      "portal": "Portail client",
+      "managed": "Cloud managé"
+    },
+    "rows": [
+      {
+        "project": "Hook0",
+        "license": "SSPL-1.0",
+        "stack": "Rust, PostgreSQL (Pulsar + S3 en option)",
+        "selfHost": "Docker Compose, Kubernetes",
+        "portal": "API et tableau de bord des abonnements",
+        "managed": "Hook0 Cloud, hébergé dans l'UE, offre gratuite puis à partir de 59 €/mois"
+      },
+      {
+        "project": "Svix",
+        "license": "Cœur MIT, fonctions enterprise fermées",
+        "stack": "Rust, PostgreSQL, Redis en option",
+        "selfHost": "Docker Compose ou un seul conteneur",
+        "portal": "App Portal, documenté pour le service hébergé",
+        "managed": "Svix Cloud, gratuit jusqu'à 50 000 messages/mois"
+      },
+      {
+        "project": "Convoy",
+        "license": "Elastic License 2.0",
+        "stack": "Go, PostgreSQL, Redis",
+        "selfHost": "Docker Compose, Helm",
+        "portal": "Portal Links, dans l'offre auto-hébergée Premium payante",
+        "managed": "Convoy Cloud"
+      },
+      {
+        "project": "Hookdeck Outpost",
+        "license": "Apache-2.0",
+        "stack": "Go, PostgreSQL, Redis, RabbitMQ ou SQS",
+        "selfHost": "Docker Compose, Helm, Railway",
+        "portal": "Portail par tenant inclus",
+        "managed": "Hookdeck, 10 $ par million d'événements, les 50 000 premiers offerts"
+      },
+      {
+        "project": "WebhookX",
+        "license": "Apache-2.0 ; multi-tenant, gestion des secrets et connect-auth sous licence commerciale",
+        "stack": "Go, PostgreSQL 13+, Redis 6.2+",
+        "selfHost": "Docker Compose ou binaire",
+        "portal": "Aucun documenté",
+        "managed": "Aucun documenté"
+      }
+    ]
+  },
   "comparison": {
     "eyebrow": "Licences",
     "h2": "Modèles de licence webhook comparés",
@@ -73,7 +128,7 @@ module.exports = {
     "rows": [
       {
         "criteria": "Code source disponible",
-        "sspl": "Oui, 100 % sur GitHub et GitLab",
+        "sspl": "Oui, toute la base de code sur GitHub et GitLab",
         "openCore": "Partiel (cœur uniquement)",
         "mit": "Oui, sur GitHub",
         "proprietary": "Non"
@@ -156,7 +211,7 @@ module.exports = {
     "items": [
       {
         "q": "Hook0 est-il open source ?",
-        "a": "Oui. Hook0 est entièrement open source sous la licence SSPL-1.0. Chaque ligne de code est sur GitHub et GitLab. Il n'y a pas d'édition enterprise propriétaire."
+        "a": "Oui. Hook0 est open source sous la licence SSPL-1.0. Chaque ligne de code est sur GitHub et GitLab. Il n'y a pas d'édition enterprise propriétaire."
       },
       {
         "q": "Quelle licence Hook0 utilise-t-il ?",
@@ -177,8 +232,78 @@ module.exports = {
       {
         "q": "Existe-t-il une plateforme de webhooks open source qui soit aussi hébergée dans l'UE ?",
         "a": "Oui. Hook0 est open source (SSPL-1.0), et Hook0 Cloud fait tourner son plan de données sur Clever Cloud en France (dans l'UE) sur chaque offre. Beaucoup de services de webhooks hébergés dans l'UE sont fermés et cloud-only, donc vous ne pouvez ni lire le code ni le faire tourner vous-même. Avec Hook0, vous pouvez auditer le code, l'auto-héberger ou utiliser le cloud UE ; le CDN en frontal du cloud est Cloudflare (US), divulgué dans notre liste publique de sous-traitants."
+      },
+      {
+        "q": "WebhookX est-il une bonne alternative open source pour envoyer des webhooks ?",
+        "a": "WebhookX est une passerelle de webhooks en Go, sous Apache-2.0, qui reçoit, valide, transforme et livre des événements. Elle demande PostgreSQL 13+ et Redis 6.2+, et sa dernière version au 25 novembre 2026 est la v1.2.0. Le multi-tenant, la gestion des secrets et le plugin connect-auth demandent une licence commerciale, et son README ne documente ni cloud managé ni portail client. Si tu envoies des webhooks à beaucoup de clients et que tu veux isoler chaque tenant sans licence à part, Hook0 l'inclut dans le code SSPL-1.0."
+      },
+      {
+        "q": "Qu'est-ce que Hookdeck Outpost, et que vaut-il face à Hook0 ?",
+        "a": "Outpost est le moteur d'envoi de Hookdeck : Go, Apache-2.0, multi-tenant, avec un portail par tenant. Auto-hébergé, il tourne sur PostgreSQL, Redis et une file RabbitMQ ou SQS ; en version managée, Hookdeck facture 10 $ par million d'événements après les 50 000 premiers. Hook0 tourne sur PostgreSQL seul dans la plupart des cas, avec Pulsar et S3 seulement pour les gros débits, et son cloud managé est hébergé dans l'UE."
       }
     ]
+  },
+  "comparisonSources": {
+    "competitors": [
+      "Svix",
+      "Convoy",
+      "Hookdeck Outpost",
+      "WebhookX"
+    ],
+    "scope": "Cette page compare des serveurs de webhooks open source ou à source disponible sur la licence, la stack, l'auto-hébergement, le portail client et l'offre managée. Les faits viennent du dépôt public, de la documentation et de la page de prix de chaque projet.",
+    "sources": [
+      {
+        "label": "Code source, licence et dépendances de Svix sur GitHub",
+        "url": "https://github.com/svix/svix-webhooks",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Documentation de l'App Portal de Svix",
+        "url": "https://docs.svix.com/app-portal",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Tarifs de Svix",
+        "url": "https://www.svix.com/pricing/",
+        "consulted": "2026-11-24"
+      },
+      {
+        "label": "Code source et licence de Convoy sur GitHub",
+        "url": "https://github.com/frain-dev/convoy",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Guide d'installation Kubernetes de Convoy",
+        "url": "https://getconvoy.io/docs/deployment/install-convoy/kubernetes",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Tarifs de Convoy",
+        "url": "https://www.getconvoy.io/pricing",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Code source et licence de Hookdeck Outpost sur GitHub",
+        "url": "https://github.com/hookdeck/outpost",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Tarifs de Hookdeck Outpost",
+        "url": "https://hookdeck.com/outpost/pricing",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Code source et licence de WebhookX sur GitHub",
+        "url": "https://github.com/webhookx-io/webhookx",
+        "consulted": "2026-11-25"
+      },
+      {
+        "label": "Notes de version WebhookX v1.2.0",
+        "url": "https://github.com/webhookx-io/webhookx/releases/tag/v1.2.0",
+        "consulted": "2026-11-25"
+      }
+    ],
+    "updated": "2026-11-25"
   },
   "related": {
     "h2": "Pour aller plus loin (en anglais)",
@@ -186,6 +311,7 @@ module.exports = {
       { "label": "Self-Hosted Webhooks", "href": "/self-hosted-webhooks" },
       { "label": "Hook0 vs Svix", "href": "/hook0-vs-svix" },
       { "label": "Hook0 vs Hookdeck", "href": "/hook0-vs-hookdeck" },
+      { "label": "Hook0 vs Convoy", "href": "/hook0-vs-convoy" },
       { "label": "Build vs Buy Webhooks", "href": "/build-vs-buy-webhooks" },
       { "label": "Hook0 Alternatives", "href": "/hook0-alternatives" }
     ]

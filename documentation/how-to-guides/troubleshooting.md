@@ -1,5 +1,9 @@
 ---
 sidebar_position: 5
+title: "Hook0 Troubleshooting: Connection, Token, Database and 429 Errors"
+sidebar_label: "Troubleshooting"
+description: "Match the error you see to its fix: ECONNREFUSED, 401 and 403 token errors, database failures on self-hosted Hook0, slow delivery, OOMKilled containers and 429 rate limits."
+keywords: [hook0 troubleshooting, webhook api errors, AuthInvalidBiscuit, 401 unauthorized webhook api, webhook rate limit 429, self-hosted webhook server errors]
 ---
 
 # Troubleshooting Guide
@@ -9,6 +13,20 @@ This guide helps you diagnose and resolve common issues with Hook0. Each section
 :::tip For Webhook Delivery Issues
 If you're troubleshooting webhook delivery failures, see [Debugging Failed Webhooks](./debug-failed-webhooks.md) for a comprehensive guide with debugging strategies, monitoring scripts, and recovery techniques.
 :::
+
+**Quick diagnosis**: find what you see, then jump to the section.
+
+| What you see | Go to |
+|---|---|
+| `ECONNREFUSED`, connection timeout, "Cannot reach host" | [Cannot connect to the Hook0 API](#cannot-connect-to-hook0-api) |
+| `sqlx::Error` in the logs, API answers 503 (self-hosted) | [Database connection failed](#database-connection-failed-self-hosted) |
+| 403 with `AuthInvalidBiscuit` | [Invalid token error](#invalid-token-error) |
+| 403 "Insufficient permissions" | [Permission denied](#permission-denied) |
+| 401 with `AuthNoAuthorizationHeader` | [No Authorization header](#no-authorization-header) |
+| Event created, zero delivery attempts | [Events not being delivered](#events-not-being-delivered) |
+| Attempts created minutes after the event | [Slow event delivery](#slow-event-delivery) |
+| `OOMKilled` in the container logs | [High memory usage](#high-memory-usage-self-hosted) |
+| 429 Too Many Requests | [API rate limiting](#api-rate-limiting) |
 
 ### Set Up Environment Variables
 

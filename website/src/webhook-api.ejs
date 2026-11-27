@@ -42,6 +42,9 @@ var t = locals.t;
             </a>
         </div>
         <p class="mt-4 text-sm text-gray-500"><%= t.hero.microcopy %></p>
+        <% if (t.hero.updated) { %>
+        <p class="mt-2 text-xs text-gray-500"><%= t.hero.updated %></p>
+        <% } %>
     </div>
 </section>
 
@@ -60,6 +63,42 @@ var t = locals.t;
             <h2 class="text-xl font-bold text-white mb-3"><%= t.tldr.h2 %></h2>
             <p class="text-body-lg text-gray-300"><%= t.tldr.body %></p>
         </div>
+    </div>
+</section>
+<% } %>
+
+<!-- Webhook vs REST API: the query "webhook api" is read both as "an API that
+     sends webhooks" and as "webhook versus API", so the page answers the second
+     reading with a plain table in served HTML (no script), which answer engines
+     quote row by row. Rendered only when the locale supplies `t.vsApi`. -->
+<% if (t.vsApi) { %>
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10 animate-on-scroll">
+            <h2 class="text-display font-bold text-white"><%= t.vsApi.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.vsApi.intro %></p>
+        </div>
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th scope="col" class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.vsApi.headers.aspect %></th>
+                        <th scope="col" class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.vsApi.headers.rest %></th>
+                        <th scope="col" class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.vsApi.headers.webhook %></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.vsApi.rows.forEach(function (r) { %>
+                    <tr>
+                        <th scope="row" class="py-4 px-6 text-gray-300 font-medium"><%= r.aspect %></th>
+                        <td class="py-4 px-6 text-gray-400"><%= r.rest %></td>
+                        <td class="py-4 px-6 text-gray-300"><%= r.webhook %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-6 text-body text-gray-400 text-center"><%- t.vsApi.outro %></p>
     </div>
 </section>
 <% } %>

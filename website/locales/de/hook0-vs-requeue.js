@@ -95,6 +95,7 @@ module.exports = {
   related: {
     h2: 'Zum selben Thema',
     links: [
+      { enSlug: 'hook0-vs-hookbase', label: 'Hook0 vs Hookbase' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'hook0-vs-webhook-relay', label: 'Hook0 vs Webhook Relay' },
       { enSlug: 'hook0-vs-ngrok', label: 'Hook0 vs ngrok' },

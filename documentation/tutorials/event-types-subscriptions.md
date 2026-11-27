@@ -817,6 +817,7 @@ Never trust the payload blindly. Any public endpoint can be flooded with fake da
 ## Next steps
 
 - [Implementing Webhook Authentication](./webhook-authentication.md)
+- [Building Stripe-like payment webhooks end to end](./build-stripe-like-webhooks.md)
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
 
 ## Troubleshooting

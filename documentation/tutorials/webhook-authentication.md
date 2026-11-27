@@ -666,6 +666,7 @@ node test-auth.js
 ## Next Steps
 
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
+- [Building Stripe-like payment webhooks](./build-stripe-like-webhooks.md) - Signature checks inside a full payment event flow
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
 - [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Payload design, idempotency, versioning, and more security patterns
 

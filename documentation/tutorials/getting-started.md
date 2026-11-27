@@ -211,7 +211,7 @@ Keep the `subscription_id`, you'll need it in step 8.
 
 ## Step 6: Send Your First Event
 
-Now let's trigger a webhook by sending an event to Hook0:
+Now let's trigger a webhook by sending an event to Hook0 (the [webhook API overview](https://www.hook0.com/webhook-api) shows the same call with the Python and Node.js SDKs):
 
 :::warning Labels Required
 Every event must include at least one label. Labels are used to route events to the correct subscriptions. An empty `labels: {}` object will be rejected by the API.
