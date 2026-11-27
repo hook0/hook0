@@ -151,6 +151,13 @@ case "$VERSION_TYPE" in
     cargo)
         cargo release version "$NEW_VERSION" --execute --no-confirm --package "$CARGO_NAME"
         cargo update --workspace
+        # The API serves its own version in info.version and a test pins the
+        # served document to api/openapi.snapshot.json: leaving the snapshot
+        # behind turns api.check red on master right after every release.
+        if [ "$PACKAGE" = "api" ]; then
+            jq --arg v "$NEW_VERSION" '.info.version = $v' api/openapi.snapshot.json > api/openapi.snapshot.json.tmp
+            mv api/openapi.snapshot.json.tmp api/openapi.snapshot.json
+        fi
         ;;
     npm)
         jq ".version = \"${NEW_VERSION}\"" "$VERSION_FILE" > "$VERSION_FILE.tmp"
@@ -180,6 +187,9 @@ git-cliff \
 case "$VERSION_TYPE" in
     cargo)
         git add Cargo.lock "$VERSION_FILE" "$CHANGELOG_PATH"
+        if [ "$PACKAGE" = "api" ]; then
+            git add api/openapi.snapshot.json
+        fi
         ;;
     npm)
         git add "$VERSION_FILE" "$CHANGELOG_PATH"
