@@ -6,7 +6,7 @@ faqItems:
   - question: "Does self-hosted Hook0 support OpenTelemetry?"
     answer: >-
       Yes. The Hook0 API and the output worker both export metrics, traces and
-      logs over OTLP (HTTP with protobuf payloads, zstd compression). Each
+      logs over OTLP (HTTP with protobuf payloads, gzip compression). Each
       signal is off until you set its endpoint: OTLP_METRICS_ENDPOINT,
       OTLP_TRACES_ENDPOINT and OTLP_LOGS_ENDPOINT, plus OTLP_AUTHORIZATION when
       your collector expects an Authorization header.
@@ -58,7 +58,7 @@ There can be multiple instances of Hook0 Output Worker, work would be shared bet
 
 ## Observability with OpenTelemetry
 
-The Hook0 API and the output worker export metrics, traces and logs over OTLP, the OpenTelemetry protocol. They send HTTP requests with protobuf payloads, compressed with zstd, so any OpenTelemetry Collector or OTLP-compatible backend can receive them. Nothing is exported until you configure it, and each signal has its own endpoint:
+The Hook0 API and the output worker export metrics, traces and logs over OTLP, the OpenTelemetry protocol. They send HTTP requests with protobuf payloads, compressed with gzip, so any OpenTelemetry Collector or OTLP-compatible backend can receive them. Nothing is exported until you configure it, and each signal has its own endpoint:
 
 | Variable | Signal |
 |----------|--------|
@@ -81,7 +81,7 @@ It is on by default because an instance that never nudges a stuck user is the mo
 
 ### Does self-hosted Hook0 support OpenTelemetry?
 
-Yes. The Hook0 API and the output worker both export metrics, traces and logs over OTLP (HTTP with protobuf payloads, zstd compression). Each signal is off until you set its endpoint: `OTLP_METRICS_ENDPOINT`, `OTLP_TRACES_ENDPOINT` and `OTLP_LOGS_ENDPOINT`, plus `OTLP_AUTHORIZATION` when your collector expects an `Authorization` header.
+Yes. The Hook0 API and the output worker both export metrics, traces and logs over OTLP (HTTP with protobuf payloads, gzip compression). Each signal is off until you set its endpoint: `OTLP_METRICS_ENDPOINT`, `OTLP_TRACES_ENDPOINT` and `OTLP_LOGS_ENDPOINT`, plus `OTLP_AUTHORIZATION` when your collector expects an `Authorization` header.
 
 ### Which OTLP endpoint URL does Hook0 expect?
 

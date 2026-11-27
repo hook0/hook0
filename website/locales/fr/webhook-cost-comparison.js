@@ -6,12 +6,12 @@
 module.exports = {
   pageTitle: 'Tarifs Hookdeck, Svix, Hook0, Convoy : coût d\'un webhook en 2026',
   pageDescription: 'Hookdeck Outpost 10 $/M events, Event Gateway gratuite jusqu\'à 10k ; Svix dès 490 $ ; Hook0 dès 59 € ; Convoy Cloud dès 99 $. Prix publics, de 100k à 10M events/mois.',
-  pageModified: '2026-10-15',
+  pageModified: '2026-11-24',
   breadcrumb: 'Comparatif de coût webhook',
   track: 'fr-comparatif-cout-webhook',
   tldr: {
     h2: 'En bref',
-    body: "Sur les prix publics relevés entre août et octobre 2026, un service webhook managé démarre à 59 €/mois sur Hook0 Startup, environ 490 $/mois sur Svix Professional, à peu près 10 $ par million d'events sur Hookdeck Outpost, et un forfait à 99 $/mois sur Convoy Cloud Pro. Hook0 facture à l'event plutôt qu'à la livraison, inclut la résidence des données en UE sur chaque plan, et son serveur open source (SSPL-1.0) s'auto-héberge gratuitement. Le prix affiché n'est qu'une partie de la facture : rétention, débit, support et conformité déplacent le vrai total, et le tableau ci-dessous montre où se situe chaque option.",
+    body: "Sur les prix publics relevés entre octobre et novembre 2026, un service webhook managé démarre à 59 €/mois sur Hook0 Startup, environ 490 $/mois sur Svix Professional, à peu près 10 $ par million d'events sur Hookdeck Outpost, et un forfait à 99 $/mois sur Convoy Cloud Pro. Hook0 facture à l'event plutôt qu'à la livraison, inclut la résidence des données en UE sur chaque plan, et son serveur open source (SSPL-1.0) s'auto-héberge gratuitement. Le prix affiché n'est qu'une partie de la facture : rétention, débit, support et conformité déplacent le vrai total, et le tableau ci-dessous montre où se situe chaque option.",
   },
   hero: {
     eyebrow: 'Comparatif de coût',
@@ -26,7 +26,7 @@ module.exports = {
   costTable: {
     eyebrow: 'Cloud vs cloud',
     h2: 'Prix mensuel par volume d\'events',
-    subtitle: 'Plans cloud managés uniquement, prix publics relevés le 7 août 2026 (Convoy le 15 octobre 2026). L\'auto-hébergement est traité plus bas.',
+    subtitle: 'Plans cloud managés uniquement, prix publics relevés le 24 novembre 2026 pour Svix et Hookdeck, et le 15 octobre 2026 pour Convoy. L\'auto-hébergement est traité plus bas.',
     headers: {
       provider: 'Service',
       volumes: ['100k events/mois', '1M events/mois', '3M events/mois', '10M events/mois'],
@@ -66,7 +66,7 @@ module.exports = {
     ],
     footnotes: [
       '¹ Les quotas Hook0 sont journaliers ; les chiffres supposent des events répartis uniformément sur un mois de 30 jours. Startup (59 €/mois) couvre jusqu\'à 30 000 events/jour, puis 0,003 €/event. Pro (190 €/mois, ou 1 824 €/an avec la remise annuelle de 20%) couvre jusqu\'à 100 000 events/jour, puis 0,0001 €/event. Les souscriptions et les relances sont gratuites, et le dépassement ne bloque jamais la livraison.',
-      '² Svix Free inclut 50 000 messages/mois, puis 0,0001 $/message, plafonné à 200 msg/s avec un seul connecteur et le branding Svix. SOC 2 Type II, retrait du branding, IP statiques et rétention 90 jours démarrent sur Professional.',
+      '² Svix Free inclut 50 000 messages/mois, avec une limite d\'API de 50 msg/s, un seul connecteur et le branding Svix. Les plans payants facturent 0,0001 $ le message au-delà de 50 000. Les en-têtes sans branding démarrent sur Basic ; SOC 2 Type II, portail applicatif sans branding, IP statiques et rétention 90 jours démarrent sur Professional.',
       '³ Svix Professional démarre à 490 $/mois avec 50 000 messages inclus, puis 0,0001 $/message. Des remises de volume s\'appliquent aux gros volumes, le chiffre à 10M est donc une borne haute.',
       '⁴ Hookdeck Outpost managé est une infrastructure de livraison sortante facturée à l\'usage, 10 $ par million d\'events, sans minimum mensuel. C\'est le palier Starter, qui n\'inclut ni SSO, ni RBAC, ni SCIM. Ces fonctions démarrent au palier Growth, à 499 $/mois minimum en sus du coût à l\'event. Hookdeck vend aussi une Event Gateway entrante, produit séparé avec ses propres plans (0 à 499 $/mois).',
       '⁵ Convoy Cloud est un forfait au débit, sans facturation à l\'event : Pro coûte 99 $/mois jusqu\'à 25 events par seconde avec 7 jours de rétention, Premium 499 $/mois avec des limites sur mesure. 25 events par seconde couvrent 10M d\'events par mois seulement si le trafic est régulier ; un trafic en rafales peut demander Premium. Rien ne reste gratuit après l\'essai cloud de 14 jours (1 projet, 100 events/jour). En auto-hébergé : Community est gratuit, le palier Premium est licencié à 999 $/mois forfaitaires, infrastructure non comprise.',
@@ -122,7 +122,7 @@ module.exports = {
       },
       {
         q: 'Combien coûte un service webhook à 1 million d\'events par mois ?',
-        a: 'À 1M events/mois sur les prix publics (août 2026, Convoy octobre 2026) : Hook0 Pro coûte 190 €, Svix Professional environ 585 $, Hookdeck Outpost managé environ 10 $ et Convoy Cloud Pro 99 $ forfaitaires (en auto-hébergé, Convoy Community est gratuit et sa licence Premium coûte 999 $/mois). Le prix à l\'event n\'est qu\'une partie de la facture : rétention, débit, résidence des données en UE, support et conformité varient fortement entre ces plans.',
+        a: 'À 1M events/mois sur les prix publics (novembre 2026 pour Svix et Hookdeck, octobre 2026 pour Convoy) : Hook0 Pro coûte 190 €, Svix Professional environ 585 $, Hookdeck Outpost managé environ 10 $ et Convoy Cloud Pro 99 $ forfaitaires (en auto-hébergé, Convoy Community est gratuit et sa licence Premium coûte 999 $/mois). Le prix à l\'event n\'est qu\'une partie de la facture : rétention, débit, résidence des données en UE, support et conformité varient fortement entre ces plans.',
       },
       {
         q: 'Quels coûts cachés prévoir dans le budget d\'un service webhook ?',
@@ -130,7 +130,7 @@ module.exports = {
       },
       {
         q: 'Hookdeck a-t-il un tier gratuit ?',
-        a: 'Oui, sur son Event Gateway entrante : le plan Developer est à 0 $/mois jusqu\'à 10 000 events, avec 3 jours de rétention et 1 utilisateur (page tarifs Hookdeck, relevée le 8 octobre 2026). Outpost, son produit sortant, est facturé à l\'usage, environ 10 $ par million d\'events sans minimum mensuel, comme le montre le tableau ci-dessus. Hook0 a un tier gratuit pour envoyer des webhooks : 100 events par jour, sans carte bancaire, hébergé en UE.',
+        a: 'Oui, sur son Event Gateway entrante : le plan Developer est à 0 $/mois jusqu\'à 10 000 events, avec 3 jours de rétention et 1 utilisateur (page tarifs Hookdeck, relevée le 24 novembre 2026). Outpost, son produit sortant, est facturé à l\'usage, environ 10 $ par million d\'events sans minimum mensuel, comme le montre le tableau ci-dessus. Hook0 a un tier gratuit pour envoyer des webhooks : 100 events par jour, sans carte bancaire, hébergé en UE.',
       },
       {
         q: 'Pourquoi Hookdeck Outpost est-il tellement moins cher à l\'event ?',
@@ -150,11 +150,12 @@ module.exports = {
     competitors: ["Svix", "Hookdeck", "Convoy"],
     scope: "Ces coûts s'appuient sur les prix publics des offres managées de chaque éditeur. Les devises sont celles publiées, sans conversion.",
     sources: [
-      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-09-29" },
-      { label: "Tarifs Hookdeck", url: "https://hookdeck.com/pricing", consulted: "2026-10-08", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Tarifs Svix", url: "https://www.svix.com/pricing/", consulted: "2026-11-24" },
+      { label: "Tarifs Hookdeck", url: "https://hookdeck.com/pricing", consulted: "2026-11-24", archive: "https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing" },
+      { label: "Tarifs Hookdeck Outpost", url: "https://hookdeck.com/outpost/pricing", consulted: "2026-11-24" },
       { label: "Tarifs Convoy", url: "https://www.getconvoy.io/pricing", consulted: "2026-10-15", archive: "https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing" },
     ],
-    updated: "2026-10-15",
+    updated: "2026-11-24",
   },
   related: {
     h2: 'Sur le même sujet',

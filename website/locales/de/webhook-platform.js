@@ -34,7 +34,11 @@ module.exports = {
       },
       {
         "title": "Zustellprotokolle",
-        "body": "Anfrage, Antwort, Statuscode, Latenz. Jedes Event lässt sich aus dem Dashboard erneut zustellen. Dein Support rät nicht mehr."
+        "body": "Anfrage, Antwort, Statuscode, Latenz. Jedes Event lässt sich aus dem Dashboard erneut zustellen. Dein Support rät nicht mehr.",
+        "link": {
+          "href": "https://documentation.hook0.com/how-to-guides/monitor-webhook-performance",
+          "label": "Anleitung zum Webhook-Monitoring: Metriken und Alerts"
+        }
       },
       {
         "title": "Subscriber-Portal",

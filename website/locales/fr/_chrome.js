@@ -35,9 +35,7 @@ module.exports = {
             { enSlug: 'hook0-vs-requeue',      icon: 'compare', label: 'Hook0 vs Requeue',          description: 'Sortant vs replay entrant' },
             { enSlug: 'hook0-vs-ngrok',        icon: 'compare', label: 'Hook0 vs ngrok',        description: 'Tunnel de webhooks local' },
             { enSlug: 'hook0-vs-webhook-relay', icon: 'compare', label: 'Hook0 vs Webhook Relay', description: 'Envoyer vs recevoir' },
-            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Alternatives à Hook0',       description: 'Options du marché' },
-            { enSlug: 'svix-alternatives',     icon: 'swap',    label: 'Alternatives à Svix',        description: 'Options au-delà de Svix' },
-            { enSlug: 'hookdeck-alternatives', icon: 'swap',    label: 'Alternatives à Hookdeck',    description: 'Options au-delà de Hookdeck' },
+            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Alternatives à Hook0',       description: 'Svix, Hookdeck et les autres' },
             { enSlug: 'build-vs-buy-webhooks', icon: 'scale',   label: 'Build vs Buy',               description: 'Construire ou acheter ton infra' },
           ],
         },
@@ -150,7 +148,7 @@ module.exports = {
       steps: [
         { title: 'Inscris-toi et configure', body: 'Crée un compte, ajoute ton application, et déclare les types d\'événements que tes abonnés peuvent recevoir.', linkLabel: 'Guide de démarrage' },
         { title: 'Envoie des événements via API', body: "Tu envoies ton événement une fois en POST. Hook0 le distribue, relance en cas d'échec, signe le payload, et chiffre la transmission en TLS.", linkLabel: "Doc d'authentification" },
-        { title: 'Supervise et débogue', body: "Visualise chaque tentative de livraison, inspecte les payloads, comprends pourquoi une livraison a échoué, et rejoue les événements depuis le dashboard ou l'API.", linkLabel: 'Guide de monitoring' },
+        { title: 'Supervise et débogue', body: "Visualise chaque tentative de livraison, inspecte les payloads, comprends pourquoi une livraison a échoué, et rejoue les événements depuis le dashboard ou l'API.", linkLabel: 'Guide du monitoring de webhooks' },
       ],
       bottomCta: "Qu'est-ce que Hook0 ?",
     },
@@ -198,7 +196,7 @@ module.exports = {
       eyebrow: 'À propos de Hook0',
       h2: "Qu'est-ce que Hook0 ?",
       paragraphs: [
-        "Chez Hook0, on est une société européenne indépendante, fondée sur des principes de durabilité logicielle et de pratiques éthiques autour des données. Notre code est entièrement open source.",
+        "Chez Hook0, on est une société européenne indépendante, fondée sur des principes de durabilité logicielle et de pratiques éthiques autour des données. Notre code est open source.",
         "On croit profondément à la transparence et à la souveraineté des données. Contrairement à d'autres solutions, Hook0 ne verrouille ni tes données ni ton logiciel. Si tu choisis la version SaaS de Hook0, le plan de données applicatif reste en France chez Clever Cloud (CDN Cloudflare US divulgué dans le DPA), en cohérence avec la réglementation locale.",
         "Notre modèle économique repose entièrement sur le revenu de nos clients payants, sans levée de fonds. Depuis notre lancement, on sert nos clients avec engagement, en se concentrant sur la qualité et la fiabilité.",
       ],

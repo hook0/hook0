@@ -45,9 +45,7 @@ module.exports = {
             { enSlug: 'hook0-vs-requeue',      icon: 'compare', label: 'Hook0 vs Requeue',     description: 'Outbound vs inbound replay' },
             { enSlug: 'hook0-vs-ngrok',        icon: 'compare', label: 'Hook0 vs ngrok',        description: 'Local webhook tunnel' },
             { enSlug: 'hook0-vs-webhook-relay', icon: 'compare', label: 'Hook0 vs Webhook Relay', description: 'Sending vs receiving' },
-            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Hook0 alternatives',    description: 'Options in this space' },
-            { enSlug: 'svix-alternatives',     icon: 'swap',    label: 'Svix alternatives',     description: 'Options beyond Svix' },
-            { enSlug: 'hookdeck-alternatives', icon: 'swap',    label: 'Hookdeck alternatives', description: 'Options beyond Hookdeck' },
+            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Hook0 alternatives',    description: 'Svix, Hookdeck and more' },
             { enSlug: 'build-vs-buy-webhooks', icon: 'scale',   label: 'Build vs Buy',          description: 'Make or buy webhook infra' },
           ],
         },
@@ -161,7 +159,7 @@ module.exports = {
       steps: [
         { title: 'Register & Configure', body: 'Create an account, add your application, and list the event types your subscribers can receive.', linkLabel: 'Getting started guide' },
         { title: 'Send Events via API', body: 'POST your event once. Hook0 delivers it, retries on failure, signs the payload, and encrypts over TLS.', linkLabel: 'Authentication docs' },
-        { title: 'Monitor & Debug', body: 'See every delivery attempt, inspect payloads, find out why a delivery failed, and replay events from the dashboard or API.', linkLabel: 'Monitoring guide' },
+        { title: 'Monitor & Debug', body: 'See every delivery attempt, inspect payloads, find out why a delivery failed, and replay events from the dashboard or API.', linkLabel: 'Webhook monitoring guide' },
       ],
       bottomCta: 'What is Hook0?',
     },
@@ -209,7 +207,7 @@ module.exports = {
       eyebrow: 'About Hook0',
       h2: 'What is Hook0?',
       paragraphs: [
-        'At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is fully open-source.',
+        'At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is open-source.',
         'We firmly believe in transparency and data sovereignty. Unlike other solutions, Hook0 does not lock your data or software. If you choose the SaaS version of Hook0, all your data will remain in Europe, ensuring compliance with local regulations.',
         'Our business model is entirely supported by revenue from our paying users, with no venture capital funding. Since our launch, we have served our clients with dedication, focusing on quality and reliability.',
       ],

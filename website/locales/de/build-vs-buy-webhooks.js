@@ -69,7 +69,7 @@ module.exports = {
       { q: 'Kann ich von einem Eigenbau-System migrieren?', a: 'Ja. REST-API und SDKs, du kannst beide Systeme während der Migration parallel laufen lassen. Keine Big-Bang-Umstellung nötig.' },
     ],
   },
-  deepDiveHtml: 'Mehr Details gefällig? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Lies den Getting-Started-Guide in der Doku</a>.',
+  deepDiveHtml: 'Mehr Details gefällig? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Lies den Getting-Started-Guide in der Doku</a>, oder kalkuliere deine Eigenentwicklung mit dem <a href="https://documentation.hook0.com/comparisons/build-vs-buy" class="text-indigo-400 hover:text-indigo-300 underline">Kostenblatt pro Komponente</a> (auf Englisch).',
   related: {
     h2: 'Verwandte Themen',
     links: [

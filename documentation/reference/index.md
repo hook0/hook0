@@ -20,7 +20,7 @@ Technical specifications for Hook0. Use this reference when you need exact detai
 
 ### [REST API Documentation](../openapi/intro)
 
-Complete API specification with all endpoints, request/response formats, and authentication details.
+Complete API specification with all endpoints, request/response formats, and authentication details. For a one-page overview of what the [Hook0 webhook API](https://www.hook0.com/webhook-api) does, with REST, Python and Node.js examples, start there.
 
 **Available formats:**
 - [OpenAPI 3.0 Specification](../openapi/intro) — Machine-readable, import into tools

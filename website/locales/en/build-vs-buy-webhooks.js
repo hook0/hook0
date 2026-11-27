@@ -68,7 +68,7 @@ module.exports = {
       { q: 'Can I migrate from a homegrown system?', a: 'Yes. REST API and SDKs, so you can run both systems in parallel during migration. No big bang cutover required.' },
     ],
   },
-  deepDiveHtml: 'Want more detail? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Read the getting started guide in our docs</a>.',
+  deepDiveHtml: 'Want more detail? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Read the getting started guide in our docs</a>, or price your own build with the <a href="https://documentation.hook0.com/comparisons/build-vs-buy" class="text-indigo-400 hover:text-indigo-300 underline">component-by-component worksheet</a>.',
   related: {
     h2: 'Related',
     links: [

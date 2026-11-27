@@ -82,6 +82,7 @@ module.exports = {
   related: {
     h2: 'Verwandte Seiten',
     links: [
+      { enSlug: 'hook0-vs-hookbase', label: 'Hook0 vs Hookbase' },
       { enSlug: 'hook0-vs-ngrok', label: 'Hook0 vs ngrok' },
       { enSlug: 'hook0-vs-requeue', label: 'Hook0 vs Requeue' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },

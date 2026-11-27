@@ -34,7 +34,11 @@ module.exports = {
       },
       {
         "title": "Journaux de livraison",
-        "body": "Requête, réponse, code HTTP, latence. Rejoue n'importe quel event depuis le dashboard. Ton support arrête de deviner."
+        "body": "Requête, réponse, code HTTP, latence. Rejoue n'importe quel event depuis le dashboard. Ton support arrête de deviner.",
+        "link": {
+          "href": "https://documentation.hook0.com/how-to-guides/monitor-webhook-performance",
+          "label": "Guide du monitoring de webhooks : métriques et alertes"
+        }
       },
       {
         "title": "Portail abonnés",

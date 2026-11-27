@@ -40,3 +40,13 @@
 - page: website/src/404.ejs
   exception: page-cassée
   reason: The 404 took its header from whichever page parcel rendered just before it, so a build could ship it with the legacy flat nav instead of the dropdown nav served in production on 2026-11-24, and its open dropdown could not be closed with Escape; the template now loads the English chrome explicitly, the page stays noindex with no canonical or hreflang, and its copy is unchanged.
+- page: documentation/comparisons/hookdeck-vs-hook0.mdx
+  exception: correction-factuelle
+  reason: The pricing paragraph was dated 8 October 2026 and left out that managed Outpost Starter gives the first 50,000 events free; hookdeck.com/pricing and hookdeck.com/outpost/pricing read on 2026-11-24 show Event Gateway free to 10,000 events, Team from $39, Growth from $499, Outpost $10 per million after 50,000 free, so the paragraph and its date now match those pages.
+- page: documentation/comparisons/svix-vs-hook0.mdx
+  exception: correction-factuelle
+  reason: The meta description promises a pricing breakdown that the body never gave, and the only Svix pricing check date was 2026-10-08; svix.com/pricing read on 2026-11-24 shows Free up to 50,000 messages, Basic from $20, Professional from $490 with the EEA DPA, so a dated pricing section was added and the check date updated.
+- page: documentation/comparisons/build-vs-buy.mdx
+  type: json-ld
+  count: 1
+  reason: The inline Article block duplicated the Article schema that documentation/src/theme/DocItem/SchemaOrg.js already emits for every doc page, with a different headline; the theme now emits the Article plus a FAQPage built from the new faqItems frontmatter, so the page keeps its Article and gains a FAQPage.

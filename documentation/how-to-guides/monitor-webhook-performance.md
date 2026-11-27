@@ -2,7 +2,7 @@
 title: "Webhook Monitoring: The 5 Delivery Metrics and the API Fields Behind Them"
 sidebar_label: "Monitor webhook performance"
 description: "Success rate, retry rate, error mix, endpoint response time and delivery latency: which Hook0 API field each one comes from, how to compute it, and when to alert."
-keywords: [webhook monitoring, webhook delivery metrics, webhook success rate, webhook error tracking, webhook error monitoring, webhook latency, webhook alerts, endpoint health]
+keywords: [webhook monitoring, webhook observability, webhook alerting, webhook delivery metrics, webhook success rate, webhook error tracking, webhook error monitoring, webhook latency, webhook alerts, endpoint health]
 faqItems:
   - question: "How do I monitor webhook delivery in Hook0?"
     answer: >-
@@ -41,9 +41,33 @@ faqItems:
       E_INVALID_TARGET means the subscription URL is wrong. Hook0 retries all
       of them on its schedule, so a growing count of the same error on one
       subscription is the signal to act on.
+  - question: "What is webhook monitoring?"
+    answer: >-
+      Webhook monitoring is tracking whether the events you send reach your
+      subscribers' endpoints: how many deliveries succeed on the first try,
+      how many need a retry or are given up, how long endpoints take to
+      answer, and which errors they return. On the sending side, it is done
+      per subscription, from the delivery attempts the webhook server
+      records, with alerts on success rate, retries and given-up deliveries.
+  - question: "How do I get alerted when a webhook endpoint keeps failing?"
+    answer: >-
+      Poll GET /request_attempts/ per subscription and alert when the
+      first-attempt success rate falls below your threshold over a 15-minute
+      window, or when attempts pile up in the failed or paused status. On a
+      self-hosted instance, export metrics over OTLP and alert on the
+      webhook.delivery.outcomes and webhook.delivery.given_up counters in
+      Prometheus, Grafana or Datadog.
+  - question: "Can I send Hook0 webhook metrics to Prometheus, Grafana or Datadog?"
+    answer: >-
+      Yes, on a self-hosted instance. The API and the output worker export
+      metrics, traces and logs over OTLP once you set OTLP_METRICS_ENDPOINT,
+      OTLP_TRACES_ENDPOINT and OTLP_LOGS_ENDPOINT. Point them at an
+      OpenTelemetry Collector, which forwards to Prometheus, Grafana Cloud,
+      Datadog or any OTLP-compatible backend. On Hook0 Cloud, compute the
+      same numbers from the request attempts API.
 ---
 
-# Monitor webhook performance
+# Webhook monitoring: delivery metrics, alerts and dashboards
 
 To monitor webhook delivery in Hook0, read the [request attempts](/concepts/request-attempts) of each subscription and track five numbers over a rolling window: first-attempt success rate, retry rate, error mix, endpoint response time and delivery latency. Each one comes from a field Hook0 already stores on every delivery, so you compute it from the API without adding instrumentation to your endpoint.
 
@@ -63,6 +87,29 @@ Filter every query by `subscription_id` to get per-endpoint numbers, and by `min
 :::tip Try it on your own events
 The free Hook0 Cloud plan records every delivery attempt for 100 events a day, with no credit card. [Create an account](https://app.hook0.com/register), or send a first request to [Hook0 Play](https://play.hook0.com) to see the attempt and response a delivery produces.
 :::
+
+## Alert rules to start from
+
+A webhook monitoring setup is only useful if it tells someone when to act. These thresholds are starting points, not limits Hook0 enforces: run them for a week, compare them with your own baseline, then tighten or loosen them. Evaluate each one per subscription over a 15-minute window, so one slow customer endpoint does not hide behind a healthy average.
+
+| Signal | Warning | Page someone | First thing to check |
+|--------|---------|--------------|----------------------|
+| First-attempt success rate | below 95% | below 90% | Error mix of the failed attempts (`response_error_name`) |
+| Events needing a retry | above 5% | above 10% | Whether `E_TIMEOUT` grows with the endpoint's response time |
+| Endpoint response time, p95 (`elapsed_time_ms`) | above 1,000 ms | above 3,000 ms | The endpoint's own latency; Hook0 times out after 15 s by default |
+| Delivery latency, p95 (`succeeded_at - created_at`) | above 30 s | above 5 min | Pending backlog and worker capacity (self-hosted) |
+| Deliveries given up after the last retry | n/a | any | The last response of the event, then [replay it](../explanation/webhook-retry-logic.md#when-all-retries-are-exhausted) once the endpoint is fixed |
+| Attempts in `paused` status | any | growing for 1 hour | The subscription's health (see below) |
+
+Alert on rates over a window, not on single failures: one `E_TIMEOUT` is noise, the same error on 30% of a subscription's attempts for 15 minutes is an outage.
+
+## Subscription health: degraded and recovering endpoints
+
+A self-hosted Hook0 instance can also classify each subscription for you. Every 5 minutes, it looks at the attempts that completed in the last 15 minutes: a subscription with at least 10 completed attempts and more than 30% of failures becomes **degraded**, then **recovering** once its endpoint answers again, then **healthy**. Failures caused by Hook0 itself (`E_INTERNAL`, `E_INVALID_HEADER`) do not count.
+
+Health tracking is off by default. Set `SUBSCRIPTION_HEALTH_PROBE_MODE` on the API to `shadow` to record it without changing deliveries, or to `enforce` to also slow down deliveries to unhealthy subscriptions: their new attempts are created in the `paused` status and released at a capped rate, so an endpoint that just came back is not flooded. A paused attempt is never dropped.
+
+For monitoring, this means a growing number of `paused` attempts on a subscription is the signal that its endpoint is failing. The thresholds, states and settings are described in [Subscription health](../explanation/webhook-retry-logic.md#subscription-health).
 
 ## Overview
 
@@ -214,6 +261,8 @@ curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
 
 ## Key Metrics to Monitor
 
+The SQL queries below read the Hook0 database directly, so they only work on a self-hosted instance. On Hook0 Cloud, compute the same numbers from `GET /request_attempts/` and `GET /responses/{response_id}`.
+
 ### 1. Success Rate
 
 Track the percentage of webhook deliveries that succeed on first attempt:
@@ -354,11 +403,7 @@ Establish normal ranges for your webhook traffic:
 
 ### 2. Create Alerting Thresholds
 
-Define when to alert based on deviation from baseline:
-- Success rate drops below 90%
-- Average response time exceeds 3 seconds
-- Error rate spikes above 10%
-- Retry queue grows beyond expected size
+Start from the table in [Alert rules to start from](#alert-rules-to-start-from), then adjust each threshold to the baseline you measured in step 1.
 
 ### 3. Monitor Endpoint Health
 
@@ -482,7 +527,7 @@ Build your own monitoring dashboard by polling Hook0's API:
 // Example: Fetch recent request attempts and calculate metrics
 async function fetchWebhookMetrics(applicationId, token) {
   const response = await fetch(
-    `http://localhost:8081/api/v1/request_attempts/?application_id=${applicationId}`,
+    `${process.env.HOOK0_API}/request_attempts/?application_id=${applicationId}`,
     {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -506,14 +551,69 @@ async function fetchWebhookMetrics(applicationId, token) {
 }
 ```
 
-### Integration with Monitoring Tools
+### Export metrics to Prometheus and Grafana over OpenTelemetry (self-hosted)
 
-Export Hook0 metrics to your monitoring stack:
+The Hook0 API and the output worker export metrics, traces and logs over OTLP (HTTP, protobuf, gzip). Nothing is sent until you set the endpoints:
 
-**Prometheus/Grafana:**
-- Create a metrics exporter that queries Hook0 API
-- Expose metrics in Prometheus format
-- Build Grafana dashboards with alerts
+```bash
+OTLP_METRICS_ENDPOINT=http://otel-collector:4318/v1/metrics
+OTLP_TRACES_ENDPOINT=http://otel-collector:4318/v1/traces
+OTLP_LOGS_ENDPOINT=http://otel-collector:4318/v1/logs
+# OTLP_AUTHORIZATION="Bearer mytoken"  # only if your collector requires it
+```
+
+Point them at an OpenTelemetry Collector, which forwards to Prometheus, Grafana Cloud, Datadog or any OTLP backend. See [Observability with OpenTelemetry](../self-hosting/index.md#observability-with-opentelemetry) for the full setup.
+
+The output worker exports these delivery metrics:
+
+| Metric | Type | Attributes | Use it for |
+|--------|------|------------|------------|
+| `webhook.delivery.outcomes` | counter | `outcome`: `success`, `timeout`, `dns`, `http_4xx`, `http_5xx`, `connection_error`, `invalid_target`, `internal`, `other` | Success rate and error mix across all subscriptions |
+| `webhook.delivery.given_up` | counter | `reason`: `retries_exhausted`, `signature_failed`, `subscription_gone` | Events lost for a subscriber; `subscription_gone` is the expected end of a deleted subscription |
+| `worker.delivery_lag_seconds` | histogram | none | Time between an attempt's scheduled delivery and its pickup by a worker, the first sign that workers fall behind |
+| `paused_request_attempts.subscriptions` | gauge | none | Subscriptions holding paused attempts because of their health |
+| `paused_request_attempts.released` | counter | `health` | Paused attempts released back into delivery |
+
+These counters cover the whole instance; per-subscription numbers still come from the request attempts API. With the Collector's Prometheus exporter, dots become underscores and counters get a `_total` suffix, which gives queries like these:
+
+```promql
+# Delivery success rate over 15 minutes, Hook0-side failures excluded
+sum(rate(webhook_delivery_outcomes_total{outcome="success"}[15m]))
+  /
+sum(rate(webhook_delivery_outcomes_total{outcome!="internal"}[15m]))
+
+# Events given up after the last retry, per hour
+sum(increase(webhook_delivery_given_up_total{reason="retries_exhausted"}[1h]))
+
+# p95 pickup lag of the output workers
+histogram_quantile(0.95, sum by (le) (rate(worker_delivery_lag_seconds_bucket[5m])))
+```
+
+A matching Prometheus alert rule:
+
+```yaml
+groups:
+  - name: hook0-webhooks
+    rules:
+      - alert: WebhookSuccessRateLow
+        expr: |
+          sum(rate(webhook_delivery_outcomes_total{outcome="success"}[15m]))
+            / sum(rate(webhook_delivery_outcomes_total{outcome!="internal"}[15m])) < 0.90
+        for: 15m
+        labels:
+          severity: page
+      - alert: WebhookDeliveriesGivenUp
+        expr: sum(increase(webhook_delivery_given_up_total{reason=~"retries_exhausted|signature_failed"}[1h])) > 0
+        labels:
+          severity: page
+```
+
+Metric names can differ slightly with other exporters (Datadog, Grafana Cloud): check how your backend translates OpenTelemetry names before you copy a query.
+
+**Prometheus/Grafana on Hook0 Cloud:**
+- Poll the request attempts API on a schedule
+- Expose the computed rates in Prometheus format
+- Build Grafana dashboards and alerts on them
 
 **Datadog/New Relic:**
 - Use custom metric submission APIs
@@ -564,6 +664,16 @@ Monitor worker performance:
 - Check if workers are keeping up with event volume
 - Look for growing `delay_until` queues
 - Scale worker `--concurrent` setting or add workers
+
+## Webhook monitoring checklist
+
+- [ ] First-attempt success rate tracked per subscription, with a warning and a paging threshold
+- [ ] Retry rate and error mix (`response_error_name`) on the same dashboard
+- [ ] Endpoint response time p95 from `elapsed_time_ms`
+- [ ] Delivery latency p95 from `succeeded_at - created_at`
+- [ ] An alert on any delivery given up after its last retry, with the replay procedure linked in the alert
+- [ ] Self-hosted: OTLP endpoints set, subscription health in `shadow` or `enforce`, and an alert on paused attempts
+- [ ] A baseline written down, and thresholds reviewed after the first week
 
 ## Summary
 

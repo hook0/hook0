@@ -58,6 +58,19 @@ Signature verification and authentication.
 
 ---
 
+### 5. [Build Stripe-Like Webhooks](build-stripe-like-webhooks.md)
+Put the previous tutorials together: send payment events to your customers the way Stripe does.
+
+**What you'll learn:**
+- Defining payment event types such as `payment.charge.succeeded`
+- Writing an Express receiver that verifies signatures
+- Routing each customer's events with [labels](/concepts/labels)
+- Testing deliveries and reading them in the dashboard
+
+**Time:** ~45 minutes
+
+---
+
 ## Prerequisites
 
 Before starting these tutorials, make sure you have:

@@ -198,6 +198,9 @@ fn main() {
                     dist.join(path).join("index.html")
                 } else if dist.join(format!("{path}.html")).exists() {
                     dist.join(format!("{path}.html"))
+                } else if dist.join(path).is_file() {
+                    // A file served as-is (llms-full.txt, a .md twin).
+                    dist.join(path)
                 } else {
                     dist.join(path).join("index.html")
                 };
@@ -207,11 +210,24 @@ fn main() {
                         candidate.display()
                     ));
                 }
+                // Every top-level (EN) page llms.txt lists ships a Markdown twin,
+                // written by build-i18n (markdown.rs). A missing one means that
+                // step silently stopped matching the page.
+                if !path.is_empty()
+                    && !path.contains('/')
+                    && dist.join(format!("{path}.html")).exists()
+                    && !dist.join(format!("{path}.md")).exists()
+                {
+                    failures.push(format!("LLMSTXT: {url} has no Markdown twin dist/{path}.md"));
+                }
             } else if !url.starts_with("https://") {
                 failures.push(format!("LLMSTXT: {url} is not an https:// URL"));
             } else if url.contains("localhost") || url.contains("127.0.0.1") {
                 failures.push(format!("LLMSTXT: {url} points at localhost"));
             }
+        }
+        if !dist.join("llms-full.txt").is_file() {
+            failures.push("LLMSTXT: dist/llms-full.txt missing".into());
         }
     } else {
         failures.push("LLMSTXT: dist/llms.txt missing".into());

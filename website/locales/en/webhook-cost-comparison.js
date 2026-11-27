@@ -6,12 +6,12 @@
 module.exports = {
   pageTitle: 'Hookdeck, Svix, Hook0, Convoy Pricing: Webhook Costs in 2026',
   pageDescription: 'Hookdeck Outpost $10/M events, its Event Gateway free up to 10k; Svix from $490; Hook0 from €59; Convoy Cloud from $99. Public prices at 100k to 10M events/month.',
-  pageModified: '2026-10-15',
+  pageModified: '2026-11-24',
   breadcrumb: 'Webhook Cost Comparison',
   track: 'webhook-cost-comparison',
   tldr: {
     h2: 'The Short Answer',
-    body: "On public prices checked between August and October 2026, a managed webhook service runs from €59/month on Hook0 Startup, about $490/month on Svix Professional, roughly $10 per million events on Hookdeck Outpost, and a flat $99/month on Convoy Cloud Pro. Hook0 bills per event rather than per delivery, includes EU data residency on every plan, and its open-source (SSPL-1.0) server self-hosts for free. The sticker price is only part of the bill: retention, throughput, support and compliance move the real total, and the table below shows where each option lands.",
+    body: "On public prices checked between October and November 2026, a managed webhook service runs from €59/month on Hook0 Startup, about $490/month on Svix Professional, roughly $10 per million events on Hookdeck Outpost, and a flat $99/month on Convoy Cloud Pro. Hook0 bills per event rather than per delivery, includes EU data residency on every plan, and its open-source (SSPL-1.0) server self-hosts for free. The sticker price is only part of the bill: retention, throughput, support and compliance move the real total, and the table below shows where each option lands.",
   },
   hero: {
     eyebrow: 'Cost Comparison',
@@ -26,7 +26,7 @@ module.exports = {
   costTable: {
     eyebrow: 'Cloud vs Cloud',
     h2: 'Monthly price by event volume',
-    subtitle: 'Managed cloud plans only, public prices checked on 7 August 2026 (Convoy on 15 October 2026). Self-hosting is covered further down.',
+    subtitle: 'Managed cloud plans only, public prices checked on 24 November 2026 for Svix and Hookdeck, and on 15 October 2026 for Convoy. Self-hosting is covered further down.',
     headers: {
       provider: 'Service',
       volumes: ['100k events/mo', '1M events/mo', '3M events/mo', '10M events/mo'],
@@ -66,7 +66,7 @@ module.exports = {
     ],
     footnotes: [
       '¹ Hook0 quotas are daily; figures assume events spread evenly over a 30-day month. Startup (€59/mo) covers up to 30,000 events/day, then €0.003/event. Pro (€190/mo, or €1,824/yr with the 20% annual discount) covers up to 100,000 events/day, then €0.0001/event. Subscriptions and retries are free, and overage never blocks delivery.',
-      '² Svix Free includes 50,000 messages/month, then $0.0001/message, capped at 200 msg/s with one connector and Svix branding. SOC 2 Type II, no-branding, static IPs and 90-day retention start on Professional.',
+      '² Svix Free includes 50,000 messages/month, with a 50 msg/s API rate limit, one connector and Svix branding. Paid plans bill $0.0001 per message past 50,000. Unbranded headers start on Basic; SOC 2 Type II, an unbranded app portal, static IPs and 90-day retention start on Professional.',
       '³ Svix Professional starts at $490/month with 50,000 messages included, then $0.0001/message. Volume discounts apply at higher volumes, so the 10M figure is an upper bound.',
       '⁴ Hookdeck Outpost managed is pay-as-you-go outbound delivery infrastructure at $10 per million events, with no monthly minimum. That is the Starter tier, which does not include SSO, RBAC or SCIM. Those start on the Growth tier, at $499/month minimum on top of the per-event cost. Hookdeck also sells an inbound Event Gateway as a separate product with its own plans ($0 to $499/month).',
       '⁵ Convoy Cloud is flat-priced by throughput, with no per-event metering: Pro is $99/month for up to 25 events per second with 7-day retention, Premium $499/month with custom rate limits. 25 events per second covers 10M events a month only when traffic is spread evenly; bursty traffic may need Premium. Nothing stays free after the 14-day cloud trial (1 project, 100 events/day). Self-hosted: Community is free, the Premium feature set is licensed at $999/month flat, infrastructure not included.',
@@ -122,7 +122,7 @@ module.exports = {
       },
       {
         q: 'What does a webhook service cost at 1 million events per month?',
-        a: 'At 1M events/month on public prices (August 2026, Convoy October 2026): Hook0 Pro is €190, Svix Professional is about $585, Hookdeck Outpost managed is about $10 and Convoy Cloud Pro is $99 flat (self-hosted, Convoy Community is free and its Premium licence is $999/month). The per-event sticker is only part of the bill: retention, throughput, EU data residency, support and compliance differ widely between those plans.',
+        a: 'At 1M events/month on public prices (November 2026 for Svix and Hookdeck, October 2026 for Convoy): Hook0 Pro is €190, Svix Professional is about $585, Hookdeck Outpost managed is about $10 and Convoy Cloud Pro is $99 flat (self-hosted, Convoy Community is free and its Premium licence is $999/month). The per-event sticker is only part of the bill: retention, throughput, EU data residency, support and compliance differ widely between those plans.',
       },
       {
         q: 'What hidden costs should I budget for with a webhook service?',
@@ -130,7 +130,7 @@ module.exports = {
       },
       {
         q: 'Does Hookdeck have a free tier?',
-        a: 'Yes, on its inbound Event Gateway: the Developer plan is $0/month for up to 10,000 events, with 3-day retention and 1 user (Hookdeck pricing page, checked 8 October 2026). Outpost, its outbound product, is metered at about $10 per million events with no monthly minimum, as shown in the table above. Hook0 has a free tier for sending webhooks: 100 events per day, no credit card, EU-hosted.',
+        a: 'Yes, on its inbound Event Gateway: the Developer plan is $0/month for up to 10,000 events, with 3-day retention and 1 user (Hookdeck pricing page, checked 24 November 2026). Outpost, its outbound product, is metered at about $10 per million events with no monthly minimum, as shown in the table above. Hook0 has a free tier for sending webhooks: 100 events per day, no credit card, EU-hosted.',
       },
       {
         q: 'Why is Hookdeck Outpost so much cheaper per event?',
@@ -150,11 +150,12 @@ module.exports = {
     competitors: ['Svix', 'Hookdeck', 'Convoy'],
     scope: 'These costs use each vendor\'s public prices for managed plans. Currencies are as published, with no conversion applied.',
     sources: [
-      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-09-29' },
-      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-10-08', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
+      { label: 'Svix pricing', url: 'https://www.svix.com/pricing/', consulted: '2026-11-24' },
+      { label: 'Hookdeck pricing', url: 'https://hookdeck.com/pricing', consulted: '2026-11-24', archive: 'https://web.archive.org/web/20260914151910/https://hookdeck.com/pricing' },
+      { label: 'Hookdeck Outpost pricing', url: 'https://hookdeck.com/outpost/pricing', consulted: '2026-11-24' },
       { label: 'Convoy pricing', url: 'https://www.getconvoy.io/pricing', consulted: '2026-10-15', archive: 'https://web.archive.org/web/20260604143101/https://www.getconvoy.io/pricing' },
     ],
-    updated: '2026-10-15',
+    updated: '2026-11-24',
   },
   related: {
     h2: 'Related',

@@ -115,7 +115,6 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
                         <th class="py-4 px-4 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.comparison.headers.hook0 %></th>
                         <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.hookdeck %></th>
                         <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.convoy %></th>
-                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.hostedhooks %></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
@@ -126,7 +125,6 @@ var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHe
                         <td class="py-4 px-4 text-green-400 font-medium"><%- r.hook0Html %></td>
                         <td class="py-4 px-4 text-gray-400"><%- r.hookdeckHtml %></td>
                         <td class="py-4 px-4 text-gray-400"><%- r.convoyHtml %></td>
-                        <td class="py-4 px-4 text-gray-400"><%- r.hostedhooksHtml %></td>
                     </tr>
                     <% }); %>
                 </tbody>

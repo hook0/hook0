@@ -1,6 +1,6 @@
 ---
-title: "Hostedhooks vs Hook0: Proprietary vs Open-Source Webhooks"
-description: "Compare Hostedhooks and Hook0 webhook platforms. Feature comparison covering self-hosting, open-source licensing, retry logic, multi-tenant support, and SDKs."
+title: "Hostedhooks Is Offline: What It Did and Where to Move Your Webhooks"
+description: "Hostedhooks.com has returned HTTP 503 since at least 24 November 2026. Its last documented features next to Hook0, and how to move your webhooks to a server you can self-host."
 keywords: [Hostedhooks vs Hook0, webhook comparison, Hostedhooks alternative, open source webhooks, webhook platform]
 ---
 
@@ -11,8 +11,9 @@ import Head from '@docusaurus/Head';
     {JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
-      "headline": "Hostedhooks vs Hook0: Proprietary vs Open-Source Webhooks",
-      "description": "Compare Hostedhooks and Hook0 -- proprietary vs open-source webhook platforms",
+      "headline": "Hostedhooks Is Offline: What It Did and Where to Move Your Webhooks",
+      "description": "Hostedhooks is offline since November 2026: its last documented features next to Hook0, and a migration path",
+      "dateModified": "2026-11-26",
       "url": "https://documentation.hook0.com/comparisons/hostedhooks-vs-hook0",
       "publisher": {"@type": "Organization", "name": "Hook0", "url": "https://www.hook0.com"}
     })}
@@ -21,13 +22,17 @@ import Head from '@docusaurus/Head';
 
 # Hostedhooks vs Hook0
 
-[Hostedhooks](https://www.hostedhooks.com/) is a proprietary webhook platform. It has fewer features but is quick to set up. Hook0 is open-source and does more on multi-tenancy, event routing, and self-hosting.
+:::caution Hostedhooks is offline (checked 26 November 2026)
+`www.hostedhooks.com`, its `/pricing` page and the bare `hostedhooks.com` domain all returned HTTP 503 with Heroku's "Offline for Maintenance" page on 24, 25 and 26 November 2026. The Heroku add-on listing still answers but is marked Alpha, the public docs say they were last updated five years ago, and the SDK repositories on GitHub have had no push since January 2023. We no longer list Hostedhooks in our comparison tables. This page stays up for teams that still run on it.
+:::
+
+Hostedhooks was a proprietary, hosted-only webhook platform: quick to set up, with a small feature set. Hook0 is open-source and does more on multi-tenancy, event routing, and self-hosting. The table below compares Hook0 with Hostedhooks as Hostedhooks documented itself before it went offline.
 
 **Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
 
 ## Feature comparison
 
-| Feature | Hostedhooks | Hook0 |
+| Feature | Hostedhooks (last documented) | Hook0 |
 |---------|-------------|-------|
 | **SaaS** | ✅ | ✅ |
 | **Self-hosting** | ❌ | ✅ Full feature parity |
@@ -47,12 +52,12 @@ import Head from '@docusaurus/Head';
 
 ## Open-source vs proprietary
 
-This is the main difference. With Hostedhooks:
+This was the main difference, and it is now the practical one. With Hostedhooks:
 
 - You can't inspect the source code
 - You can't self-host it
 - You can't customize the behavior
-- If Hostedhooks shuts down, you need to rebuild or migrate
+- When the service goes offline, as it has since November 2026, you have to rebuild or migrate
 - You have no visibility into how your data is processed
 
 With Hook0:
@@ -68,7 +73,7 @@ In regulated industries (finance, healthcare, government), self-hosting and code
 
 ## Where Hook0 goes further
 
-Hostedhooks covers the basics: send a webhook, check delivery, retry on failure. For simple use cases, that works.
+Hostedhooks covered the basics: send a webhook, check delivery, retry on failure.
 
 Hook0 adds:
 
@@ -77,12 +82,14 @@ Hook0 adds:
 - **Dead letter queue**: failed events are kept for inspection and replay, not silently dropped
 - **Biscuit token authentication**: capability-based access control with Service tokens for programmatic access, instead of all-or-nothing API keys
 
-## Pick Hostedhooks if
+## Moving off Hostedhooks
 
-- You need a quick webhook setup with minimal configuration
-- Your use case is simple: a few event types, a few endpoints
-- You don't need self-hosting or source code access
-- You want the smallest possible tool for the job
+If your producers still call the Hostedhooks API, the move to Hook0 maps one to one:
+
+- **Event types**: recreate them in Hook0. Flat names work as is; you can switch to dot notation (`order.created`) later.
+- **Endpoints**: each Hostedhooks endpoint becomes a Hook0 subscription, filtered by event type and, for multi-tenant setups, by labels.
+- **Signatures**: receivers switch their HMAC check to the subscription secret Hook0 generates.
+- **Sending**: point your producers at Hook0's `POST /event` API. Run it on [Hook0 Cloud](https://www.hook0.com) or [self-host it](/self-hosting/docker-compose) so the next shutdown is not someone else's call.
 
 ## Pick Hook0 if
 

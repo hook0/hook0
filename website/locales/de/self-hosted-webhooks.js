@@ -11,11 +11,11 @@
 module.exports = {
   "tldr": {
     "h2": "Kurz gesagt",
-    "body": "Du kannst Hook0 auf deiner eigenen Infrastruktur selbst hosten, mit Docker Compose oder Kubernetes, und dabei denselben Code wie die Cloud-Version betreiben, sodass nichts hinter Funktionsschranken liegt. Deine Webhook-Payloads verlassen niemals dein Netzwerk, was CISOs bei Workloads in Gesundheit, Finanzen, Behörden und DSGVO beruhigt. Hook0 ist Open Source unter SSPL-1.0, kommt ohne Telemetrie und ohne Anbieterbindung, denn der Code gehört dir in jedem Fall. Starte im kostenlosen Tarif und wechsle zum Selbst-Hosting, wenn die Datensouveränität es verlangt."
+    "body": "Du kannst Hook0 auf deiner eigenen Infrastruktur selbst hosten, mit Docker Compose oder Kubernetes, und dabei denselben Code wie die Cloud-Version betreiben, sodass nichts hinter Funktionsschranken liegt. Deine Webhook-Payloads verlassen niemals dein Netzwerk, was CISOs bei Workloads in Gesundheit, Finanzen, Behörden und DSGVO beruhigt. Die API und der Output-Worker exportieren Metriken, Traces und Logs über OTLP an den OpenTelemetry Collector, den du schon betreibst, und erst, wenn du einen Endpoint setzt. Hook0 ist Open Source unter SSPL-1.0, kommt ohne Telemetrie und ohne Anbieterbindung, denn der Code gehört dir in jedem Fall. Starte im kostenlosen Tarif und wechsle zum Selbst-Hosting, wenn die Datensouveränität es verlangt."
   },
   pageTitle: 'Selbst-gehostete Webhooks: Hook0 auf deiner Infra',
   pageDescription: 'Hostet Hook0 selbst auf eurer Infrastruktur. Open Source (SSPL-1.0), Docker, Kubernetes, Postgres und S3 unterstützt.',
-  "pageModified": "2026-07-16",
+  "pageModified": "2026-11-25",
   "track": "de-self-hosted",
   "hero": {
     "eyebrow": "Selbst gehostet",
@@ -120,6 +120,10 @@ module.exports = {
       {
         "q": "Verlassen meine Daten mein Netz?",
         "a": "Nein. Beim Selbst-Hosting bleibt alles auf Ihrer eigenen Infrastruktur, ohne Telemetrie, ohne Phone-Home und ohne externe Aufrufe. Das ist der einzige Fall, in dem Webhook-Daten Ihr Netzwerk nie verlassen. Wenn Sie einen verwalteten Dienst bevorzugen, hält Hook0 Cloud seine Datenebene in Frankreich auf Clever Cloud (EU); die vorgelagerte CDN- und DDoS-Schicht stellt Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste."
+      },
+      {
+        "q": "Kann ich selbst gehostetes Hook0 mit OpenTelemetry überwachen?",
+        "a": "Ja. Die API und der Output-Worker exportieren Metriken, Traces und Logs über OTLP (HTTP mit Protobuf-Payloads, gzip-Kompression), sodass jeder OpenTelemetry Collector und jedes OTLP-kompatible Backend sie empfangen kann. Jedes Signal bleibt aus, bis du seinen Endpoint setzt: OTLP_METRICS_ENDPOINT, OTLP_TRACES_ENDPOINT und OTLP_LOGS_ENDPOINT, dazu OTLP_AUTHORIZATION, wenn dein Collector einen Authorization-Header erwartet. Die Daten gehen nur an den Collector, den du konfigurierst. Die Einrichtung steht im <a href=\"https://documentation.hook0.com/self-hosting#observability-with-opentelemetry\">Self-Hosting-Guide</a> (auf Englisch)."
       },
       {
         "q": "Gibt es Support für selbst gehostete Deployments?",
